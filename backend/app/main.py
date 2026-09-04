@@ -484,8 +484,9 @@ class SimEngine:
             if not self.rt.paused:
                 payload = advance_world_lockless(self.rt, self.hub)
                 # BD.1.4 WebSocket Analytics Stream Coalescing — 1 Hz analytics frame piggybacks
-                if payload is not None and isinstance(payload, dict) and payload.get("type") in ("state", "delta_state"):
-                    if getattr(self.rt.sim, "tick", 0) % max(1, int(round(self.rt.speed / 10)) or 10) == 0:
+                if self.hub.clients and payload is not None and isinstance(payload, dict) and payload.get("type") in ("state", "delta_state"):
+                    cadence = max(1, int(round(self.rt.speed)))
+                    if getattr(self.rt.sim, "tick", 0) % cadence == 0:
                         try:
                             payload["analytics"] = _analytics_payload(self.rt.sim)
                         except Exception:

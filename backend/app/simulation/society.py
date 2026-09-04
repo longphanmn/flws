@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 import math
 import operator
 import random
@@ -488,7 +489,7 @@ class SocietyMixin:
                 continue
             neighbours = [
                 b
-                for b, _ in w.query_radius_with_dist_sq(a.x, a.y, cfg.attack_radius)
+                for b in w.query_radius(a.x, a.y, cfg.attack_radius)
                 if b.kind == "creature" and b.id > a.id and b.id not in fallen
             ]
             # §AX P0: early rival rejection — filter kin/non-rivals before assassin
@@ -2178,7 +2179,6 @@ class SocietyMixin:
     def _update_clan_specialization(self) -> None:
         """§P Clan specialization — drift toward warrior/farmer/scavenger."""
         # AF: slice the history deque once before the clan loop; was O(history_len × num_clans)
-        import itertools
         recent = list(itertools.islice(reversed(self.history), 80))
         # AF: build clan→house map from the house cache (avoids entity scan per clan)
         house_by_clan: dict[int, House] = {}

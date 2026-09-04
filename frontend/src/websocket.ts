@@ -111,6 +111,7 @@ export class WorldSocket {
           dams: delta.dams ?? this.lastFullState?.dams ?? [],
           entities: Array.from(this.entitiesMap.values()),
           paused: delta.paused ?? this.lastFullState.paused,
+          analytics: (delta as any).analytics ?? (this.lastFullState as any)?.analytics,
         }
         this.lastFullState = reconstructed
         this.handlers.onState?.(reconstructed)

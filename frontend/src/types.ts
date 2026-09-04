@@ -156,6 +156,7 @@ export interface StateMessage {
   age_day?: number
   age_total_days?: number
   paused?: boolean
+  analytics?: any
 }
 
 export interface DeltaStateMessage {

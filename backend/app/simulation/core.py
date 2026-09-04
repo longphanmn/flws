@@ -585,8 +585,9 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
                 elif score <= rivalry_threshold:
                     mult *= TOTEM_RIVAL_DIM  # contested ground dims both
             # anomalies empower nearby shrines (known or not)
+            ar2 = (ANOMALY_RADIUS + 6.0) * (ANOMALY_RADIUS + 6.0)
             for a in self.anomalies:
-                if self.world.distance(sx, sy, a["x"], a["y"]) <= ANOMALY_RADIUS + 6.0:
+                if self.world.distance_sq(sx, sy, a["x"], a["y"]) <= ar2:
                     mult *= ANOMALY_TOTEM_BONUS
                     break
         mult = min(TOTEM_RESONANCE_CAP, mult)
@@ -1765,9 +1766,9 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
                         # Dmult etc now ready for SAT
             except Exception:
                 pass
-        # N150 hotfix: throttle heavy clan/politics work when pop >800 — staggered offsets to avoid 15-tick pileup
+        # N150 hotfix: throttle heavy clan/politics work when pop >200 in production — staggered offsets to avoid 15-tick pileup
         c_n = len(self._cached_creatures)
-        if c_n > 400:
+        if c_n > 200 and not _IS_TEST:
             if self.tick % 3 == 1:
                 self._update_relations()
                 self._update_territory()

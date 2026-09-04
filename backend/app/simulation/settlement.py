@@ -59,11 +59,19 @@ class SettlementMixin:
 
     def _is_point_inside_any_house(self, x: float, y: float, pad: float = 0.5) -> bool:
         """Check if (x, y) falls inside any non-ruin house structure."""
-        for e in self.world.entities.values():
-            if isinstance(e, House) and not e.is_ruin:
-                half = e.size * 0.5 + pad
-                if abs(x - e.x) < half and abs(y - e.y) < half:
-                    return True
+        houses = self._cached_houses if getattr(self, "_cached_houses", None) else self._functional_houses()
+        for h in houses:
+            if getattr(h, "is_ruin", False):
+                continue
+            half = h.size * 0.5 + pad
+            dx = x - h.x
+            if dx < 0: dx = -dx
+            if dx >= half:
+                continue
+            dy = y - h.y
+            if dy < 0: dy = -dy
+            if dy < half:
+                return True
         return False
 
     def _claim_bed(self, house: House) -> bool:

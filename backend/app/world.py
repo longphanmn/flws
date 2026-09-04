@@ -49,6 +49,13 @@ class World:
         self.cols = max(1, math.ceil(config.width / self.cell_size))
         self.rows = max(1, math.ceil(config.height / self.cell_size))
         self._num_cells = self.cols * self.rows
+        # Precomputed cached geometry constants for hot-path spatial queries
+        self.width = float(config.width)
+        self.height = float(config.height)
+        self.half_width = self.width * 0.5
+        self.half_height = self.height * 0.5
+        self.is_wrap = (config.boundary == "wrap")
+        self.inv_cell_size = 1.0 / self.cell_size if self.cell_size else 1.0
         # AF: pre-allocated cell buckets avoid creating/clearing dict keys and lists per tick
         self._buckets: list[list[Entity]] = [[] for _ in range(self._num_cells)]
 
@@ -70,7 +77,7 @@ class World:
         """Re-bucket all entities; called once per tick."""
         cols = self.cols
         rows = self.rows
-        cs = self.cell_size
+        inv_cs = self.inv_cell_size
         buckets = self._buckets
         for b in buckets:
             b.clear()
@@ -79,61 +86,54 @@ class World:
             # and would bloat buckets 80× (7782 vs 98) at 600k ticks.
             if getattr(e, "is_ruin", False):
                 continue
-            cx = int(e.x // cs) % cols
-            cy = int(e.y // cs) % rows
+            cx = int(e.x * inv_cs) % cols
+            cy = int(e.y * inv_cs) % rows
             buckets[cy * cols + cx].append(e)
 
     def delta(self, ax: float, ay: float, bx: float, by: float) -> tuple[float, float]:
         """Shortest displacement from b to a, honouring wrap-around edges."""
         dx = ax - bx
         dy = ay - by
-        if self.config.boundary == "wrap":
-            w = self.config.width
-            h = self.config.height
-            half_w = w * 0.5
-            half_h = h * 0.5
-            if dx > half_w:
-                dx -= w
-            elif dx < -half_w:
-                dx += w
-            if dy > half_h:
-                dy -= h
-            elif dy < -half_h:
-                dy += h
+        if self.is_wrap:
+            hw = self.half_width
+            hh = self.half_height
+            if dx > hw:
+                dx -= self.width
+            elif dx < -hw:
+                dx += self.width
+            if dy > hh:
+                dy -= self.height
+            elif dy < -hh:
+                dy += self.height
         return dx, dy
 
     def distance(self, ax: float, ay: float, bx: float, by: float) -> float:
         dx = ax - bx
         dy = ay - by
-        if self.config.boundary == "wrap":
-            w = self.config.width
-            h = self.config.height
-            half_w = w * 0.5
-            half_h = h * 0.5
-            if dx > half_w:
-                dx -= w
-            elif dx < -half_w:
-                dx += w
-            if dy > half_h:
-                dy -= h
-            elif dy < -half_h:
-                dy += h
+        if self.is_wrap:
+            hw = self.half_width
+            hh = self.half_height
+            if dx > hw:
+                dx -= self.width
+            elif dx < -hw:
+                dx += self.width
+            if dy > hh:
+                dy -= self.height
+            elif dy < -hh:
+                dy += self.height
         return math.hypot(dx, dy)
 
     def distance_sq(self, ax: float, ay: float, bx: float, by: float) -> float:
-        """Wrap-aware squared distance — for threshold tests without sqrt or tuple allocation.
-        AY M-2: uses compiled C when available (cached flag, no per-call import)."""
-        if _HAS_NATIVE and _native_toroidal_dist_sq is not None:  # type: ignore
-            return _native_toroidal_dist_sq(ax, ay, bx, by, self.config.width, self.config.height, self.config.boundary == "wrap")  # type: ignore
-        dx = abs(ax - bx)
-        dy = abs(ay - by)
-        if self.config.boundary == "wrap":
-            w = self.config.width
-            h = self.config.height
-            if dx > w * 0.5:
-                dx -= w
-            if dy > h * 0.5:
-                dy -= h
+        """Wrap-aware squared distance — for threshold tests without sqrt or tuple allocation."""
+        dx = ax - bx
+        if dx < 0: dx = -dx
+        dy = ay - by
+        if dy < 0: dy = -dy
+        if self.is_wrap:
+            if dx > self.half_width:
+                dx -= self.width
+            if dy > self.half_height:
+                dy -= self.height
         return dx * dx + dy * dy
 
     def query_radius(self, x: float, y: float, radius: float) -> list[Entity]:
@@ -143,24 +143,22 @@ class World:
         AF: inlined squared distance check eliminates math.hypot / math.sqrt and tuple allocation overhead.
         PERF: locals-hoisted hot path — identical math and visit order.
         """
-        cs = self.cell_size
+        inv_cs = self.inv_cell_size
         r2 = radius * radius
         cols = self.cols
         rows = self.rows
         buckets = self._buckets
-        w = self.config.width
-        h = self.config.height
-        half_w = w * 0.5
-        half_h = h * 0.5
-        is_wrap = self.config.boundary == "wrap"
+        w = self.width
+        h = self.height
+        half_w = self.half_width
+        half_h = self.half_height
         res: list[Entity] = []
         res_append = res.append
 
-        if is_wrap:
-            cx_center = int(x // cs) % cols if cols else 0
-            cy_center = int(y // cs) % rows if rows else 0
-            # AZ fix: use ceil to ensure wrap neighbors are not missed (radius 15 / 16 → 1 → missed cell 5 at width 100)
-            rx = math.ceil(radius / cs) + 1 if cs else 1
+        if self.is_wrap:
+            cx_center = int(x * inv_cs) % cols if cols else 0
+            cy_center = int(y * inv_cs) % rows if rows else 0
+            rx = int(radius * inv_cs) + 2
             ry = rx
             need_seen = (rx * 2 + 1 >= cols) or (ry * 2 + 1 >= rows)
             if need_seen:
@@ -176,9 +174,11 @@ class World:
                             edx = x - e.x
                             if edx < 0: edx = -edx
                             if edx > half_w: edx -= w
+                            if edx > radius: continue
                             edy = y - e.y
                             if edy < 0: edy = -edy
                             if edy > half_h: edy -= h
+                            if edy > radius: continue
                             if edx * edx + edy * edy <= r2:
                                 res_append(e)
                 return res
@@ -190,20 +190,22 @@ class World:
                         edx = x - e.x
                         if edx < 0: edx = -edx
                         if edx > half_w: edx -= w
+                        if edx > radius: continue
                         edy = y - e.y
                         if edy < 0: edy = -edy
                         if edy > half_h: edy -= h
+                        if edy > radius: continue
                         if edx * edx + edy * edy <= r2:
                             res_append(e)
             return res
         # clamp: no wrap
-        x0 = int((x - radius) // cs)
+        x0 = int((x - radius) * inv_cs)
         if x0 < 0: x0 = 0
-        x1 = int((x + radius) // cs)
+        x1 = int((x + radius) * inv_cs)
         if x1 >= cols: x1 = cols - 1
-        y0 = int((y - radius) // cs)
+        y0 = int((y - radius) * inv_cs)
         if y0 < 0: y0 = 0
-        y1 = int((y + radius) // cs)
+        y1 = int((y + radius) * inv_cs)
         if y1 >= rows: y1 = rows - 1
         for cy in range(y0, y1 + 1):
             row_off = cy * cols
@@ -217,23 +219,22 @@ class World:
 
     def query_radius_with_dist_sq(self, x: float, y: float, radius: float) -> list[tuple[Entity, float]]:
         """Return list of (entity, dist_sq) within `radius` of (x, y) without recomputing distances."""
-        cs = self.cell_size
+        inv_cs = self.inv_cell_size
         r2 = radius * radius
         cols = self.cols
         rows = self.rows
         buckets = self._buckets
-        w = self.config.width
-        h = self.config.height
-        half_w = w * 0.5
-        half_h = h * 0.5
-        is_wrap = self.config.boundary == "wrap"
+        w = self.width
+        h = self.height
+        half_w = self.half_width
+        half_h = self.half_height
         res: list[tuple[Entity, float]] = []
         res_append = res.append
 
-        if is_wrap:
-            cx_center = int(x // cs) % cols if cols else 0
-            cy_center = int(y // cs) % rows if rows else 0
-            rx = math.ceil(radius / cs) + 1 if cs else 1
+        if self.is_wrap:
+            cx_center = int(x * inv_cs) % cols if cols else 0
+            cy_center = int(y * inv_cs) % rows if rows else 0
+            rx = int(radius * inv_cs) + 2
             ry = rx
             need_seen = (rx * 2 + 1 >= cols) or (ry * 2 + 1 >= rows)
 
@@ -250,9 +251,11 @@ class World:
                             edx = x - e.x
                             if edx < 0: edx = -edx
                             if edx > half_w: edx -= w
+                            if edx > radius: continue
                             edy = y - e.y
                             if edy < 0: edy = -edy
                             if edy > half_h: edy -= h
+                            if edy > radius: continue
                             d2 = edx * edx + edy * edy
                             if d2 <= r2:
                                 res_append((e, d2))
@@ -265,9 +268,11 @@ class World:
                         edx = x - e.x
                         if edx < 0: edx = -edx
                         if edx > half_w: edx -= w
+                        if edx > radius: continue
                         edy = y - e.y
                         if edy < 0: edy = -edy
                         if edy > half_h: edy -= h
+                        if edy > radius: continue
                         d2 = edx * edx + edy * edy
                         if d2 <= r2:
                             res_append((e, d2))

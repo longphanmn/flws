@@ -342,6 +342,9 @@ class EnvironmentMixin:
             self._elev_c_buf = (ctypes.c_float * len(self.elev_grid))(*self.elev_grid)
         except Exception:
             self._elev_c_buf = None
+        # Precalculate dimension ratios for hot-path bilinear interpolation
+        self._elev_inv_w_cols = self._elev_cols / max(self.config.width, 1.0)
+        self._elev_inv_h_rows = self._elev_rows / max(self.config.height, 1.0)
         # PERF (no logic change): python bilinear is faster than a ctypes
         # round-trip per call (13.6k calls/tick); keep the native symbol only
         # as an emergency fallback. Same math, deterministic.
@@ -361,10 +364,16 @@ class EnvironmentMixin:
         cols = self._elev_cols
         rows = self._elev_rows
         grid = self.elev_grid
-        gx = x / self.config.width * cols - 0.5
-        gy = y / self.config.height * rows - 0.5
-        c0 = math.floor(gx)
-        r0 = math.floor(gy)
+        inv_w = getattr(self, "_elev_inv_w_cols", None)
+        if inv_w is None:
+            inv_w = cols / max(self.config.width, 1.0)
+            self._elev_inv_w_cols = inv_w
+            self._elev_inv_h_rows = rows / max(self.config.height, 1.0)
+        inv_h = self._elev_inv_h_rows
+        gx = x * inv_w - 0.5
+        gy = y * inv_h - 0.5
+        c0 = int(gx) if gx >= 0 else int(gx) - 1
+        r0 = int(gy) if gy >= 0 else int(gy) - 1
         fx = gx - c0
         fy = gy - r0
         cc0 = 0 if c0 < 0 else (cols - 1 if c0 > cols - 1 else c0)
@@ -382,8 +391,13 @@ class EnvironmentMixin:
     def _elev_cell_units(self, x: float, y: float) -> float:
         """Nearest-cell height in world-units — the RAW terraced field, used
         only for cliff detection: a cell-boundary drop this steep is a cliff."""
-        col = min(self._elev_cols - 1, max(0, int(x / self.config.width * self._elev_cols)))
-        row = min(self._elev_rows - 1, max(0, int(y / self.config.height * self._elev_rows)))
+        inv_w = getattr(self, "_elev_inv_w_cols", None)
+        if inv_w is None:
+            inv_w = self._elev_cols / max(self.config.width, 1.0)
+            self._elev_inv_w_cols = inv_w
+            self._elev_inv_h_rows = self._elev_rows / max(self.config.height, 1.0)
+        col = min(self._elev_cols - 1, max(0, int(x * inv_w)))
+        row = min(self._elev_rows - 1, max(0, int(y * self._elev_inv_h_rows)))
         return self.elev_grid[row * self._elev_cols + col] * ELEV_MAX_HEIGHT
 
     def _elev_units(self, x: float, y: float) -> float:
