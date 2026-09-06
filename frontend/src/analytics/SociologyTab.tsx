@@ -48,8 +48,8 @@ export default function SociologyTab({ data }: Props) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {/* Power Concentration & Wealth Inequality Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 8, minWidth: 0 }}>
+      {/* 6 Stats: 3 rows with 2 columns on web desktop */}
+      <div className="analytics-grid-2col">
         <MetricCard
           title={t('analytics.society.hhi_title')}
           value={hhi.toFixed(3)}
@@ -85,10 +85,6 @@ export default function SociologyTab({ data }: Props) {
           icon="⚔️"
           hint={t('analytics.society.war_hint')}
         />
-      </div>
-
-      {/* Trade & Commerce */}
-      <div className="analytics-grid-2col">
         <MetricCard
           title={t('analytics.society.trade_markets_title')}
           value={marketCount}
