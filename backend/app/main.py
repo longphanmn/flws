@@ -184,12 +184,15 @@ class RuntimeState:
         self._tick_times: list[float] = []  # monotonic timestamps of last 300 ticks
         self._tick_durs: list[float] = []  # durations (ms) of last 300 steps
         self._tick_creature_counts: list[int] = []  # creature count at each tick
-        # 120-minute rollup for the /healthz tick graph (high-res ring above
-        # covers only ~30s at 10 TPS). One bucket per wall-clock minute.
+        # Whole world session tracking for /healthz & diagnostics
+        self.session_started_at: float = time.time()
+        self.session_start_tick: int = 0
+        # Session rollup: stores per-minute stats covering the entire world session (up to 7 days = 10,080 min).
+        # One bucket per wall-clock minute.
         from collections import deque as _deque
 
-        self._tick_min_cur: list = [0, 0, 0.0, 0.0, 0, 0]  # [min_key, n, sum_ms, max_ms, sum_pop, overruns]
-        self._tick_minutes: _deque = _deque(maxlen=180)  # finalized minute dicts, oldest first
+        self._tick_min_cur: list = [0, 0, 0.0, 0.0, 0, 0, 0, 0]  # [min_key, n, sum_ms, max_ms, sum_pop, overruns, sum_food, last_tick]
+        self._tick_minutes: _deque = _deque(maxlen=10080)  # finalized minute dicts, oldest first (7-day capacity)
 
 
 CONFIG = Config.from_env()
@@ -234,12 +237,58 @@ def _on_event(e) -> None:
         DB.log_death(wid, e.entity_id, e.tick)
 
 
+def parse_range_minutes(range_str: str | None, default_minutes: int | None = None) -> int | None:
+    if not range_str:
+        return default_minutes
+    s = range_str.strip().lower()
+    if s in ("all", "session", "full", "max", "world"):
+        return None
+    if s.endswith("m") and s[:-1].isdigit():
+        return int(s[:-1])
+    if s.endswith("h") and s[:-1].isdigit():
+        return int(s[:-1]) * 60
+    if s.endswith("d") and s[:-1].isdigit():
+        return int(s[:-1]) * 1440
+    if s.isdigit():
+        return int(s)
+    return default_minutes
+
+
+def _get_process_memory_mb() -> float:
+    try:
+        import resource
+        import sys
+        rusage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        if sys.platform == "darwin":
+            return round(rusage / (1024 * 1024), 1)
+        else:
+            return round(rusage / 1024, 1)
+    except Exception:
+        return 0.0
+
+
+def _format_uptime(seconds: float) -> str:
+    secs = int(max(0, seconds))
+    days, secs = divmod(secs, 86400)
+    hours, secs = divmod(secs, 3600)
+    mins, secs = divmod(secs, 60)
+    parts = []
+    if days > 0:
+        parts.append(f"{days}d")
+    if hours > 0 or days > 0:
+        parts.append(f"{hours}h")
+    if mins > 0 or hours > 0 or days > 0:
+        parts.append(f"{mins}m")
+    parts.append(f"{secs}s")
+    return " ".join(parts)
+
+
 # --------------------------------------------------------------------- loop
 def _roll_minute(rt: RuntimeState, dur_ms: float, pop: int, interval_ms: float) -> None:
     """Fold one tick sample into the per-minute /healthz rollup.
 
     Caller must hold rt.lock. Buckets finalize on minute rollover into
-    rt._tick_minutes (180-min cap, oldest first). The in-progress minute is
+    rt._tick_minutes (10,080-min / 7-day cap, oldest first). The in-progress minute is
     exposed separately so the GUI graph always reaches "now".
     """
     try:
@@ -247,6 +296,8 @@ def _roll_minute(rt: RuntimeState, dur_ms: float, pop: int, interval_ms: float) 
         cur = rt._tick_min_cur
         if cur[0] != key:
             if cur[1] > 0:
+                food_val = round(cur[6] / cur[1], 1) if len(cur) > 6 else 0
+                tick_val = cur[7] if len(cur) > 7 else (rt.sim.tick if hasattr(rt, "sim") else 0)
                 rt._tick_minutes.append({
                     "t": cur[0] * 60,
                     "n": cur[1],
@@ -254,6 +305,9 @@ def _roll_minute(rt: RuntimeState, dur_ms: float, pop: int, interval_ms: float) 
                     "max_ms": round(cur[3], 2),
                     "avg_pop": round(cur[4] / cur[1], 1),
                     "overruns": cur[5],
+                    "avg_food": food_val,
+                    "tick": tick_val,
+                    "tps": round(cur[1] / 60.0, 2),
                 })
             cur[0] = key
             cur[1] = 0
@@ -261,6 +315,9 @@ def _roll_minute(rt: RuntimeState, dur_ms: float, pop: int, interval_ms: float) 
             cur[3] = 0.0
             cur[4] = 0
             cur[5] = 0
+            if len(cur) > 6:
+                cur[6] = 0
+                cur[7] = 0
         cur[1] += 1
         cur[2] += dur_ms
         if dur_ms > cur[3]:
@@ -268,16 +325,24 @@ def _roll_minute(rt: RuntimeState, dur_ms: float, pop: int, interval_ms: float) 
         cur[4] += pop
         if dur_ms > interval_ms * 1.2:
             cur[5] += 1
+        if len(cur) > 6:
+            food_cnt = len(rt.sim._cached_foods) if (hasattr(rt, "sim") and getattr(rt.sim, "_cached_foods", None) is not None) else 0
+            cur[6] += food_cnt
+            cur[7] = rt.sim.tick if hasattr(rt, "sim") else 0
     except Exception:
         pass
 
 
-def _minute_history(rt: RuntimeState) -> list[dict]:
+def _minute_history(rt: RuntimeState, minutes: int | None = None) -> list[dict]:
     """Finalized minute buckets + the in-progress minute (JSON-ready)."""
     try:
         out = list(rt._tick_minutes)
         cur = rt._tick_min_cur
         if cur[1] > 0:
+            food_val = round(cur[6] / cur[1], 1) if len(cur) > 6 else 0
+            tick_val = cur[7] if len(cur) > 7 else (rt.sim.tick if hasattr(rt, "sim") else 0)
+            now_sec = time.time()
+            elapsed_in_min = max(1.0, now_sec - (cur[0] * 60))
             out.append({
                 "t": cur[0] * 60,
                 "n": cur[1],
@@ -285,9 +350,14 @@ def _minute_history(rt: RuntimeState) -> list[dict]:
                 "max_ms": round(cur[3], 2),
                 "avg_pop": round(cur[4] / cur[1], 1),
                 "overruns": cur[5],
+                "avg_food": food_val,
+                "tick": tick_val,
+                "tps": round(cur[1] / elapsed_in_min, 2),
                 "partial": True,
             })
-        return out[-180:]
+        if minutes is not None and minutes > 0:
+            return out[-minutes:]
+        return out
     except Exception:
         return []
 
@@ -2429,7 +2499,14 @@ async def ws_endpoint(ws: WebSocket) -> None:
 
 # --------------------------------------------------------------------- rest
 @app.get("/healthz")
-async def healthz() -> dict:
+async def healthz(
+    range: str | None = None,
+    minutes: int | None = None,
+) -> dict:
+    req_mins = minutes
+    if req_mins is None and range is not None:
+        req_mins = parse_range_minutes(range)
+
     # True rate from ring buffer (wall-clock)
     avg_dur = round(sum(RT._tick_durs) / len(RT._tick_durs), 2) if RT._tick_durs else 0.0
     max_dur = round(max(RT._tick_durs), 2) if RT._tick_durs else 0.0
@@ -2438,32 +2515,152 @@ async def healthz() -> dict:
         span = RT._tick_times[-1] - RT._tick_times[0]
         if span > 0:
             actual_tps = round((len(RT._tick_times) - 1) / span, 2)
+
+    sim = getattr(RT, "sim", None)
+    now = time.time()
+    uptime_sec = round(now - getattr(RT, "session_started_at", now), 1)
+
+    alive_creatures = (
+        len(sim._cached_creatures)
+        if (sim and getattr(sim, "_cached_creatures", None) is not None)
+        else (len(sim.world.creatures()) if sim else 0)
+    )
+    food_count = (
+        len(sim._cached_foods)
+        if (sim and getattr(sim, "_cached_foods", None) is not None)
+        else 0
+    )
+    houses_count = (
+        len(sim._cached_houses)
+        if (sim and getattr(sim, "_cached_houses", None) is not None)
+        else 0
+    )
+    clans_count = len(sim.clans) if (sim and hasattr(sim, "clans")) else 0
+    deaths_count = getattr(sim, "deaths", 0) if sim else 0
+    infected_count = (
+        sum(1 for c in sim._cached_creatures if getattr(c, "infected", False))
+        if (sim and getattr(sim, "_cached_creatures", None))
+        else 0
+    )
+
+    caste_counts: dict[str, int] = {}
+    if sim and getattr(sim, "_cached_creatures", None):
+        for c in sim._cached_creatures:
+            k = getattr(c, "caste", "Unknown") or "Unknown"
+            caste_counts[k] = caste_counts.get(k, 0) + 1
+
+    sg_active = (
+        bool(sim._is_safeguard_active(alive_creatures))
+        if (sim and hasattr(sim, "_is_safeguard_active"))
+        else False
+    )
+    sg_eta = round(float(getattr(sim, "_safeguard_eta", 0.0) or 0.0), 3) if sim else 0.0
+    sg_tier = int(getattr(sim, "_safeguard_tier", 0) or 0) if sim else 0
+    sc_active = (
+        bool(sim._is_softcap_active(alive_creatures))
+        if (sim and hasattr(sim, "_is_softcap_active"))
+        else False
+    )
+    sc_xi = round(float(getattr(sim, "_density_xi", 0.0) or 0.0), 3) if sim else 0.0
+
+    interval_ms = round(1000.0 / max(RT.speed, MIN_SPEED), 1)
+    is_overrun = avg_dur > interval_ms * 1.1
+
+    status_str = "live"
+    if RT.last_tick_error:
+        status_str = "error"
+    elif RT.paused:
+        status_str = "paused"
+    elif is_overrun:
+        status_str = "overrun"
+
+    hist_range = _minute_history(RT, req_mins)
+    hist_120 = _minute_history(RT, 120)
+    total_session_minutes = len(RT._tick_minutes) + (1 if RT._tick_min_cur[1] > 0 else 0)
+    total_overruns = sum(m.get("overruns", 0) for m in RT._tick_minutes) + (RT._tick_min_cur[5] if len(RT._tick_min_cur) > 5 else 0)
+
     out: dict = {
         "ok": True,
-        "tick": RT.sim.tick,
+        "status": status_str,
+        "tick": sim.tick if sim else 0,
         "paused": RT.paused,
-        "speed_target": RT.speed,        "actual_tps": actual_tps,
+        "speed_target": RT.speed,
+        "actual_tps": actual_tps,
         "avg_tick_ms": avg_dur,
         "max_tick_ms": max_dur,
-        "interval_ms": round(1000.0 / max(RT.speed, MIN_SPEED), 1),
+        "interval_ms": interval_ms,
         "clients": len(HUB.clients),
-        "db_pending": DB.pending,  # §AD ops still in the RAM log
+        "db_pending": DB.pending,
         "tick_failures": RT.tick_failures,
-        "creatures": len(RT.sim._cached_creatures) if getattr(RT.sim, "_cached_creatures", None) is not None else len(RT.sim.world.creatures()),
-        # BJ-6: tick-budget regression data — per-subsystem last-tick ms +
-        # rolling averages + dev/N150 budgets (45ms dev ≈ 85ms N150).
-        "subsystems_ms": dict(getattr(RT.sim, "_phase_ms", {}) or {}),
-        "subsystems_avg_ms": RT.sim.phase_averages() if hasattr(RT.sim, "phase_averages") else {},
+        "creatures": alive_creatures,
+        "deaths": deaths_count,
+        "food_count": food_count,
+        "houses_count": houses_count,
+        "clans_count": clans_count,
+        "infected_count": infected_count,
+        "castes": caste_counts,
+
+        # World & Session
+        "world_id": RT.world_id,
+        "seed": getattr(RT.config, "seed", 0),
+        "preset": RT.current_preset,
+        "uptime_seconds": uptime_sec,
+        "uptime": _format_uptime(uptime_sec),
+        "session_start_time": getattr(RT, "session_started_at", now),
+        "session_start_tick": getattr(RT, "session_start_tick", 0),
+        "session_ticks": (sim.tick - getattr(RT, "session_start_tick", 0)) if sim else 0,
+        "session_minutes_total": total_session_minutes,
+        "day": getattr(sim, "day", 1) if sim else 1,
+        "season": sim._season() if (sim and hasattr(sim, "_season")) else "spring",
+        "time_of_day": round(sim._time_of_day(), 3) if (sim and hasattr(sim, "_time_of_day")) else 0.25,
+        "weather": getattr(sim, "weather", "clear") if sim else "clear",
+        "age": sim._age() if (sim and hasattr(sim, "_age")) else None,
+
+        # Regulation
+        "safeguard_active": sg_active,
+        "safeguard_eta": sg_eta,
+        "safeguard_tier": sg_tier,
+        "softcap_active": sc_active,
+        "softcap_xi": sc_xi,
+
+        # System & resources
+        "memory_mb": _get_process_memory_mb(),
+        "threads": threading.active_count(),
+        "total_overruns": total_overruns,
+        "pid": os.getpid(),
+
+        # Subsystem timings & budget
+        "subsystems_ms": dict(getattr(sim, "_phase_ms", {}) or {}) if sim else {},
+        "subsystems_avg_ms": sim.phase_averages() if (sim and hasattr(sim, "phase_averages")) else {},
         "tick_budget": {"dev_ms": 45.0, "n150_ms": 85.0, "mean_ms": avg_dur},
-        # 120-minute per-minute rollup for the frontend health page graph.
-        "history_120m": _minute_history(RT),
+
+        # Rollups
+        "history_120m": hist_120,
+        "history": hist_range,
+        "range": range or (f"{req_mins}m" if req_mins else "all"),
     }
     if RT.last_tick_error:
         out["ok"] = False
         out["last_tick_error"] = RT.last_tick_error
-    if avg_dur > out["interval_ms"] * 1.1:
+    if is_overrun:
         out["overrun"] = True
     return out
+
+
+@app.get("/health", response_class=HTMLResponse)
+@app.get("/health.html", response_class=HTMLResponse)
+async def health_dashboard() -> HTMLResponse:
+    candidates = [
+        Path(__file__).resolve().parent.parent.parent / "frontend" / "public" / "health.html",
+        Path(__file__).resolve().parent.parent.parent / "frontend" / "dist" / "health.html",
+        Path("/root/app/fl/frontend/public/health.html"),
+        Path("/root/app/fl/frontend/dist/health.html"),
+        Path("frontend/public/health.html"),
+    ]
+    for p in candidates:
+        if p.is_file():
+            return HTMLResponse(p.read_text(encoding="utf-8"))
+    return HTMLResponse("<h1>Health page not found</h1>", status_code=404)
 
 
 @app.get("/api/perf/telemetry")

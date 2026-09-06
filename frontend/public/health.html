@@ -3,119 +3,694 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Flatland Health</title>
+<title>Flatland Health Dashboard</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
-  body { margin: 0; background: #0d1117; color: #e6edf3; font: 14px/1.45 -apple-system, "Segoe UI", Roboto, sans-serif; }
-  header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid #21262d; }
-  header h1 { font-size: 17px; margin: 0; font-weight: 650; }
-  header .sub { color: #8b949e; font-size: 12px; }
-  .pill { padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: .04em; }
-  .pill.ok { background: #1a472a; color: #7ee787; }
-  .pill.warn { background: #4d2c00; color: #ffa657; }
-  .pill.bad { background: #5a1a1a; color: #ff7b72; }
-  main { max-width: 1080px; margin: 0 auto; padding: 16px 20px 40px; }
-  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 14px 0; }
-  .card { background: #161b22; border: 1px solid #21262d; border-radius: 10px; padding: 10px 12px; }
-  .card .k { color: #8b949e; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
-  .card .v { font-size: 20px; font-weight: 650; font-variant-numeric: tabular-nums; }
-  .card .v small { font-size: 12px; color: #8b949e; font-weight: 400; }
-  section.panel { background: #161b22; border: 1px solid #21262d; border-radius: 10px; padding: 12px 14px; margin: 12px 0; }
-  section.panel h2 { margin: 0 0 4px; font-size: 13px; color: #8b949e; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
-  section.panel h2 .r { float: right; font-weight: 400; text-transform: none; letter-spacing: 0; }
-  canvas { width: 100%; height: 220px; display: block; }
-  canvas.mini { height: 110px; }
-  #tip { position: fixed; pointer-events: none; background: #0d1117ee; border: 1px solid #30363d; border-radius: 8px; padding: 6px 10px; font-size: 12px; display: none; z-index: 9; font-variant-numeric: tabular-nums; }
-  .bars div.row { display: grid; grid-template-columns: 150px 1fr 90px; gap: 8px; align-items: center; margin: 5px 0; font-size: 12px; }
-  .bars .track { background: #0d1117; border-radius: 5px; height: 10px; position: relative; overflow: hidden; }
-  .bars .fill { background: #58a6ff; height: 100%; border-radius: 5px; }
-  .bars .num { text-align: right; font-variant-numeric: tabular-nums; color: #8b949e; }
-  footer { color: #8b949e; font-size: 12px; padding: 8px 0; }
-  footer a { color: #58a6ff; }
-  .err { background: #5a1a1a; border: 1px solid #8b2020; border-radius: 10px; padding: 10px 14px; margin: 12px 0; display: none; }
+  body {
+    margin: 0;
+    background: #0d1117;
+    color: #e6edf3;
+    font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid #21262d;
+    background: #161b22;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  header h1 {
+    font-size: 16px;
+    margin: 0;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+  header .sub {
+    color: #8b949e;
+    font-size: 12px;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .pill.ok { background: #1a472a; color: #7ee787; border: 1px solid #238636; }
+  .pill.warn { background: #4d2c00; color: #ffa657; border: 1px solid #9e6a03; }
+  .pill.bad { background: #5a1a1a; color: #ff7b72; border: 1px solid #da3633; }
+  .pill.idle { background: #21262d; color: #8b949e; border: 1px solid #30363d; }
+  .pill-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .btn {
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #c9d1d9;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+  }
+  .btn:hover {
+    background: #30363d;
+    color: #f0f6fc;
+    border-color: #8b949e;
+  }
+  .btn-primary {
+    background: #1f6feb;
+    border-color: #388bfd;
+    color: #ffffff;
+  }
+  .btn-primary:hover {
+    background: #388bfd;
+  }
+
+  main {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 16px 20px 40px;
+  }
+
+  /* Range selector toolbar */
+  .range-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    padding: 8px 12px;
+    margin: 12px 0 16px;
+  }
+  .range-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .range-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #8b949e;
+    margin-right: 6px;
+    font-weight: 600;
+  }
+  .btn-range {
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #8b949e;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-range:hover {
+    background: #30363d;
+    color: #e6edf3;
+  }
+  .btn-range.active {
+    background: #1f6feb;
+    color: #ffffff;
+    border-color: #58a6ff;
+    box-shadow: 0 0 0 1px #58a6ff;
+  }
+  .range-meta {
+    font-size: 12px;
+    color: #8b949e;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Sections & Cards */
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #8b949e;
+    margin: 18px 0 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .card {
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    padding: 10px 12px;
+    transition: border-color 0.15s ease;
+  }
+  .card:hover {
+    border-color: #30363d;
+  }
+  .card .k {
+    color: #8b949e;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card .v {
+    font-size: 20px;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.25;
+  }
+  .card .v small {
+    font-size: 12px;
+    color: #8b949e;
+    font-weight: 400;
+  }
+  .card .subtext {
+    font-size: 11px;
+    color: #8b949e;
+    margin-top: 3px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Demographics caste pill strip */
+  .castes-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 14px;
+    align-items: center;
+  }
+  .caste-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 11px;
+    color: #c9d1d9;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Panels & Charts */
+  section.panel {
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin: 14px 0;
+  }
+  section.panel h2 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    color: #8b949e;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  section.panel h2 .r {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 12px;
+    color: #8b949e;
+  }
+  .chart-legend {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 11px;
+    font-weight: normal;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .legend-color {
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+  }
+
+  canvas {
+    width: 100%;
+    height: 220px;
+    display: block;
+  }
+  canvas.mini {
+    height: 140px;
+  }
+
+  #tip {
+    position: fixed;
+    pointer-events: none;
+    background: #0d1117fa;
+    border: 1px solid #30363d;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    display: none;
+    z-index: 99;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.5;
+  }
+
+  /* Bars */
+  .bars div.row {
+    display: grid;
+    grid-template-columns: 160px 1fr 110px;
+    gap: 8px;
+    align-items: center;
+    margin: 5px 0;
+    font-size: 12px;
+  }
+  .bars .track {
+    background: #0d1117;
+    border-radius: 5px;
+    height: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  .bars .fill {
+    background: #58a6ff;
+    height: 100%;
+    border-radius: 5px;
+  }
+  .bars .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: #8b949e;
+  }
+
+  footer {
+    color: #8b949e;
+    font-size: 12px;
+    padding: 16px 0 8px;
+    border-top: 1px solid #21262d;
+    margin-top: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  footer a {
+    color: #58a6ff;
+    text-decoration: none;
+  }
+  footer a:hover {
+    text-decoration: underline;
+  }
+  .err {
+    background: #5a1a1a;
+    border: 1px solid #8b2020;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin: 12px 0;
+    display: none;
+    color: #ff7b72;
+    font-size: 13px;
+  }
 </style>
 </head>
 <body>
+
 <header>
-  <span id="pill" class="pill ok">…</span>
-  <h1>Flatland Health</h1>
-  <span class="sub" id="subtitle">tick engine · same-port status UI</span>
+  <div class="header-left">
+    <span id="pill" class="pill idle"><span class="pill-dot"></span>…</span>
+    <div>
+      <h1>Flatland Health</h1>
+      <span class="sub" id="subtitle">connecting to engine…</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <button id="btn-refresh" class="btn" title="Refresh now">↻ Refresh</button>
+    <a href="/" class="btn btn-primary" title="Open Simulation">Open World ↗</a>
+  </div>
 </header>
+
 <main>
   <div class="err" id="err"></div>
-  <div class="cards" id="cards"></div>
 
+  <!-- Time Range Switcher -->
+  <div class="range-bar">
+    <div class="range-group">
+      <span class="range-label">Time Range:</span>
+      <button class="btn-range" data-range="15m">15m</button>
+      <button class="btn-range" data-range="30m">30m</button>
+      <button class="btn-range" data-range="1h">1h</button>
+      <button class="btn-range" data-range="3h">3h</button>
+      <button class="btn-range" data-range="6h">6h</button>
+      <button class="btn-range" data-range="12h">12h</button>
+      <button class="btn-range" data-range="24h">24h</button>
+      <button class="btn-range" data-range="all">All Session</button>
+    </div>
+    <div class="range-meta" id="range-meta">Loading history…</div>
+  </div>
+
+  <!-- Performance & Engine -->
+  <div class="section-title">
+    <span>Engine & Performance</span>
+    <span id="uptime-label">Uptime: —</span>
+  </div>
+  <div class="cards-grid" id="cards-perf"></div>
+
+  <!-- World & Ecology -->
+  <div class="section-title">
+    <span>Ecology & Demographics</span>
+    <span id="climate-label">Climate: —</span>
+  </div>
+  <div class="cards-grid" id="cards-eco"></div>
+
+  <!-- Castes strip -->
+  <div class="castes-strip" id="castes-strip" style="display: none;"></div>
+
+  <!-- Regulation & Diagnostics -->
+  <div class="section-title">
+    <span>Active Regulation & Resources</span>
+    <span id="regulation-label">Safeguard / Softcap</span>
+  </div>
+  <div class="cards-grid" id="cards-reg"></div>
+
+  <!-- Chart 1: Tick Performance -->
   <section class="panel">
-    <h2>Tick time — last 120 min <span class="r" id="grange"></span></h2>
+    <h2>
+      <span>Tick Execution Time <span id="chart-range-label" style="text-transform: none; color: #c9d1d9;"></span></span>
+      <div class="chart-legend">
+        <span class="legend-item"><span class="legend-color" style="background:#58a6ff;"></span> Avg ms</span>
+        <span class="legend-item"><span class="legend-color" style="background:#484f58;"></span> Max spike</span>
+        <span class="legend-item"><span class="legend-color" style="background:#7ee787;"></span> Budget</span>
+        <span class="legend-item"><span class="legend-color" style="background:#ff7b72;"></span> Overrun</span>
+      </div>
+    </h2>
     <canvas id="g" width="1000" height="220"></canvas>
   </section>
 
+  <!-- Chart 2: Ecosystem Dynamics -->
   <section class="panel">
-    <h2>Population — last 120 min</h2>
-    <canvas id="gp" class="mini" width="1000" height="110"></canvas>
+    <h2>
+      <span>Ecosystem Dynamics <span style="text-transform: none; color: #8b949e;">(Population vs Food Resources)</span></span>
+      <div class="chart-legend">
+        <span class="legend-item"><span class="legend-color" style="background:#3fb950;"></span> Population</span>
+        <span class="legend-item"><span class="legend-color" style="background:#e3b341;"></span> Food / Plants</span>
+      </div>
+    </h2>
+    <canvas id="gp" class="mini" width="1000" height="140"></canvas>
   </section>
 
+  <!-- Subsystems Breakdown -->
   <section class="panel">
-    <h2>Subsystems <span class="r">last tick / rolling avg (ms)</span></h2>
+    <h2>Subsystem Execution Profile <span class="r">last tick / rolling avg (ms)</span></h2>
     <div class="bars" id="bars"></div>
   </section>
 
   <footer>
-    auto-refreshes every 5s · raw JSON: <a href="/healthz">/healthz</a> ·
-    perf: <a href="/api/perf/telemetry">/api/perf/telemetry</a> ·
-    api docs: <a href="/docs">/docs</a>
+    <div>
+      Auto-refreshes every 5s ·
+      raw API: <a href="/healthz" target="_blank">/healthz</a> ·
+      telemetry: <a href="/api/perf/telemetry" target="_blank">/api/perf/telemetry</a> ·
+      docs: <a href="/docs" target="_blank">/docs</a>
+    </div>
+    <div id="footer-meta">Flatland World Engine</div>
   </footer>
 </main>
+
 <div id="tip"></div>
+
 <script>
 (function () {
   "use strict";
-  var g = document.getElementById("g"), gp = document.getElementById("gp"), tip = document.getElementById("tip");
-  var cur = null, hover = -1;
 
-  function fmtT(epochSec) {
-    return new Date(epochSec * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  var g = document.getElementById("g");
+  var gp = document.getElementById("gp");
+  var tip = document.getElementById("tip");
+
+  var cur = null;
+  var hoverIdx = -1;
+  var hoverChart = null; // 'g' or 'gp'
+
+  // Time range state
+  var currentRange = localStorage.getItem("fl_health_range") || "1h";
+
+  function esc(s) {
+    return String(s != null ? s : "—")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;");
   }
-  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
 
-  function status() {
-    if (!cur) return ["…", "ok"];
-    if (cur.ok === false) return ["ERROR", "bad"];
-    if (cur.paused) return ["PAUSED", "warn"];
-    if (cur.overrun) return ["OVERRUN", "warn"];
-    return ["LIVE", "ok"];
+  function fmtTime(epochSec, spanSeconds) {
+    var d = new Date(epochSec * 1000);
+    if (spanSeconds && spanSeconds > 86400) {
+      return d.toLocaleDateString([], { month: "short", day: "numeric" }) + " " +
+             d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function getStatusInfo() {
+    if (!cur) return { label: "CONNECTING…", cls: "idle" };
+    if (cur.ok === false || cur.status === "error") return { label: "ERROR", cls: "bad" };
+    if (cur.paused || cur.status === "paused") return { label: "PAUSED", cls: "warn" };
+    if (cur.overrun || cur.status === "overrun") return { label: "OVERRUN", cls: "warn" };
+    return { label: "LIVE", cls: "ok" };
+  }
+
+  function initRangeButtons() {
+    var btns = document.querySelectorAll(".btn-range");
+    btns.forEach(function (b) {
+      if (b.getAttribute("data-range") === currentRange) {
+        b.classList.add("active");
+      } else {
+        b.classList.remove("active");
+      }
+      b.onclick = function () {
+        var r = b.getAttribute("data-range");
+        if (r === currentRange) return;
+        currentRange = r;
+        localStorage.setItem("fl_health_range", r);
+        btns.forEach(function (x) { x.classList.remove("active"); });
+        b.classList.add("active");
+        poll();
+      };
+    });
+  }
+
+  function renderHeaderAndMeta() {
+    var st = getStatusInfo();
+    var pill = document.getElementById("pill");
+    pill.innerHTML = '<span class="pill-dot"></span>' + st.label;
+    pill.className = "pill " + st.cls;
+
+    if (cur) {
+      var worldInfo = "tick " + (cur.tick != null ? cur.tick.toLocaleString() : "—") +
+        " · speed " + (cur.speed_target != null ? cur.speed_target : "—") + " TPS" +
+        " · preset: " + (cur.preset || "default");
+      document.getElementById("subtitle").textContent = worldInfo;
+
+      document.getElementById("uptime-label").textContent =
+        "Uptime: " + (cur.uptime || "—") + (cur.session_ticks ? " (" + cur.session_ticks.toLocaleString() + " ticks)" : "");
+
+      var climate = "Day " + (cur.day || 1) + " · " + (cur.season || "spring");
+      if (cur.weather) climate += " · " + cur.weather;
+      if (cur.age) climate += " · " + cur.age;
+      document.getElementById("climate-label").textContent = climate;
+
+      var pidText = "PID " + (cur.pid || "—") + " · World #" + (cur.world_id != null ? cur.world_id : "0");
+      document.getElementById("footer-meta").textContent = pidText;
+    }
   }
 
   function renderCards() {
-    var pill = document.getElementById("pill"), st = status();
-    pill.textContent = st[0]; pill.className = "pill " + st[1];
-    document.getElementById("subtitle").textContent =
-      "tick " + (cur ? cur.tick : "—") + " · target " + (cur ? cur.speed_target : "—") + " TPS";
-    var items = [
-      ["TPS", cur ? cur.actual_tps : "—", ""],
-      ["Tick avg", cur ? cur.avg_tick_ms : "—", "ms"],
-      ["Tick max", cur ? cur.max_tick_ms : "—", "ms"],
-      ["Budget", cur ? cur.interval_ms : "—", "ms"],
-      ["Creatures", cur ? cur.creatures : "—", ""],
-      ["Clients", cur ? cur.clients : "—", ""],
-      ["DB pending", cur ? cur.db_pending : "—", ""],
-      ["Failures", cur ? (cur.tick_failures || 0) : "—", ""]
+    if (!cur) return;
+
+    // Perf cards
+    var perfItems = [
+      {
+        k: "Actual TPS",
+        v: cur.actual_tps != null ? cur.actual_tps.toFixed(1) : "—",
+        sub: "target " + (cur.speed_target != null ? cur.speed_target : "—") + " TPS"
+      },
+      {
+        k: "Tick Duration",
+        v: cur.avg_tick_ms != null ? cur.avg_tick_ms.toFixed(1) : "—",
+        unit: "ms",
+        sub: "max " + (cur.max_tick_ms != null ? cur.max_tick_ms.toFixed(1) : "—") + " ms"
+      },
+      {
+        k: "Frame Budget",
+        v: cur.interval_ms != null ? cur.interval_ms.toFixed(1) : "—",
+        unit: "ms",
+        sub: (cur.total_overruns != null ? cur.total_overruns : 0) + " total overruns"
+      },
+      {
+        k: "Process Memory",
+        v: cur.memory_mb != null ? cur.memory_mb.toFixed(1) : "—",
+        unit: "MB",
+        sub: (cur.threads || 1) + " active threads"
+      },
+      {
+        k: "Tick Failures",
+        v: cur.tick_failures != null ? cur.tick_failures : 0,
+        sub: cur.ok ? "engine healthy" : "check error log"
+      }
     ];
-    document.getElementById("cards").innerHTML = items.map(function (it) {
-      return '<div class="card"><div class="k">' + it[0] + '</div><div class="v">' + esc(it[1]) +
-        (it[2] ? ' <small>' + it[2] + "</small>" : "") + "</div></div>";
+
+    document.getElementById("cards-perf").innerHTML = perfItems.map(function (it) {
+      return '<div class="card"><div class="k"><span>' + esc(it.k) + '</span></div>' +
+        '<div class="v">' + esc(it.v) + (it.unit ? ' <small>' + esc(it.unit) + '</small>' : '') + '</div>' +
+        (it.sub ? '<div class="subtext">' + esc(it.sub) + '</div>' : '') + '</div>';
     }).join("");
-    if (cur && cur.last_tick_error) {
-      var e = document.getElementById("err");
-      e.style.display = "block"; e.textContent = "last tick error: " + cur.last_tick_error;
+
+    // Eco cards
+    var ecoItems = [
+      {
+        k: "Population",
+        v: cur.creatures != null ? cur.creatures.toLocaleString() : "—",
+        sub: (cur.deaths != null ? cur.deaths.toLocaleString() : "0") + " total deaths"
+      },
+      {
+        k: "Food Available",
+        v: cur.food_count != null ? cur.food_count.toLocaleString() : "—",
+        sub: cur.creatures ? (cur.food_count / Math.max(1, cur.creatures)).toFixed(2) + " food/creature" : "plants count"
+      },
+      {
+        k: "Settlements",
+        v: cur.houses_count != null ? cur.houses_count.toLocaleString() : "—",
+        unit: "houses",
+        sub: (cur.clans_count != null ? cur.clans_count : 0) + " active clans"
+      },
+      {
+        k: "Simulation Age",
+        v: cur.age || "Classic",
+        sub: "Day " + (cur.day || 1) + " (" + (cur.season || "spring") + ")"
+      }
+    ];
+
+    document.getElementById("cards-eco").innerHTML = ecoItems.map(function (it) {
+      return '<div class="card"><div class="k"><span>' + esc(it.k) + '</span></div>' +
+        '<div class="v">' + esc(it.v) + (it.unit ? ' <small>' + esc(it.unit) + '</small>' : '') + '</div>' +
+        (it.sub ? '<div class="subtext">' + esc(it.sub) + '</div>' : '') + '</div>';
+    }).join("");
+
+    // Castes strip
+    var castesBox = document.getElementById("castes-strip");
+    if (cur.castes && Object.keys(cur.castes).length > 0) {
+      castesBox.style.display = "flex";
+      var totalCastes = cur.creatures || 1;
+      var chips = Object.keys(cur.castes).sort().map(function (caste) {
+        var cnt = cur.castes[caste];
+        var pct = Math.round((cnt / totalCastes) * 100);
+        return '<div class="caste-chip"><strong>' + esc(caste) + '</strong>: ' +
+               cnt + ' <span style="color:#8b949e">(' + pct + '%)</span></div>';
+      });
+      castesBox.innerHTML = '<span style="font-size:11px; color:#8b949e; text-transform:uppercase; font-weight:600; margin-right:4px;">Castes:</span>' + chips.join("");
     } else {
-      document.getElementById("err").style.display = "none";
+      castesBox.style.display = "none";
+    }
+
+    // Reg cards
+    var sgLabel = cur.safeguard_active
+      ? '<span class="pill ok">Active (T' + (cur.safeguard_tier || 1) + ')</span>'
+      : '<span class="pill idle">Off</span>';
+    var scLabel = cur.softcap_active
+      ? '<span class="pill bad">Active</span>'
+      : '<span class="pill idle">Off</span>';
+
+    var regItems = [
+      {
+        k: "Safeguard (Green)",
+        v: cur.safeguard_active ? "ACTIVE" : "OFF",
+        pillHtml: sgLabel,
+        sub: cur.safeguard_active ? ("Recovery η=" + (cur.safeguard_eta != null ? cur.safeguard_eta : "—")) : "spawns normal"
+      },
+      {
+        k: "Softcap (Red)",
+        v: cur.softcap_active ? "ACTIVE" : "OFF",
+        pillHtml: scLabel,
+        sub: cur.softcap_active ? ("Density ξ=" + (cur.softcap_xi != null ? cur.softcap_xi : "—")) : "density normal"
+      },
+      {
+        k: "Infected Creatures",
+        v: cur.infected_count != null ? cur.infected_count : 0,
+        sub: (cur.infected_count > 0 ? "epidemic active" : "no pathogen spread")
+      },
+      {
+        k: "WebSocket Clients",
+        v: cur.clients != null ? cur.clients : 0,
+        sub: (cur.db_pending != null ? cur.db_pending : 0) + " DB ops pending"
+      }
+    ];
+
+    document.getElementById("cards-reg").innerHTML = regItems.map(function (it) {
+      return '<div class="card"><div class="k"><span>' + esc(it.k) + '</span>' + (it.pillHtml || "") + '</div>' +
+        '<div class="v">' + esc(it.v) + '</div>' +
+        (it.sub ? '<div class="subtext">' + esc(it.sub) + '</div>' : '') + '</div>';
+    }).join("");
+
+    // Error alert
+    var e = document.getElementById("err");
+    if (cur.last_tick_error) {
+      e.style.display = "block";
+      e.textContent = "Last engine error: " + cur.last_tick_error;
+    } else {
+      e.style.display = "none";
     }
   }
 
   function setupCanvas(cv) {
-    var r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    var r = cv.getBoundingClientRect();
+    var dpr = window.devicePixelRatio || 1;
     cv.width = Math.max(300, Math.round(r.width * dpr));
     cv.height = Math.round(parseFloat(getComputedStyle(cv).height) * dpr);
     var ctx = cv.getContext("2d");
@@ -123,129 +698,384 @@
     return { ctx: ctx, W: r.width, H: parseFloat(getComputedStyle(cv).height) };
   }
 
-  function drawGraph() {
+  function getHistoryList() {
+    if (!cur) return [];
+    if (cur.history && cur.history.length > 0) return cur.history;
+    if (cur.history_120m && cur.history_120m.length > 0) return cur.history_120m;
+    return [];
+  }
+
+  function drawTickGraph() {
     var s = setupCanvas(g), ctx = s.ctx, W = s.W, H = s.H;
     ctx.clearRect(0, 0, W, H);
-    var hist = (cur && cur.history_120m) || [];
-    document.getElementById("grange").textContent =
-      hist.length ? fmtT(hist[0].t) + " → " + fmtT(hist[hist.length - 1].t) + " · " + hist.length + " min" : "warming up…";
-    var padL = 44, padB = 18, padT = 8, padR = 8;
-    var iw = W - padL - padR, ih = H - padT - padB;
-    var interval = (cur && cur.interval_ms) || 100;
-    var ymax = interval * 1.6;
-    hist.forEach(function (m) { if (m.max_ms > ymax) ymax = m.max_ms; });
-    ymax = Math.max(ymax, 1);
-    function X(i) { return padL + (hist.length < 2 ? iw / 2 : (i / (hist.length - 1)) * iw); }
-    function Y(v) { return padT + ih - Math.min(v / ymax, 1) * ih; }
-    ctx.strokeStyle = "#21262d"; ctx.fillStyle = "#8b949e"; ctx.font = "10px sans-serif"; ctx.lineWidth = 1;
-    [0, 0.5, 1].forEach(function (f) {
-      var y = padT + ih * f, v = ymax * (1 - f);
-      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
-      ctx.fillText(v >= 100 ? Math.round(v) + "" : v.toFixed(0), 4, y + 3);
-    });
-    // budget line
-    var by = Y(interval);
-    ctx.strokeStyle = "#7ee787"; ctx.setLineDash([5, 4]); ctx.beginPath();
-    ctx.moveTo(padL, by); ctx.lineTo(W - padR, by); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = "#7ee787"; ctx.fillText("budget " + interval + "ms", W - padR - 86, by - 4);
+
+    var hist = getHistoryList();
+    var metaEl = document.getElementById("range-meta");
+    var labelEl = document.getElementById("chart-range-label");
+
     if (!hist.length) {
-      ctx.fillStyle = "#8b949e"; ctx.font = "13px sans-serif";
-      ctx.fillText("collecting per-minute samples…", padL + 10, padT + 24);
+      metaEl.textContent = "Warming up engine history…";
+      labelEl.textContent = "— collecting samples";
+      ctx.fillStyle = "#8b949e";
+      ctx.font = "13px sans-serif";
+      ctx.fillText("Waiting for engine per-minute metrics…", 44, H / 2);
       return;
     }
-    // x labels every ~30 min
+
+    var spanSec = hist[hist.length - 1].t - hist[0].t;
+    var rangeText = fmtTime(hist[0].t, spanSec) + " → " + fmtTime(hist[hist.length - 1].t, spanSec) +
+      " · " + hist.length + " min";
+    labelEl.textContent = "— " + rangeText;
+
+    var totalSessionMins = (cur && cur.session_minutes_total) || hist.length;
+    var covPct = totalSessionMins > 0 ? Math.min(100, Math.round((hist.length / totalSessionMins) * 100)) : 100;
+    metaEl.textContent = "Showing " + hist.length + " min (" + covPct + "% coverage of " + totalSessionMins + " min session)";
+
+    var padL = 44, padB = 22, padT = 12, padR = 12;
+    var iw = W - padL - padR, ih = H - padT - padB;
+    var interval = (cur && cur.interval_ms) || 50;
+
+    var ymax = interval * 1.5;
+    for (var i = 0; i < hist.length; i++) {
+      if (hist[i].max_ms > ymax) ymax = hist[i].max_ms;
+    }
+    ymax = Math.max(ymax, 5);
+
+    function X(idx) {
+      return padL + (hist.length < 2 ? iw / 2 : (idx / (hist.length - 1)) * iw);
+    }
+    function Y(val) {
+      return padT + ih - Math.min(val / ymax, 1) * ih;
+    }
+
+    // Grid lines
+    ctx.strokeStyle = "#21262d";
     ctx.fillStyle = "#8b949e";
-    var step = Math.max(1, Math.floor(hist.length / 4));
-    for (var i = 0; i < hist.length; i += step) ctx.fillText(fmtT(hist[i].t), X(i) - 14, H - 4);
-    // max whiskers
-    ctx.strokeStyle = "#30363d";
-    hist.forEach(function (m, i) {
-      ctx.beginPath(); ctx.moveTo(X(i), Y(m.avg_ms)); ctx.lineTo(X(i), Y(m.max_ms)); ctx.stroke();
+    ctx.font = "10px sans-serif";
+    ctx.lineWidth = 1;
+
+    [0, 0.5, 1].forEach(function (f) {
+      var y = padT + ih * f;
+      var v = ymax * (1 - f);
+      ctx.beginPath();
+      ctx.moveTo(padL, y);
+      ctx.lineTo(W - padR, y);
+      ctx.stroke();
+      ctx.fillText(v >= 100 ? Math.round(v) + "ms" : v.toFixed(0) + "ms", 4, y + 3);
     });
-    // avg area
+
+    // Budget line
+    var by = Y(interval);
+    ctx.strokeStyle = cur && cur.overrun ? "#ff7b72" : "#7ee787";
+    ctx.setLineDash([5, 4]);
     ctx.beginPath();
-    hist.forEach(function (m, i) { i ? ctx.lineTo(X(i), Y(m.avg_ms)) : ctx.moveTo(X(i), Y(m.avg_ms)); });
-    ctx.strokeStyle = "#58a6ff"; ctx.lineWidth = 1.6; ctx.stroke();
-    ctx.lineTo(X(hist.length - 1), padT + ih); ctx.lineTo(X(0), padT + ih); ctx.closePath();
-    ctx.fillStyle = "rgba(88,166,255,.13)"; ctx.fill();
-    // overrun minutes
-    hist.forEach(function (m, i) {
+    ctx.moveTo(padL, by);
+    ctx.lineTo(W - padR, by);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.fillText("budget " + interval + "ms", W - padR - 90, by - 4);
+
+    // X axis labels
+    ctx.fillStyle = "#8b949e";
+    var step = Math.max(1, Math.floor(hist.length / 5));
+    for (var j = 0; j < hist.length; j += step) {
+      ctx.fillText(fmtTime(hist[j].t, spanSec), X(j) - 16, H - 4);
+    }
+
+    // Whisker lines for max spikes
+    ctx.strokeStyle = "#30363d";
+    ctx.lineWidth = 1;
+    hist.forEach(function (m, idx) {
+      ctx.beginPath();
+      ctx.moveTo(X(idx), Y(m.avg_ms));
+      ctx.lineTo(X(idx), Y(m.max_ms));
+      ctx.stroke();
+    });
+
+    // Area & Line for average tick duration
+    ctx.beginPath();
+    hist.forEach(function (m, idx) {
+      idx === 0 ? ctx.moveTo(X(idx), Y(m.avg_ms)) : ctx.lineTo(X(idx), Y(m.avg_ms));
+    });
+    ctx.strokeStyle = "#58a6ff";
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+
+    ctx.lineTo(X(hist.length - 1), padT + ih);
+    ctx.lineTo(X(0), padT + ih);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(88, 166, 255, 0.12)";
+    ctx.fill();
+
+    // Overrun markers
+    hist.forEach(function (m, idx) {
       if (m.overruns > 0) {
         ctx.fillStyle = "#ff7b72";
-        ctx.beginPath(); ctx.arc(X(i), Y(m.max_ms) - 4, 2.6, 0, 7); ctx.fill();
+        ctx.beginPath();
+        ctx.arc(X(idx), Y(m.max_ms) - 4, 3, 0, 2 * Math.PI);
+        ctx.fill();
       }
     });
-    // hover
-    if (hover >= 0 && hover < hist.length) {
-      ctx.strokeStyle = "#8b949e"; ctx.setLineDash([3, 3]);
-      ctx.beginPath(); ctx.moveTo(X(hover), padT); ctx.lineTo(X(hover), padT + ih); ctx.stroke();
+
+    // Hover vertical crosshair
+    if (hoverChart === "g" && hoverIdx >= 0 && hoverIdx < hist.length) {
+      ctx.strokeStyle = "#8b949e";
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(X(hoverIdx), padT);
+      ctx.lineTo(X(hoverIdx), padT + ih);
+      ctx.stroke();
       ctx.setLineDash([]);
     }
+
+    // Mouse interactions
     g.onmousemove = function (ev) {
       var r = g.getBoundingClientRect(), mx = ev.clientX - r.left;
       var best = -1, bd = 1e9;
-      hist.forEach(function (m, i) { var d = Math.abs(X(i) - mx); if (d < bd) { bd = d; best = i; } });
-      hover = best;
+      hist.forEach(function (m, idx) {
+        var d = Math.abs(X(idx) - mx);
+        if (d < bd) { bd = d; best = idx; }
+      });
+      hoverIdx = best;
+      hoverChart = "g";
+
       if (best >= 0) {
         var m = hist[best];
         tip.style.display = "block";
-        tip.style.left = (ev.clientX + 14) + "px"; tip.style.top = (ev.clientY + 10) + "px";
-        tip.innerHTML = "<b>" + fmtT(m.t) + (m.partial ? " (partial)" : "") + "</b><br>avg " + m.avg_ms +
-          "ms · max " + m.max_ms + "ms<br>pop " + m.avg_pop + " · ticks " + m.n + " · overruns " + m.overruns;
+        tip.style.left = (ev.clientX + 14) + "px";
+        tip.style.top = (ev.clientY + 10) + "px";
+        tip.innerHTML =
+          "<strong>" + fmtTime(m.t, spanSec) + (m.partial ? " (current)" : "") + "</strong><br>" +
+          "Avg: <b>" + m.avg_ms + " ms</b> · Max: <b>" + m.max_ms + " ms</b><br>" +
+          "TPS: <b>" + (m.tps != null ? m.tps : "—") + "</b> · Ticks: <b>" + m.n + "</b><br>" +
+          "Overruns: <b style='color:" + (m.overruns > 0 ? "#ff7b72" : "#7ee787") + "'>" + m.overruns + "</b><br>" +
+          "Creatures: <b>" + m.avg_pop + "</b>" + (m.avg_food != null ? " · Food: <b>" + m.avg_food + "</b>" : "");
       }
-      drawGraph();
+      drawTickGraph();
+      drawEcosystemGraph();
     };
-    g.onmouseleave = function () { hover = -1; tip.style.display = "none"; drawGraph(); };
+
+    g.onmouseleave = function () {
+      if (hoverChart === "g") {
+        hoverIdx = -1;
+        hoverChart = null;
+        tip.style.display = "none";
+        drawTickGraph();
+        drawEcosystemGraph();
+      }
+    };
   }
 
-  function drawPop() {
+  function drawEcosystemGraph() {
     var s = setupCanvas(gp), ctx = s.ctx, W = s.W, H = s.H;
     ctx.clearRect(0, 0, W, H);
-    var hist = (cur && cur.history_120m) || [];
-    var padL = 44, padB = 14, padT = 6, padR = 8;
+
+    var hist = getHistoryList();
+    if (!hist.length) return;
+
+    var spanSec = hist[hist.length - 1].t - hist[0].t;
+    var padL = 44, padB = 20, padT = 10, padR = 44;
     var iw = W - padL - padR, ih = H - padT - padB;
-    var pmax = 1;
-    hist.forEach(function (m) { if (m.avg_pop > pmax) pmax = m.avg_pop; });
-    function X(i) { return padL + (hist.length < 2 ? iw / 2 : (i / (hist.length - 1)) * iw); }
-    function Y(v) { return padT + ih - Math.min(v / pmax, 1) * ih; }
-    ctx.strokeStyle = "#21262d"; ctx.fillStyle = "#8b949e"; ctx.font = "10px sans-serif";
+
+    // Max values for Population and Food
+    var popMax = 1;
+    var foodMax = 1;
+    hist.forEach(function (m) {
+      if (m.avg_pop > popMax) popMax = m.avg_pop;
+      if (m.avg_food != null && m.avg_food > foodMax) foodMax = m.avg_food;
+    });
+
+    function X(idx) {
+      return padL + (hist.length < 2 ? iw / 2 : (idx / (hist.length - 1)) * iw);
+    }
+    function YPop(val) {
+      return padT + ih - Math.min(val / popMax, 1) * ih;
+    }
+    function YFood(val) {
+      return padT + ih - Math.min(val / foodMax, 1) * ih;
+    }
+
+    // Grid lines
+    ctx.strokeStyle = "#21262d";
+    ctx.fillStyle = "#8b949e";
+    ctx.font = "10px sans-serif";
+    ctx.lineWidth = 1;
+
     [0, 1].forEach(function (f) {
       var y = padT + ih * f;
-      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(padL, y);
+      ctx.lineTo(W - padR, y);
+      ctx.stroke();
     });
-    ctx.fillText(Math.round(pmax) + "", 4, padT + 9);
-    if (!hist.length) return;
+
+    // Left Y-axis (Population)
+    ctx.fillStyle = "#3fb950";
+    ctx.fillText(Math.round(popMax) + "", 4, padT + 9);
+    ctx.fillText("0", 4, padT + ih);
+
+    // Right Y-axis (Food)
+    ctx.fillStyle = "#e3b341";
+    ctx.fillText(Math.round(foodMax) + "", W - padR + 6, padT + 9);
+    ctx.fillText("0", W - padR + 6, padT + ih);
+
+    // X axis labels
+    ctx.fillStyle = "#8b949e";
+    var step = Math.max(1, Math.floor(hist.length / 5));
+    for (var j = 0; j < hist.length; j += step) {
+      ctx.fillText(fmtTime(hist[j].t, spanSec), X(j) - 16, H - 4);
+    }
+
+    // Food curve (gold / amber)
     ctx.beginPath();
-    hist.forEach(function (m, i) { i ? ctx.lineTo(X(i), Y(m.avg_pop)) : ctx.moveTo(X(i), Y(m.avg_pop)); });
-    ctx.strokeStyle = "#3fb950"; ctx.lineWidth = 1.4; ctx.stroke();
+    var hasFood = false;
+    hist.forEach(function (m, idx) {
+      if (m.avg_food != null) {
+        hasFood = true;
+        idx === 0 ? ctx.moveTo(X(idx), YFood(m.avg_food)) : ctx.lineTo(X(idx), YFood(m.avg_food));
+      }
+    });
+    if (hasFood) {
+      ctx.strokeStyle = "#e3b341";
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+    }
+
+    // Population curve (green) with translucent fill
+    ctx.beginPath();
+    hist.forEach(function (m, idx) {
+      idx === 0 ? ctx.moveTo(X(idx), YPop(m.avg_pop)) : ctx.lineTo(X(idx), YPop(m.avg_pop));
+    });
+    ctx.strokeStyle = "#3fb950";
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+
+    ctx.lineTo(X(hist.length - 1), padT + ih);
+    ctx.lineTo(X(0), padT + ih);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(63, 185, 80, 0.10)";
+    ctx.fill();
+
+    // Hover vertical crosshair
+    if (hoverIdx >= 0 && hoverIdx < hist.length) {
+      ctx.strokeStyle = "#8b949e";
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(X(hoverIdx), padT);
+      ctx.lineTo(X(hoverIdx), padT + ih);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Mouse interactions
+    gp.onmousemove = function (ev) {
+      var r = gp.getBoundingClientRect(), mx = ev.clientX - r.left;
+      var best = -1, bd = 1e9;
+      hist.forEach(function (m, idx) {
+        var d = Math.abs(X(idx) - mx);
+        if (d < bd) { bd = d; best = idx; }
+      });
+      hoverIdx = best;
+      hoverChart = "gp";
+
+      if (best >= 0) {
+        var m = hist[best];
+        tip.style.display = "block";
+        tip.style.left = (ev.clientX + 14) + "px";
+        tip.style.top = (ev.clientY + 10) + "px";
+        tip.innerHTML =
+          "<strong>" + fmtTime(m.t, spanSec) + (m.partial ? " (current)" : "") + "</strong><br>" +
+          "Population: <b style='color:#3fb950'>" + m.avg_pop + "</b><br>" +
+          "Food / Plants: <b style='color:#e3b341'>" + (m.avg_food != null ? m.avg_food : "—") + "</b><br>" +
+          (m.avg_food != null && m.avg_pop > 0 ? "Ratio: <b>" + (m.avg_food / m.avg_pop).toFixed(2) + " food/creature</b>" : "");
+      }
+      drawTickGraph();
+      drawEcosystemGraph();
+    };
+
+    gp.onmouseleave = function () {
+      if (hoverChart === "gp") {
+        hoverIdx = -1;
+        hoverChart = null;
+        tip.style.display = "none";
+        drawTickGraph();
+        drawEcosystemGraph();
+      }
+    };
   }
 
   function renderBars() {
     var el = document.getElementById("bars");
-    if (!cur || !cur.subsystems_avg_ms) { el.innerHTML = "<span style='color:#8b949e'>no data</span>"; return; }
+    if (!cur || !cur.subsystems_avg_ms) {
+      el.innerHTML = "<span style='color:#8b949e'>No subsystem profiling telemetry yet</span>";
+      return;
+    }
     var last = cur.subsystems_ms || {}, avg = cur.subsystems_avg_ms || {};
     var keys = Object.keys(avg).sort();
+    if (!keys.length) {
+      el.innerHTML = "<span style='color:#8b949e'>No subsystem profiling telemetry yet</span>";
+      return;
+    }
     var mx = 1;
     keys.forEach(function (k) { mx = Math.max(mx, avg[k] || 0, last[k] || 0); });
+
     el.innerHTML = keys.map(function (k) {
-      var v = last[k] || 0, a = avg[k] || 0, pct = Math.min(100, (v / mx) * 100);
-      return '<div class="row"><span>' + esc(k) + '</span><div class="track"><div class="fill" style="width:' +
-        pct.toFixed(1) + '%"></div></div><span class="num">' + v.toFixed(2) + " / " + a.toFixed(2) + " ms</span></div>";
+      var v = last[k] || 0, a = avg[k] || 0;
+      var pct = Math.min(100, (a / mx) * 100);
+      var barColor = a > 20 ? "#ff7b72" : (a > 8 ? "#e3b341" : "#58a6ff");
+      return '<div class="row">' +
+        '<span>' + esc(k) + '</span>' +
+        '<div class="track"><div class="fill" style="width:' + pct.toFixed(1) + '%; background:' + barColor + '"></div></div>' +
+        '<span class="num">' + v.toFixed(2) + ' / ' + a.toFixed(2) + ' ms</span>' +
+        '</div>';
     }).join("");
   }
 
-  function render() { renderCards(); drawGraph(); drawPop(); renderBars(); }
+  function renderAll() {
+    renderHeaderAndMeta();
+    renderCards();
+    drawTickGraph();
+    drawEcosystemGraph();
+    renderBars();
+  }
 
   function poll() {
-    fetch("/healthz", { headers: { Accept: "application/json" }, cache: "no-store" })
-      .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
-      .then(function (j) { cur = j; render(); })
-      .catch(function (e) {
+    var url = "/healthz";
+    if (currentRange) {
+      url += "?range=" + encodeURIComponent(currentRange);
+    }
+    fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        cur = data;
+        renderAll();
+      })
+      .catch(function (err) {
         var el = document.getElementById("err");
-        el.style.display = "block"; el.textContent = "fetch /healthz failed: " + e.message;
+        el.style.display = "block";
+        el.textContent = "Failed to fetch engine health: " + err.message;
+        var pill = document.getElementById("pill");
+        pill.innerHTML = '<span class="pill-dot"></span>OFFLINE';
+        pill.className = "pill bad";
       });
   }
-  window.addEventListener("resize", function () { if (cur) render(); });
+
+  document.getElementById("btn-refresh").onclick = function () {
+    poll();
+  };
+
+  window.addEventListener("resize", function () {
+    if (cur) {
+      drawTickGraph();
+      drawEcosystemGraph();
+    }
+  });
+
+  initRangeButtons();
   poll();
   setInterval(poll, 5000);
 })();
