@@ -159,6 +159,8 @@ class SocietyMixin:
             # §AP theology: clan faith pool + shrine level (0 none, 1 shrine, 2 temple)
             "faith": 0.0,
             "shrine_level": 0,
+            "war_wins": 0,
+            "war_losses": 0,
             "history": [
                 {
                     "tick": self.tick,
@@ -1100,6 +1102,9 @@ class SocietyMixin:
                 "coalition_id": None,
                 "larder": 0.0,
                 "tribute_to": None,
+                "faith": 0.0,
+                "war_wins": 0,
+                "war_losses": 0,
             }
             for c in movers:
                 c.clan_id = new_cid

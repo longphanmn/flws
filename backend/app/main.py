@@ -633,7 +633,15 @@ def _try_restore_snapshot() -> bool:
             restored_clans: dict[int, dict] = {}
             for k, v in data["clans"].items():
                 try:
-                    restored_clans[int(k)] = dict(v)
+                    cid = int(k)
+                    cinfo = dict(v)
+                    restored_clans[cid] = cinfo
+                    w_wins = int(cinfo.get("war_wins") or 0)
+                    w_losses = int(cinfo.get("war_losses") or 0)
+                    if w_wins:
+                        RT.sim._clan_war_wins[cid] = w_wins
+                    if w_losses:
+                        RT.sim._clan_war_losses[cid] = w_losses
                 except Exception:
                     continue
             RT.sim.clans = restored_clans
@@ -737,6 +745,39 @@ async def lifespan(_: FastAPI):
                     counts = { (r["cause"] or "unknown"): int(r["cnt"]) for r in rows }
                     if counts: RT.sim._death_counts = counts
             except: pass
+            # rehydrate clan war wins / losses if missing from snapshot
+            try:
+                if sum(getattr(RT.sim, "_clan_war_wins", {}).values()) == 0 and RT.world_id:
+                    db = DB._require()
+                    rows = db.execute(
+                        "SELECT json_extract(payload, '$.b') as w, json_extract(payload, '$.a') as l, COUNT(*) as cnt "
+                        "FROM events WHERE world_id=? AND type='war' GROUP BY w, l",
+                        (RT.world_id,),
+                    ).fetchall()
+                    for r in rows:
+                        w_id = r["w"]
+                        l_id = r["l"]
+                        cnt = int(r["cnt"] or 0)
+                        if w_id is not None:
+                            try:
+                                w_cid = int(w_id)
+                                RT.sim._clan_war_wins[w_cid] = RT.sim._clan_war_wins.get(w_cid, 0) + cnt
+                                if w_cid in RT.sim.clans:
+                                    RT.sim.clans[w_cid]["war_wins"] = RT.sim._clan_war_wins[w_cid]
+                            except (ValueError, TypeError):
+                                pass
+                        if l_id is not None:
+                            try:
+                                l_cid = int(l_id)
+                                RT.sim._clan_war_losses[l_cid] = RT.sim._clan_war_losses.get(l_cid, 0) + cnt
+                                if l_cid in RT.sim.clans:
+                                    RT.sim.clans[l_cid]["war_losses"] = RT.sim._clan_war_losses[l_cid]
+                            except (ValueError, TypeError):
+                                pass
+                    if RT.sim._clan_war_wins:
+                        print(f"[restore] rehydrated war stats for {len(RT.sim._clan_war_wins)} clans from DB", flush=True)
+            except Exception as ex:
+                print(f"[restore] warning: failed to rehydrate clan war stats from DB: {ex}", flush=True)
             print(f"[restore] continuing world_id={RT.world_id} tick={RT.sim.tick}", flush=True)
     engine = SimEngine(RT, HUB)
     # AZ Phase 1: start bounded broadcast queue consumer
@@ -2984,8 +3025,8 @@ def _clan_details(clan_id: int) -> dict:
             main_house = h_obj
 
     # war record
-    wins = sum(1 for e in RT.sim.history if e.type == "war" and int(e.payload.get("b", 0) or 0) == clan_id)
-    losses = sum(1 for e in RT.sim.history if e.type == "war" and int(e.payload.get("a", 0) or 0) == clan_id)
+    wins = int(info.get("war_wins") or getattr(RT.sim, "_clan_war_wins", {}).get(clan_id, 0))
+    losses = int(info.get("war_losses") or getattr(RT.sim, "_clan_war_losses", {}).get(clan_id, 0))
     # recent events for this clan
     clan_events = [e for e in RT.sim.history if (e.payload.get("a") == clan_id or e.payload.get("b") == clan_id or e.payload.get("clan_id") == clan_id) ][-20:]
     return {
@@ -3049,16 +3090,8 @@ def _clans_payload(sim: Simulation | None = None) -> dict:
     sim = sim or RT.sim
     # live clan dict + live population + house territory + war history
     # N150: limit to top 100 alive clans to avoid 1.5MB/5s at 4000 clans
-    war_wins: dict[int, int] = {}
-    war_losses: dict[int, int] = {}
-    for e in sim.history:
-        if e.type == "war":
-            a = int(e.payload.get("a", 0) or 0)
-            b = int(e.payload.get("b", 0) or 0)
-            if b:
-                war_wins[b] = war_wins.get(b, 0) + 1
-            if a:
-                war_losses[a] = war_losses.get(a, 0) + 1
+    war_wins = getattr(sim, "_clan_war_wins", {})
+    war_losses = getattr(sim, "_clan_war_losses", {})
     # houses by clan
     houses_by_clan: dict[int, dict] = {}
     for ent in sim.world.entities.values():
@@ -3098,8 +3131,8 @@ def _clans_payload(sim: Simulation | None = None) -> dict:
             "dead_count": getattr(sim, "_clan_deaths", {}).get(cid, 0),
             "population": pop,
             "house": house,
-            "war_wins": war_wins.get(cid, 0),
-            "war_losses": war_losses.get(cid, 0),
+            "war_wins": int(info.get("war_wins") or war_wins.get(cid, 0)),
+            "war_losses": int(info.get("war_losses") or war_losses.get(cid, 0)),
             "territory_radius": sim.config.territory_radius if sim.config.territory_enabled else None,
             "specialization": info.get("specialization"),
             "culture": info.get("culture"),

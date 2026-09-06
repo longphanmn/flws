@@ -278,3 +278,76 @@ def test_schism_event_payload_richness():
         assert "member_count" in ev.payload
 
 
+def test_clan_war_wins_and_losses_persistence():
+    """War wins and losses must persist past sim.history eviction and reflect in payloads."""
+    from app.main import _clan_details, _clans_payload, RT
+    from app.protocol import HistoryEvent
+    from app.simulation.constants import _clan_sig
+
+    s = Simulation(Config(seed=42, war_enabled=True))
+    cids = list(s.clans.keys())
+    assert len(cids) >= 2
+    c1, c2 = cids[0], cids[1]
+
+    assert s.clans[c1].get("war_wins", 0) == 0
+    assert s.clans[c1].get("war_losses", 0) == 0
+    sig_before = _clan_sig(s.clans[c1])
+
+    # Emit a war duel event where c2 wins against c1
+    s._emit(
+        HistoryEvent(
+            type="war",
+            tick=s.tick,
+            entity_id=1,
+            caste="Warrior",
+            x=10.0,
+            y=10.0,
+            payload={"winner": 2, "a": c1, "b": c2},
+        )
+    )
+
+    assert s._clan_war_losses[c1] == 1
+    assert s._clan_war_wins[c2] == 1
+    assert s.clans[c1]["war_losses"] == 1
+    assert s.clans[c2]["war_wins"] == 1
+
+    # _clan_sig must change so delta_state broadcasts the update
+    sig_after = _clan_sig(s.clans[c1])
+    assert sig_before != sig_after
+
+    # Evict event from sim.history by flooding with dummy events
+    for i in range(250):
+        s._emit(
+            HistoryEvent(
+                type="birth",
+                tick=s.tick + i,
+                entity_id=100 + i,
+                caste="Worker",
+                x=0,
+                y=0,
+                payload={},
+            )
+        )
+    # Confirm war event is evicted from sim.history
+    assert not any(e.type == "war" for e in s.history)
+
+    # Payloads must still return the true persistent war counts
+    payload = _clans_payload(s)
+    clan1_entry = next(c for c in payload["clans"] if c["id"] == c1)
+    clan2_entry = next(c for c in payload["clans"] if c["id"] == c2)
+    assert clan1_entry["war_losses"] == 1
+    assert clan2_entry["war_wins"] == 1
+
+    # _clan_details must also return persistent war counts
+    old_sim = RT.sim
+    try:
+        RT.sim = s
+        details1 = _clan_details(c1)
+        details2 = _clan_details(c2)
+        assert details1["war_losses"] == 1
+        assert details2["war_wins"] == 1
+    finally:
+        RT.sim = old_sim
+
+
+

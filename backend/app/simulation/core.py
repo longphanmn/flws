@@ -246,6 +246,8 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
         self.anomalies: list[dict] = []  # {x,y,kind,discovered}
         self._totem_mult_cache: dict[int, float] = {}
         self._clan_deaths: dict[int, int] = {}
+        self._clan_war_wins: dict[int, int] = {}
+        self._clan_war_losses: dict[int, int] = {}
         self.signals: list[dict] = []  # §Q: {x,y,kind,sender,clan_id,ttl}
         self.fires: list[dict] = []  # §S wildfire: {x,y,r,ttl}
         self.campfires: list[dict] = []  # §AO E: field campfires {x,y,day}
@@ -2097,6 +2099,17 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
         # AA: pre-dump once at source — snapshot_payload reads plain dicts directly,
         # eliminating per-frame Pydantic model_dump() on the broadcast hot path.
         self._events_this_tick.append(event.model_dump(mode="json"))
+        if event.type == "war":
+            w = event.payload.get("b")
+            l = event.payload.get("a")
+            if w and l and w != l:
+                w_cid, l_cid = int(w), int(l)
+                self._clan_war_wins[w_cid] = self._clan_war_wins.get(w_cid, 0) + 1
+                self._clan_war_losses[l_cid] = self._clan_war_losses.get(l_cid, 0) + 1
+                if w_cid in self.clans:
+                    self.clans[w_cid]["war_wins"] = self._clan_war_wins[w_cid]
+                if l_cid in self.clans:
+                    self.clans[l_cid]["war_losses"] = self._clan_war_losses[l_cid]
         if self.on_event is not None:
             self.on_event(event)
 

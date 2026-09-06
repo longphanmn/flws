@@ -740,7 +740,7 @@ LAW_HINTS_I18N = {
     },
     "vi": {
         "boundary": "Quy tắc ranh giới thế giới: 'wrap' (vòng xuyến vô tận) vs 'clamp' (tường chắn vật lý).",
-        "food_count": "Lượng cây lương thực thế giới duy trì liên tục (mùa hè ×1.2, mùa đông ×0.5).",
+        "food_count": "Lượng cây thức ăn / lương thực thế giới duy trì liên tục (mùa hè ×1.2, mùa đông ×0.5).",
         "energy_max": "Mức năng lượng tối đa một cá thể có thể tích lũy (10–500).",
         "energy_decay_per_tick": "Tiêu hao năng lượng trao đổi chất cơ bản mỗi nhịp khi nhịn đói (0.025).",
         "energy_from_food": "Năng lượng thu được khi thu hoạch cây chín (quả mọng 48, cỏ 32, nấm 24, cây độc 8).",

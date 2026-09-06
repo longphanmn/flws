@@ -618,6 +618,7 @@ def _clan_sig(info: dict) -> tuple:
         round(float(info.get("faith", 0.0)) / 25.0), int(info.get("shrine_level", 0)),
         round(float(info.get("granary", 0.0)) / 25.0),  # §AM granary fill (bucketed)
         round(float(info.get("dialect", 0.0)) * 20.0) / 20.0,  # §AN dialect drift
+        int(info.get("war_wins", 0)), int(info.get("war_losses", 0)),
     )
 
 
