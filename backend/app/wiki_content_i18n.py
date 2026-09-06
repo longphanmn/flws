@@ -453,7 +453,7 @@ CODEBASE_MAP_EN = """
 - `config.py:13` — `Config` dataclass: world geometry, densities, food, corpses, behaviour, life, reproduction, disease, environment, shelter, terrain, society, houses, chronicle. `from_env()` + `tick_interval`.
 - `entities.py:1` — `CasteTraits`, `CASTE_TRAITS`, `YIELD_RANK`, `caste_name()`, `Creature` (shape/sides/caste/age/lifespan/health/infected/clan_id/sleeping...), `Food` (growth), `Corpse`, `House` (size/door/clan).
 - `world.py:32` — `World` registry + uniform spatial hash (`cell_size`, `rebuild_index`), `delta`/`distance` wrap-aware, `query_radius`.
-- `simulation/` — Modular simulation package (§BI):
+- `simulation/` — Modular simulation package (§BI, replacing legacy `simulation.py:335`):
   - `core.py` — `Simulation` class, deterministic step loop, SoA slot sync, and cache refreshes.
   - `creature_update.py` — Decomposed 7-phase agent loop (`_creature_movement`, `_creature_feeding`, etc.).
   - `settlement.py` — Housing economy, construction, claims, takeovers, and wall collision.

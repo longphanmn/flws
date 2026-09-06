@@ -318,9 +318,9 @@ class Config:
 
     # Phase 4 Density-Dependent Soft-Cap Damping — overpopulation homeostatic
     soft_cap_enabled: bool = True
-    damping_steepness: float = 6.0  # birth_rate divisor steepness
-    crowding_stress_mult: float = 0.35  # metabolic drain multiplier
-    resource_strain_mult: float = 1.2  # plant growth/spread divisor
+    damping_steepness: float = 12.0  # birth_rate divisor steepness (aggressive curve)
+    crowding_stress_mult: float = 1.0  # metabolic drain multiplier under crowding
+    resource_strain_mult: float = 2.0  # plant growth/spread divisor under crowding
 
     # BF Early Population Boom Limiter — days 0-1.2 birth is gently throttled
     boom_ramp_days: float = 1.2  # days of soft birth ramp at world start (1440 ticks)
@@ -346,7 +346,7 @@ class Config:
             perceive_radius=_env("FLATWORLD_PERCEIVE_RADIUS", float, 16.0),
             energy_decay_per_tick=_env("FLATWORLD_ENERGY_DECAY", float, 0.025),
             carrying_capacity=_env("FLATWORLD_CARRYING_CAPACITY", int, 350),
-            max_population=_env("FLATWORLD_MAX_POPULATION", int, 500),
+            max_population=_env("FLATWORLD_MAX_POPULATION", int, 420),
             disease_enabled=_env("FLATWORLD_DISEASE_ENABLED", bool, True),
             disease_outbreak_rate=_env("FLATWORLD_DISEASE_OUTBREAK_RATE", float, 0.00006),
             disease_rate=_env("FLATWORLD_DISEASE_RATE", float, 0.035),

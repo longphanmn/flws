@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from rich.text import Text
 
 from textual.widget import Widget
@@ -25,6 +26,8 @@ class Hud(Widget):
 
     def update_state(self, st: StateMessage | None) -> None:
         self._state = st
+        if st is not None:
+            self.paused = st.paused
         self.refresh()
 
     def update_status(self, status: str, paused: bool, speed: float) -> None:
@@ -43,8 +46,9 @@ class Hud(Widget):
         if st is None:
             text.append(f"◌ {self.status}", style="dim")
             return text
-        play = "‖" if self.paused else "▶"
-        text.append(f"{play} ", style="bold red" if self.paused else "bold green")
+        is_paused = self.paused or getattr(st, "paused", False)
+        play = "‖" if is_paused else "▶"
+        text.append(f"{play} ", style="bold red" if is_paused else "bold green")
         text.append(f"tick {st.tick}", style="bold")
         text.append(" · ")
         text.append(f"alive {st.creatures_alive}", style="#3fb950")
@@ -72,6 +76,13 @@ class Hud(Widget):
         sky = "🌙" if night else "☀"
         text.append(f" · {sky} day {st.day} {theme.SEASON_ICONS.get(st.season, '')}{st.season}")
         text.append(f" · {theme.WEATHER_ICONS.get(st.weather, '')} {st.weather}")
+        if getattr(st, "wind", None) and st.wind.get("speed", 0) > 0.05:
+            w_speed = st.wind.get("speed", 0.0)
+            w_ang = st.wind.get("angle", 0.0)
+            deg = math.degrees(w_ang) % 360
+            arrows = ["→", "↘", "↓", "↙", "←", "↖", "↑", "↗"]
+            idx = int((deg + 22.5) // 45) % 8
+            text.append(f" · {arrows[idx]} {w_speed:.1f}", style="cyan")
         if st.age:
             text.append(f" · age: {st.age} day {st.age_day}/{st.age_total_days}", style="magenta")
         # caste counts, colored

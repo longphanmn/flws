@@ -52,6 +52,14 @@ GLYPH_FOOD_SPROUT = "."
 GLYPH_FOOD_MATURE = "*"
 GLYPH_FIRE = "&"
 GLYPH_SIGNAL = "~"
+GLYPH_RIVER = "~"
+GLYPH_BRIDGE = "="
+GLYPH_DAM = "H"
+GLYPH_BOUNDARY_STONE = "•"
+GLYPH_MARKET = "M"
+GLYPH_ANOMALY = "🌀"
+GLYPH_LIGHTNING = "⚡"
+GLYPH_CAMPFIRE = "▲"
 
 # Chronicle event colors (match index.css/App.tsx ev-* classes)
 EVENT_COLORS: dict[str, str] = {
@@ -93,9 +101,37 @@ EVENT_COLORS: dict[str, str] = {
     "temple": "#e3b341",
     "epiphany": "#bc8cff",
     "resonance": "#e3b341",
+    # Additional events
+    "clan_extinction": "#ff7b72",
+    "extinction": "#f85149",
+    "anomaly": "#79c0ff",
+    "raid": "#f85149",
+    "banquet": "#e3b341",
+    "compost": "#a67c52",
+    "hospitality": "#7ee787",
+    "peace_envoy": "#7ee787",
+    "market": "#d2a8ff",
+    "caravan": "#ffa657",
+    "regicide": "#ff3838",
+    "herald": "#d2a8ff",
+    "omen": "#bc8cff",
 }
 
-SIGNAL_COLORS = {"food": "#3fb950", "alarm": "#f85149", "help": "#f85149", "chime": "#e3b341"}
+SIGNAL_COLORS = {
+    "food": "#3fb950",
+    "alarm": "#f85149",
+    "help": "#ffd166",
+    "knowledge": "#79c0ff",
+    "grief": "#8b949e",
+    "chime": "#e3b341",
+    "chant": "#b392f0",
+    "hum": "#ff9ecd",
+    "war": "#ff7b72",
+    "trail": "#d2a8ff",
+    "danger_scent": "#6e7681",
+    "courier": "#e3b341",
+    "omen": "#e3b341",
+}
 
 SEASON_ICONS = {"spring": "*", "summer": "S", "autumn": "%", "winter": "W"}
 WEATHER_ICONS = {"clear": "O", "rain": ",", "fog": "=", "storm": "/"}

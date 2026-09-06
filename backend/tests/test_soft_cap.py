@@ -87,3 +87,50 @@ def test_reproduction_hard_ceiling():
     sim._reproduce()
     # No babies should be born because pop == max_pop
     assert len(sim.world.creatures()) == 20
+
+
+def test_aggressive_soft_cap_suppression():
+    """Verify that when population exceeds carrying capacity (e.g. 350 cap with 400+ creatures),
+    births are suppressed and population declines toward the cap."""
+    cfg = Config(
+        seed=42,
+        width=100.0,
+        height=100.0,
+        birth_enabled=True,
+        adult_age=0.0,
+        carrying_capacity=50,
+        max_population=70,
+        soft_cap_enabled=True,
+        damping_steepness=12.0,
+        crowding_stress_mult=1.0,
+        num_triangles=0,
+        num_squares=0,
+        num_pentagons=0,
+        num_hexagons=0,
+        num_priests=0,
+        num_women=0,
+        food_count=0,
+        num_houses=0,
+    )
+    sim = Simulation(cfg)
+
+    # Spawn 35 pairs (70 creatures) — right at max_population with carrying_capacity=50
+    for i in range(35):
+        sim.world.add(Creature(x=50.0 + (i % 5)*0.5, y=50.0 + (i // 5)*0.5, energy=80.0, age=100, lifespan=5000))
+        sim.world.add(Creature(x=50.0 + (i % 5)*0.5, y=50.0 + (i // 5)*0.5, shape="line", sides=2, energy=80.0, age=100, lifespan=5000))
+
+    initial_count = len(sim.world.creatures())
+    assert initial_count == 70
+
+    # Test that xi is computed at carrying_capacity=50 (xi = (70-50)/50 = 0.40)
+    xi = compute_xi(70, 50, enabled=True)
+    assert xi == pytest.approx(0.40)
+    scales = scales_for_xi(xi, cfg)
+    # Severe suppression: birth_rate_eff must be tiny (<0.07)
+    assert scales["birth_rate_eff"] < 0.07
+    # Crowding decay must be elevated (>1.5×)
+    assert scales["decay_eff"] > 1.5
+
+    # Run reproduction: no births should happen since pop == max_pop (70 >= 70)
+    sim._reproduce()
+    assert len(sim.world.creatures()) == 70

@@ -170,6 +170,60 @@ class WorldView(Widget, can_focus=True):
             ):
                 grid[key] = Cell(char=char, fg=fg, bg=bg, prio=prio, entity_id=eid)
 
+        # --- rivers (horizontal channels) ---
+        for riv in getattr(st, "rivers", []) or []:
+            cy = riv.get("cy", 0.0)
+            hw = riv.get("hw", 4.0)
+            flood = bool(riv.get("flood", False))
+            bg_color = "#1c3050" if flood else "#122036"
+            fg_color = "#58a6ff" if flood else "#388bfd"
+            row0 = max(0, math.floor((cy - hw) / z))
+            row1 = min(math.floor(st.height / z), math.floor((cy + hw) / z))
+            col1 = math.floor(st.width / z)
+            for row in range(row0, row1 + 1):
+                wy = (row + 0.5) * z
+                for col in range(0, col1 + 1):
+                    wx = (col + 0.5) * z
+                    put(wx, wy, char=theme.GLYPH_RIVER, fg=fg_color, bg=bg_color, prio=-3)
+
+        # --- bridges & dams crossing rivers ---
+        for b in getattr(st, "bridges", []) or []:
+            bx = b.get("x", 0.0)
+            bcy = b.get("cy", 0.0)
+            rv = next((r for r in getattr(st, "rivers", []) if abs(r.get("cy", 0.0) - bcy) < 1.0), None)
+            hw = (rv.get("hw", 4.0) if rv else 4.0)
+            row0 = max(0, math.floor((bcy - hw) / z))
+            row1 = min(math.floor(st.height / z), math.floor((bcy + hw) / z))
+            col = math.floor(bx / z)
+            wx = (col + 0.5) * z
+            for row in range(row0, row1 + 1):
+                wy = (row + 0.5) * z
+                put(wx, wy, char=theme.GLYPH_BRIDGE, fg="#d29922", bg="#2a1f10", prio=1)
+
+        for d in getattr(st, "dams", []) or []:
+            dx = d.get("x", 0.0)
+            dcy = d.get("cy", 0.0)
+            col = math.floor(dx / z)
+            row = math.floor(dcy / z)
+            wx = (col + 0.5) * z
+            wy = (row + 0.5) * z
+            put(wx, wy, char=theme.GLYPH_DAM, fg="#8b949e", bg="#21262d", prio=2)
+
+        # --- boundary stones & neutral trade markets ---
+        for bs in getattr(st, "boundary_stones", []) or []:
+            cid = str(bs.get("clan_id"))
+            color = (st.clans.get(cid) or {}).get("color", "#8b949e")
+            put(bs.get("x", 0.0), bs.get("y", 0.0), char=theme.GLYPH_BOUNDARY_STONE, fg=color, prio=1)
+
+        for m in getattr(st, "markets", []) or []:
+            put(m.get("x", 0.0), m.get("y", 0.0), char=theme.GLYPH_MARKET, fg="#e3b341", bg="#302008", prio=3)
+
+        # --- discovered anomaly zones ---
+        for an in getattr(st, "anomalies", []) or []:
+            akind = an.get("kind", "heavy")
+            acolor = "#56d364" if akind == "fertile" else ("#d2a8ff" if akind == "heavy" else "#79c0ff")
+            put(an.get("x", 0.0), an.get("y", 0.0), char=theme.GLYPH_ANOMALY, fg=acolor, prio=1)
+
         # --- terrain: fertile ground tint + rock bodies ---
         for patch in st.terrain_fertile:
             self._paint_disc(put, patch["x"], patch["y"], patch["r"], bg="#12261a", ring_bg="#16301f")
@@ -215,7 +269,10 @@ class WorldView(Widget, can_focus=True):
             put(fire.get("x", 0), fire.get("y", 0), char=theme.GLYPH_FIRE, fg="#ff6b35", prio=6)
         # §AO E: field campfires — warm dots in the dark
         for cf in getattr(st, "campfires", []) or []:
-            put(cf.get("x", 0), cf.get("y", 0), char="▲", fg="#ff8c42", prio=6)
+            put(cf.get("x", 0), cf.get("y", 0), char=theme.GLYPH_CAMPFIRE, fg="#ff8c42", prio=6)
+        # §AQ PH-9: lightning bolts
+        for bolt in getattr(st, "lightning", []) or []:
+            put(bolt.get("x", 0.0), bolt.get("y", 0.0), char=theme.GLYPH_LIGHTNING, fg="#ffff88", prio=7)
 
     def _paint_disc(self, put, cx: float, cy: float, r: float, *, bg: str, ring_bg: str | None = None) -> None:
         # §AV T-1: clamp to the visible viewport before any distance math

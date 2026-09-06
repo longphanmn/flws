@@ -30,7 +30,7 @@ AGE_FOOD_MULT = {"Golden": 1.25, "Ice": 0.55, "Chaos": 0.95, "Plague": 0.9}
 AGE_MUTATION_MULT = {"Golden": 0.9, "Ice": 1.1, "Chaos": 1.8, "Plague": 1.0}
 AGE_DISEASE_MULT = {"Golden": 0.8, "Ice": 1.1, "Chaos": 1.0, "Plague": 1.8}
 AGE_BIRTH_MULT = {"Golden": 1.3, "Ice": 0.85, "Chaos": 1.0, "Plague": 0.9}
-AGE_CAP_MULT = {"Golden": 1.25, "Chaos": 0.95, "Plague": 0.75, "Ice": 0.55}
+AGE_CAP_MULT = {"Golden": 1.10, "Chaos": 0.95, "Plague": 0.75, "Ice": 0.55}
 
 YIELD_RADIUS = 2.5  # lower castes step aside within this range
 

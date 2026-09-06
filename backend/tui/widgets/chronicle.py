@@ -19,7 +19,7 @@ CATEGORIES = ["all", "birth", "death", "war", "politics", "settlement", "faith",
 
 EVENT_CATEGORIES: dict[str, set[str]] = {
     "birth": {"birth"},
-    "death": {"death", "predation", "cannibalism"},
+    "death": {"death", "predation", "cannibalism", "clan_extinction", "extinction"},
     "war": {"war", "conquest", "takeover", "rivalry", "betrayal"},
     "politics": {
         "alliance", "rivalry", "coalition_formed", "coalition_joined",
@@ -268,6 +268,13 @@ def format_event(ev: HistoryEvent, clans: dict | None = None) -> Text:
         line.append(f"📜 herald: {p.get('a_name')} sent terms to {p.get('b_name')}", style=color)
     elif t == "omen":
         line.append(f"omen: a priest foresees the {p.get('season')} for {p.get('clan_name')}", style="bold " + color)
+    elif t == "clan_extinction":
+        c_name = p.get("clan_name") or _clan_label(clans, p.get("clan_id"))
+        line.append(f"clan extinction: {c_name} has fallen to the last soul", style="bold " + color)
+    elif t == "extinction":
+        line.append("extinction: all life in the world has ceased", style="bold " + color)
+    elif t == "anomaly":
+        line.append(f"anomaly discovered: {p.get('kind', 'strange zone')} at ({round(ev.x)}, {round(ev.y)})", style="bold " + color)
     elif t == "outbreak":
         line.append(f"{mark} outbreak", style=color)
     elif t == "recovery":

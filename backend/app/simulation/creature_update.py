@@ -71,6 +71,7 @@ class CreatureUpdateMixin:
             clan_house_map = {
                 h.clan_id: h for h in houses if isinstance(h, House) and h.clan_id and not h.is_ruin
             }
+        _xi_pop = float(getattr(self, "_xi_decay_tick", 0.0) or 0.0)
         # BA 8.x NN latched outputs (15Hz, SoA) — wired but soft-gated for test stability
         # PERF: read the per-inference snapshot when available (identical
         # values to outputs_buf, which is only written at inference time).
@@ -2445,12 +2446,17 @@ class CreatureUpdateMixin:
         else:
             c.low_energy_ticks = 0
         if c.low_energy_ticks > EXHAUSTION_TICKS:
-            c.health -= EXHAUSTION_DRAIN
+            ex_drain = EXHAUSTION_DRAIN * (1.0 + 3.0 * _xi_pop) if _xi_pop > 0 else EXHAUSTION_DRAIN
+            c.health -= ex_drain
             if c.health <= 0:
                 self._kill(c, "exhaustion")
                 return
         if c.stage == "elder":
-            c.health -= ELDER_DECAY_RATE
+            elder_decay = ELDER_DECAY_RATE
+            if _xi_pop > 0:
+                # Under overpopulation, elder senescence accelerates so population normalizes rapidly
+                elder_decay *= (1.0 + 8.0 * _xi_pop + 12.0 * (_xi_pop ** 2))
+            c.health -= elder_decay
             if c.health <= 0:
                 self._kill(c, "old_age")
                 return

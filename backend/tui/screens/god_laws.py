@@ -50,12 +50,34 @@ NUMBER_LAWS: dict[str, list[tuple[str, str]]] = {
         ("max_sides", "Max caste sides"),
         ("euthanasia_threshold", "Euthanasia ≥"),
     ],
+    "Extinction Safeguards": [
+        ("safeguard_critical_pop", "Emergency pop floor (Kcrit)"),
+        ("safeguard_relief_ratio", "Relief threshold ratio (Ksafe)"),
+        ("safeguard_genesis_batch", "Genesis miracle batch"),
+        ("safeguard_max_miracles", "Max miracles"),
+    ],
+    "Density Soft-Cap Damping": [
+        ("damping_steepness", "Damping steepness"),
+        ("crowding_stress_mult", "Crowding stress mult"),
+        ("resource_strain_mult", "Resource strain mult"),
+    ],
+    "Boom Periods": [
+        ("boom_ramp_days", "Boom ramp days"),
+        ("boom_birth_floor", "Boom birth floor"),
+        ("boom_cooldown_mult", "Boom cooldown mult"),
+        ("boom_energy_mult", "Boom energy mult"),
+    ],
     "Neuroevolution": [
         ("mutation_sigma", "NN mutation σ"),
         ("crossover_rate", "NN crossover rate"),
     ],
     "Morphology": [
+        ("annealing_start_generation", "Morphology start gen"),
         ("annealing_decay_generations", "Morphology decay gens"),
+        ("morph_lambda_override", "Manual lambda override"),
+        ("vertex_mutation_std", "Vertex jitter"),
+        ("angle_mutation_std", "Angle jitter"),
+        ("topological_mutation_rate", "Topo mutation rate"),
     ],
     "Disease": [
         ("disease_outbreak_rate", "Outbreak rate / tick"),
@@ -85,6 +107,12 @@ NUMBER_LAWS: dict[str, list[tuple[str, str]]] = {
     ],
     "Clan": [
         ("max_clans", "Max clans"),
+    ],
+    "Trade & Diplomacy": [
+        ("coalition_min_size", "Coalition min size"),
+        ("alliance_threshold", "Alliance threshold"),
+        ("rivalry_threshold", "Rivalry threshold"),
+        ("aid_rate", "Aid rate"),
     ],
     "Politics": [
         ("larder_capacity", "Larder capacity"),
@@ -125,6 +153,7 @@ NUMBER_LAWS: dict[str, list[tuple[str, str]]] = {
     ],
     "Terrain": [],
     "Materials": [],
+    "Communication": [],
     "Seismic & Waves": [
         ("earthquake_rate", "Quake rate / tick"),
     ],
@@ -141,7 +170,15 @@ NUMBER_LAWS: dict[str, list[tuple[str, str]]] = {
 
 BOOL_LAWS: dict[str, list[tuple[str, str]]] = {
     "Reproduction": [("birth_enabled", "Births enabled")],
+    "Extinction Safeguards": [
+        ("safeguard_enabled", "Safeguards enabled"),
+        ("safeguard_morph_mercy", "Morphology mercy"),
+    ],
+    "Density Soft-Cap Damping": [
+        ("soft_cap_enabled", "Soft-cap damping enabled"),
+    ],
     "Disease": [("disease_enabled", "Plagues enabled")],
+    "Life & Death": [("corpses_enabled", "Corpses remain")],
     "Morphology": [("morphology_annealing_enabled", "Morphology annealing")],
     "Sky & Seasons": [
         ("weather_enabled", "Weather allowed"),
@@ -149,15 +186,29 @@ BOOL_LAWS: dict[str, list[tuple[str, str]]] = {
     ],
     "Shelter": [
         ("shelter_enabled", "Shelter law"),
+        ("hearths_enabled", "Hearths in homes"),
+        ("house_claim_enabled", "House claiming"),
     ],
     "Territory": [("territory_enabled", "Territory law")],
     "Clan": [
         ("totems_enabled", "Sacred Avatars"),
         ("succession_enabled", "Succession"),
     ],
+    "Trade & Diplomacy": [
+        ("markets_enabled", "Border trade markets"),
+        ("envoys_enabled", "Diplomatic envoys"),
+        ("banquets_enabled", "Clan banquets"),
+        ("betrayal_enabled", "Betrayal allowed"),
+        ("defection_enabled", "Defection allowed"),
+        ("tribute_enabled", "Tribute system"),
+    ],
     "Communication": [
         ("communication_enabled", "Communication & signals"),
         ("knowledge_enabled", "Knowledge sharing"),
+        ("scent_enabled", "Scent trails"),
+        ("vocalizations_enabled", "Vocalizations"),
+        ("dialect_drift_enabled", "Dialect drift"),
+        ("help_call_enabled", "Help calls"),
     ],
     "Rebellion": [("schism_enabled", "Schism")],
     "Ages": [("age_enabled", "World ages")],
@@ -170,6 +221,7 @@ BOOL_LAWS: dict[str, list[tuple[str, str]]] = {
     "Terrain": [("relief_enabled", "Relief (height field)")],
     "Materials": [
         ("structural_enabled", "Structural integrity"),
+        ("rubble_blocking_enabled", "Rubble blocks path"),
     ],
     "Seismic & Waves": [("earthquake_enabled", "Earthquakes")],
     "Electrostatics": [("lightning_enabled", "Storm lightning")],
@@ -178,6 +230,7 @@ BOOL_LAWS: dict[str, list[tuple[str, str]]] = {
         ("food_decay_enabled", "Food decay"),
         ("agriculture_enabled", "Agriculture"),
         ("granaries_enabled", "Granaries"),
+        ("soil_depletion_enabled", "Soil depletion"),
     ],
     "Weather Sickness": [("weather_sickness_enabled", "Weather sickness")],
     "Predation": [("predation_enabled", "Predation")],
@@ -190,8 +243,13 @@ BOOL_LAWS: dict[str, list[tuple[str, str]]] = {
     "Desperation": [
         ("cannibalism_enabled", "Cannibalism"),
         ("eat_kin_enabled", "Eat kin"),
+        ("eat_enemy_enabled", "Eat fallen enemies"),
+        ("exile_on_kin_eat", "Exile on cannibalism"),
     ],
-    "Theology": [("theology_enabled", "Theology of the Sphere")],
+    "Theology": [
+        ("theology_enabled", "Theology of the Sphere"),
+        ("omens_enabled", "Priest omens"),
+    ],
 }
 
 GROUP_ORDER = list(NUMBER_LAWS.keys())
@@ -279,6 +337,8 @@ class GodLawsScreen(ModalScreen):
 
     @staticmethod
     def _fmt(value: Any) -> str:
+        if value is None:
+            return ""
         if isinstance(value, bool):
             return str(value)
         if isinstance(value, float):
@@ -293,6 +353,13 @@ class GodLawsScreen(ModalScreen):
             if num is not None and self._loaded:
                 raw = num.value.strip()
                 if raw == "":
+                    continue
+                if base is None:
+                    try:
+                        val = int(raw) if "." not in raw else float(raw)
+                    except ValueError:
+                        val = raw
+                    changes[key] = val
                     continue
                 try:
                     val = type(base)(raw) if isinstance(base, (int, float)) else raw

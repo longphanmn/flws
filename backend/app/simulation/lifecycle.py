@@ -610,12 +610,14 @@ class LifecycleMixin:
             _scales = {}
             self._density_xi = 0.0  # type: ignore
 
-        # Fertility room fades continuously from 1.0 at carrying to 0.0 at max_pop
+        # Fertility room drops aggressively when population crosses carrying capacity
         room = 1.0
-        if pop > carrying:
-            gap = max(1.0, max_pop - carrying)
-            over = pop - carrying
-            room = max(0.0, 1.0 - over / gap)
+        if pop >= carrying:
+            _d_steep = max(6.0, float(getattr(cfg, "damping_steepness", 12.0)))
+            room = max(0.0, math.exp(-_d_steep * _xi * 2.5))
+            # Hard clamp: if room is negligible or pop is >=15% over carrying (e.g. 402 for 350 cap)
+            if room < 0.01 or pop >= carrying * 1.15 or pop >= max_pop:
+                return
 
         if room <= 0.0:
             return

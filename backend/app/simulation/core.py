@@ -1499,6 +1499,8 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
                 if age_d is not None:
                     cap_mult_d = AGE_CAP_MULT.get(age_d, 1.0)
                     carrying_d = max(2, round(carrying_d * cap_mult_d))
+                if self.config.carrying_capacity > 0:
+                    carrying_d = min(carrying_d, round(self.config.carrying_capacity * 1.10))
                 if getattr(self, "_density_engine", None) is not None:
                     self._density_xi, self._density_scales = self._density_engine.update(pop_d, self.tick, carrying_d)
                 else:
@@ -1615,8 +1617,10 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
         if _eta_decay:
             _eff_decay *= (1.0 - 0.4 * _eta_decay)
         if _xi_decay:
-            _eff_decay *= (1.0 + float(getattr(self.config, "crowding_stress_mult", 0.35)) * _xi_decay)
+            _stress = float(getattr(self.config, "crowding_stress_mult", 1.0))
+            _eff_decay *= (1.0 + _stress * _xi_decay + 0.8 * _stress * (_xi_decay ** 2))
         self._eff_decay_tick = _eff_decay
+        self._xi_decay_tick = _xi_decay
         for creature in list(self._cached_creatures):
             if creature.id in self.world.entities:
                 self._update_creature(creature, houses, tod, is_night, env_sight, env_speed, clan_house_map)
@@ -1718,7 +1722,7 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
                         lifespan = traits.lifespan * self.config.lifespan_mult * self.rng.uniform(0.9, 1.25)
                         # Genesis beings are young adults ready to found the new era and immediately reproduce
                         adult_floor = int(getattr(self.config, "adult_age", 350))
-                        age = max(adult_floor + self.rng.randint(10, 50), int(lifespan * 0.35))
+                        age = adult_floor + self.rng.randint(10, 50)
                         energy = self.config.energy_max * self.rng.uniform(0.70, 0.90)
                         c = Creature(
                             shape=shape,

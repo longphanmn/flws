@@ -407,3 +407,120 @@ def test_sync_selection_with_evolution_attributes():
 
     asyncio.run(scenario())
 
+
+def test_state_reconstructor_with_delta():
+    from tui.state import StateReconstructor
+
+    recon = StateReconstructor()
+    init = make_state(tick=10)
+    st = recon.process_state(init)
+    assert st.tick == 10
+    assert len(st.entities) == 3
+    assert recon.has_state
+
+    # Send delta_state: remove entity 2, update entity 12 (energy=80), add entity 99
+    delta = {
+        "type": "delta_state",
+        "tick": 11,
+        "remove_ids": [2],
+        "upsert_entities": [
+            {"id": 12, "energy": 80.0, "x": 105.0},
+            {"id": 99, "kind": "food", "x": 50.0, "y": 50.0, "variant": "grass", "growth": 1.0},
+        ],
+        "population": {"Soldier": 2, "Woman": 1, "Food": 1},
+        "rivers": [{"cy": 150.0, "hw": 5.0, "dir": 1, "flood": False}],
+        "bridges": [{"x": 100.0, "cy": 150.0}],
+    }
+    st2 = recon.process_delta(delta)
+    assert st2 is not None
+    assert st2.tick == 11
+    assert len(st2.entities) == 3
+    ids = {e.id for e in st2.entities}
+    assert 2 not in ids
+    assert 99 in ids
+    e12 = next(e for e in st2.entities if e.id == 12)
+    assert e12.energy == 80.0
+    assert e12.x == 105.0
+    assert e12.personal_name == "Lyss"  # Retained from initial state
+    assert len(st2.rivers) == 1
+    assert len(st2.bridges) == 1
+
+
+def test_world_view_renders_features_and_glyphs():
+    from tui.state import StateMessage
+    from tui.widgets import WorldView
+    import tui.theme as theme
+
+    view = WorldView()
+    st_dict = make_state(tick=50)
+    st_dict["rivers"] = [{"cy": 50.0, "hw": 4.0, "dir": 1, "flood": False}]
+    st_dict["bridges"] = [{"x": 100.0, "cy": 50.0}]
+    st_dict["dams"] = [{"x": 120.0, "cy": 50.0, "hp_frac": 1.0}]
+    st_dict["boundary_stones"] = [{"x": 80.0, "y": 80.0, "clan_id": 1}]
+    st_dict["markets"] = [{"x": 90.0, "y": 90.0}]
+    st_dict["anomalies"] = [{"x": 60.0, "y": 60.0, "kind": "heavy"}]
+    st_dict["lightning"] = [{"x": 70.0, "y": 70.0}]
+    st_dict["campfires"] = [{"x": 85.0, "y": 85.0}]
+
+    st = StateMessage.from_dict(st_dict)
+    view.set_state(st)
+    chars = {cell.char for cell in view._grid.values() if cell and cell.char}
+
+    assert theme.GLYPH_RIVER in chars
+    assert theme.GLYPH_BRIDGE in chars
+    assert theme.GLYPH_DAM in chars
+    assert theme.GLYPH_BOUNDARY_STONE in chars
+    assert theme.GLYPH_MARKET in chars
+    assert theme.GLYPH_ANOMALY in chars
+    assert theme.GLYPH_LIGHTNING in chars
+    assert theme.GLYPH_CAMPFIRE in chars
+
+
+def test_chronicle_extinction_events():
+    from tui.state import HistoryEvent
+    from tui.widgets.chronicle import format_event
+
+    ev_ext = HistoryEvent.from_dict({"type": "extinction", "tick": 500, "entity_id": 0})
+    text_ext = format_event(ev_ext).plain
+    assert "extinction: all life" in text_ext
+
+    ev_clan_ext = HistoryEvent.from_dict({
+        "type": "clan_extinction", "tick": 501, "entity_id": 0,
+        "payload": {"clan_name": "Iron Claws", "clan_id": 3},
+    })
+    text_clan_ext = format_event(ev_clan_ext).plain
+    assert "Iron Claws" in text_clan_ext
+    assert "clan extinction" in text_clan_ext
+
+    ev_anom = HistoryEvent.from_dict({
+        "type": "anomaly", "tick": 502, "entity_id": 0, "x": 42.0, "y": 84.0,
+        "payload": {"kind": "gravity rift"},
+    })
+    text_anom = format_event(ev_anom).plain
+    assert "anomaly discovered" in text_anom
+    assert "gravity rift" in text_anom
+
+
+def test_god_laws_screen_contains_macro_domains():
+    from tui.screens.god_laws import NUMBER_LAWS, BOOL_LAWS
+
+    assert "Extinction Safeguards" in NUMBER_LAWS
+    assert "Density Soft-Cap Damping" in NUMBER_LAWS
+    assert "Boom Periods" in NUMBER_LAWS
+    assert "Trade & Diplomacy" in NUMBER_LAWS
+    assert "Morphology" in NUMBER_LAWS
+
+    # Safeguards & Soft-cap keys
+    num_safeguards = [k for k, _ in NUMBER_LAWS["Extinction Safeguards"]]
+    assert "safeguard_critical_pop" in num_safeguards
+    assert "safeguard_relief_ratio" in num_safeguards
+
+    num_softcap = [k for k, _ in NUMBER_LAWS["Density Soft-Cap Damping"]]
+    assert "damping_steepness" in num_softcap
+    assert "crowding_stress_mult" in num_softcap
+
+    bool_trade = [k for k, _ in BOOL_LAWS["Trade & Diplomacy"]]
+    assert "markets_enabled" in bool_trade
+    assert "envoys_enabled" in bool_trade
+
+

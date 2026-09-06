@@ -28,13 +28,13 @@ def compute_xi(N: int, Kcap: int, enabled: bool) -> float:
 def scales_for_xi(xi: float, config) -> Dict[str, float]:
     """Compute 4-channel damping scales for xi."""
     try:
-        damping = float(getattr(config, "damping_steepness", 6.0))
-        crowding = float(getattr(config, "crowding_stress_mult", 0.35))
-        resource = float(getattr(config, "resource_strain_mult", 1.2))
+        damping = float(getattr(config, "damping_steepness", 12.0))
+        crowding = float(getattr(config, "crowding_stress_mult", 1.5))
+        resource = float(getattr(config, "resource_strain_mult", 2.0))
     except Exception:
-        damping = 6.0
-        crowding = 0.35
-        resource = 1.2
+        damping = 12.0
+        crowding = 1.5
+        resource = 2.0
 
     if xi <= 0.0:
         return {
@@ -49,21 +49,21 @@ def scales_for_xi(xi: float, config) -> Dict[str, float]:
             "xi": 0.0,
         }
 
-    # Channel 1: reproductive suppression (linear + quadratic for immediate slope at boundary)
-    birth_rate_eff = 1.0 / (1.0 + 2.0 * damping * xi + (damping * xi) ** 2)
-    birth_cost_eff = 1.0 + 2.0 * xi
-    cooldown_eff = 1.0 + 3.0 * xi + 3.0 * xi * xi
-    mate_thr_eff = 1.0 + 1.5 * xi
+    # Channel 1: aggressive reproductive suppression (cubic & quadratic terms)
+    birth_rate_eff = 1.0 / (1.0 + 3.0 * damping * xi + (damping * xi) ** 2)
+    birth_cost_eff = 1.0 + 3.0 * xi + 2.0 * xi * xi
+    cooldown_eff = 1.0 + 5.0 * xi + 6.0 * xi * xi
+    mate_thr_eff = 1.0 + 2.5 * xi + 2.0 * xi * xi
 
-    # Channel 2: crowding stress
-    decay_eff = 1.0 + crowding * xi + 0.5 * crowding * xi * xi
+    # Channel 2: crowding stress (quadratic scaling to accelerate resolution)
+    decay_eff = 1.0 + crowding * xi + 0.8 * crowding * xi * xi
 
     # Channel 3: ecological strain
-    growth_eff = 1.0 / (1.0 + resource * xi)
-    spread_eff = 1.0 / (1.0 + 2.0 * xi)
+    growth_eff = 1.0 / (1.0 + resource * xi * 1.5)
+    spread_eff = 1.0 / (1.0 + 3.0 * xi)
 
     # Channel 4: social friction (pathogens)
-    outbreak_eff = 1.0 + 3.0 * xi
+    outbreak_eff = 1.0 + 4.0 * xi
 
     return {
         "birth_rate_eff": birth_rate_eff,

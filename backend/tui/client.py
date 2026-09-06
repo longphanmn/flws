@@ -18,7 +18,7 @@ from typing import Any, Callable
 import httpx
 import websockets
 
-from .state import HelloMessage, StateMessage
+from .state import HelloMessage, StateMessage, StateReconstructor
 
 
 def god_key() -> str | None:
@@ -58,6 +58,7 @@ class WSClient:
         self._ws: Any = None
         self._task: asyncio.Task | None = None
         self._closing = False
+        self._reconstructor = StateReconstructor()
 
     @property
     def connected(self) -> bool:
@@ -95,6 +96,7 @@ class WSClient:
         backoff = 1.0
         while not self._closing:
             try:
+                self._reconstructor.reset()
                 async with websockets.connect(self.url, max_size=2**25) as ws:
                     self._ws = ws
                     backoff = 1.0
@@ -108,13 +110,22 @@ class WSClient:
                         if kind == "hello":
                             self.on_hello(HelloMessage.from_dict(msg))
                         elif kind == "state":
-                            self.on_state(StateMessage.from_dict(msg))
+                            state_msg = self._reconstructor.process_state(msg)
+                            self.on_state(state_msg)
+                        elif kind == "delta_state":
+                            state_msg = self._reconstructor.process_delta(msg)
+                            if state_msg is not None:
+                                self.on_state(state_msg)
+                        elif kind == "auth_error":
+                            self.on_status(f"Auth error: {msg.get('error', 'invalid passkey')}")
                     self._ws = None
+                    self._reconstructor.reset()
                     self.on_status("server closed connection")
             except asyncio.CancelledError:
                 raise
             except Exception as exc:  # noqa: BLE001 — any socket error must reconnect
                 self._ws = None
+                self._reconstructor.reset()
                 if self._closing:
                     break
                 reason = f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__

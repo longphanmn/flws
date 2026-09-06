@@ -194,6 +194,35 @@ class EntityState:
             return f"{name} {self.title} #{self.id}"
         return f"{name} #{self.id}"
 
+    def patch(self, d: dict) -> None:
+        """Apply compact delta updates in place."""
+        for k, v in d.items():
+            if not hasattr(self, k):
+                continue
+            if k in (
+                "x", "y", "angle", "size", "radius", "energy", "growth", "irregularity",
+                "health", "lifespan", "hue_shift", "scale_jitter", "angle_jitter",
+                "chill", "body_temp", "iso_angle", "nn_hidden", "door_width",
+                "door_offset", "hp_frac",
+            ):
+                setattr(self, k, None if v is None else float(v))
+            elif k in (
+                "id", "sides", "age", "meals", "mother_id", "father_id", "clan_id",
+                "generation", "born_tick", "morph_k", "food_basket", "abandoned_ticks",
+                "takeover_age", "murals",
+            ):
+                setattr(self, k, None if v is None else int(v))
+            elif k in (
+                "infected", "is_predator", "is_herbivore", "sleeping", "indoors",
+                "torpid", "is_ruin", "is_main", "withering", "cultivated", "irrigated",
+                "hearth_lit", "rubble",
+            ):
+                setattr(self, k, bool(v) if v is not None else False)
+            elif k == "skills":
+                setattr(self, k, dict(v or {}))
+            else:
+                setattr(self, k, v)
+
 
 @dataclass(slots=True)
 class HistoryEvent:
@@ -268,10 +297,20 @@ class StateMessage:
     signals: list[dict] = field(default_factory=list)
     fires: list[dict] = field(default_factory=list)
     campfires: list[dict] = field(default_factory=list)
+    boundary_stones: list[dict] = field(default_factory=list)
+    markets: list[dict] = field(default_factory=list)
+    wind: dict[str, float] = field(default_factory=dict)
+    rivers: list[dict] = field(default_factory=list)
+    bridges: list[dict] = field(default_factory=list)
+    dams: list[dict] = field(default_factory=list)
+    lightning: list[dict] = field(default_factory=list)
+    anomalies: list[dict] = field(default_factory=list)
+    law_wave: dict = field(default_factory=dict)
     age: Optional[str] = None
     age_tick: int = 0
     age_day: int = 1
     age_total_days: int = 10
+    paused: bool = False
 
     @classmethod
     def from_dict(cls, d: dict) -> "StateMessage":
@@ -299,8 +338,108 @@ class StateMessage:
             signals=d.get("signals") or [],
             fires=d.get("fires") or [],
             campfires=d.get("campfires") or [],
+            boundary_stones=d.get("boundary_stones") or [],
+            markets=d.get("markets") or [],
+            wind=d.get("wind") or {},
+            rivers=d.get("rivers") or [],
+            bridges=d.get("bridges") or [],
+            dams=d.get("dams") or [],
+            lightning=d.get("lightning") or [],
+            anomalies=d.get("anomalies") or [],
+            law_wave=d.get("law_wave") or {},
             age=_o(d, "age"),
             age_tick=_i(d, "age_tick"),
             age_day=_i(d, "age_day", 1),
             age_total_days=_i(d, "age_total_days", 10),
+            paused=bool(d.get("paused")),
         )
+
+
+class StateReconstructor:
+    """Maintains entity state cache and reconstructs full StateMessage from delta_state frames."""
+
+    def __init__(self) -> None:
+        self.reset()
+
+    def reset(self) -> None:
+        self._last_state: Optional[StateMessage] = None
+        self._entities_map: dict[int, EntityState] = {}
+        self._clans: dict[str, dict] = {}
+
+    @property
+    def has_state(self) -> bool:
+        return self._last_state is not None
+
+    def process_state(self, d: dict) -> StateMessage:
+        msg = StateMessage.from_dict(d)
+        self._last_state = msg
+        self._entities_map = {e.id: e for e in msg.entities}
+        self._clans = dict(msg.clans)
+        return msg
+
+    def process_delta(self, d: dict) -> Optional[StateMessage]:
+        if self._last_state is None:
+            return None
+
+        # Removals
+        for eid in d.get("remove_ids") or []:
+            self._entities_map.pop(eid, None)
+
+        # Upserts
+        for raw in d.get("upsert_entities") or []:
+            eid = raw.get("id")
+            if eid is None:
+                continue
+            existing = self._entities_map.get(eid)
+            if existing is not None:
+                existing.patch(raw)
+            else:
+                self._entities_map[eid] = EntityState.from_dict(raw)
+
+        # Clans delta
+        if d.get("clans"):
+            self._clans.update(d["clans"])
+
+        last = self._last_state
+        reconstructed = StateMessage(
+            tick=_i(d, "tick", last.tick),
+            seed=_i(d, "seed", last.seed),
+            width=last.width,
+            height=last.height,
+            boundary=last.boundary,
+            population=d.get("population") or last.population,
+            entities=list(self._entities_map.values()),
+            creatures_alive=_i(d, "creatures_alive", last.creatures_alive),
+            creatures_dead=_i(d, "creatures_dead", last.creatures_dead),
+            dead_by_cause=d.get("dead_by_cause") or last.dead_by_cause,
+            infected_count=_i(d, "infected_count", last.infected_count),
+            time_of_day=_f(d, "time_of_day", last.time_of_day),
+            day=_i(d, "day", last.day),
+            season=_s(d, "season", last.season),
+            weather=_s(d, "weather", last.weather),
+            terrain_fertile=last.terrain_fertile,
+            terrain_rocks=last.terrain_rocks,
+            relations=d.get("relations") if d.get("relations") is not None else last.relations,
+            clans=dict(self._clans),
+            events=[HistoryEvent.from_dict(e) for e in d.get("events") or []],
+            signals=d.get("signals") or [],
+            fires=d.get("fires") or [],
+            campfires=d.get("campfires") or [],
+            boundary_stones=d.get("boundary_stones") if "boundary_stones" in d else last.boundary_stones,
+            markets=d.get("markets") if "markets" in d else last.markets,
+            wind=d.get("wind") if "wind" in d else last.wind,
+            rivers=d.get("rivers") if "rivers" in d else last.rivers,
+            bridges=d.get("bridges") if "bridges" in d else last.bridges,
+            dams=d.get("dams") if "dams" in d else last.dams,
+            lightning=d.get("lightning") or [],
+            anomalies=d.get("anomalies") if "anomalies" in d else last.anomalies,
+            law_wave=d.get("law_wave") if "law_wave" in d else last.law_wave,
+            age=_o(d, "age") if "age" in d else last.age,
+            age_tick=_i(d, "age_tick", last.age_tick),
+            age_day=_i(d, "age_day", last.age_day),
+            age_total_days=_i(d, "age_total_days", last.age_total_days),
+            paused=bool(d["paused"]) if "paused" in d else last.paused,
+        )
+        self._last_state = reconstructed
+        return reconstructed
+
