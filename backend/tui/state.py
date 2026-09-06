@@ -311,6 +311,8 @@ class StateMessage:
     age_day: int = 1
     age_total_days: int = 10
     paused: bool = False
+    safeguard_active: bool = False
+    softcap_active: bool = False
 
     @classmethod
     def from_dict(cls, d: dict) -> "StateMessage":
@@ -352,6 +354,8 @@ class StateMessage:
             age_day=_i(d, "age_day", 1),
             age_total_days=_i(d, "age_total_days", 10),
             paused=bool(d.get("paused")),
+            safeguard_active=bool(d.get("safeguard_active", False)),
+            softcap_active=bool(d.get("softcap_active", False)),
         )
 
 
@@ -439,6 +443,8 @@ class StateReconstructor:
             age_day=_i(d, "age_day", last.age_day),
             age_total_days=_i(d, "age_total_days", last.age_total_days),
             paused=bool(d["paused"]) if "paused" in d else last.paused,
+            safeguard_active=bool(d["safeguard_active"]) if "safeguard_active" in d else getattr(last, "safeguard_active", False),
+            softcap_active=bool(d["softcap_active"]) if "softcap_active" in d else getattr(last, "softcap_active", False),
         )
         self._last_state = reconstructed
         return reconstructed

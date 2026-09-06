@@ -14,7 +14,9 @@
       "connecting": "connexion",
       "live": "en direct",
       "reconnecting": "reconnexion…",
-      "paused": "EN PAUSE"
+      "paused": "EN PAUSE",
+      "safeguard_active": "Sauvegarde active",
+      "softcap_active": "Soft-cap actif"
     },
     "controls": {
       "pause": "Pause (Espace)",

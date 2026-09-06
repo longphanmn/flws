@@ -16,6 +16,25 @@ from .constants import _clan_sig, _season_food_mult, personal_name_for, glyph_fo
 
 
 class SerializationMixin:
+    def _is_safeguard_active(self, alive: int) -> bool:
+        safeguard_enabled = bool(getattr(self.config, "safeguard_enabled", True))
+        if not safeguard_enabled or alive <= 0:
+            return False
+        sg_tier = getattr(self, "_safeguard_tier", 0)
+        sg_eta = getattr(self, "_safeguard_eta", 0.0)
+        cc = int(getattr(self.config, "carrying_capacity", 350))
+        relief = float(getattr(self.config, "safeguard_relief_ratio", 0.30))
+        ksafe = cc * relief
+        if alive >= ksafe and sg_tier < 3:
+            return False
+        return bool(sg_tier > 0 or sg_eta > 0.0)
+
+    def _is_softcap_active(self, alive: int) -> bool:
+        soft_cap_enabled = bool(getattr(self.config, "soft_cap_enabled", True))
+        if not soft_cap_enabled or alive <= 0:
+            return False
+        return bool(getattr(self, "_density_xi", 0.0) > 0.0)
+
     def _cached_identity(self, entity_id: int, generation: int) -> tuple[str, str, float, float, float]:
         """AA: name/glyph/jitter computed once per creature — never per frame."""
         key = (entity_id, generation)
@@ -255,6 +274,8 @@ class SerializationMixin:
             "age_tick": self._age_tick(),
             "age_day": self._age_day(),
             "age_total_days": self._age_total_days(),
+            "safeguard_active": self._is_safeguard_active(alive),
+            "softcap_active": self._is_softcap_active(alive),
         }
 
     def snapshot_delta_payload(self) -> dict:
@@ -383,6 +404,8 @@ class SerializationMixin:
             "age_tick": self._age_tick(),
             "age_day": self._age_day(),
             "age_total_days": self._age_total_days(),
+            "safeguard_active": self._is_safeguard_active(alive),
+            "softcap_active": self._is_softcap_active(alive),
         }
 
     def snapshot(self) -> StateMessage:

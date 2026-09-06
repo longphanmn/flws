@@ -537,6 +537,8 @@ export default function App() {
     state?.weather === 'rain' ? '🌧' : state?.weather === 'fog' ? '🌫' : state?.weather === 'storm' ? '⛈' : ''
   const ageDay = state?.age_day ?? (state?.age_tick !== undefined ? Math.floor(state.age_tick / 1200) + 1 : 1)
   const ageTotalDays = state?.age_total_days ?? 10
+  const isSafeguardActive = Boolean(state?.safeguard_active)
+  const isSoftcapActive = Boolean(state?.softcap_active)
 
   return (
     <div className="app">
@@ -743,6 +745,28 @@ export default function App() {
           selectedClanRef={selectedClanRef}
           onTapCreature={selectCreature}
         />
+
+        {(isSafeguardActive || isSoftcapActive) && (
+          <div
+            className="regulation-status-container"
+            style={{
+              left: !isMobile && selectedId !== null ? 406 : 14,
+            }}
+          >
+            {isSafeguardActive && (
+              <div className="regulation-status-badge safeguard">
+                <span className="regulation-status-dot" />
+                <span>{t('app.status.safeguard_active') || 'Safeguard Active'}</span>
+              </div>
+            )}
+            {isSoftcapActive && (
+              <div className="regulation-status-badge softcap">
+                <span className="regulation-status-dot" />
+                <span>{t('app.status.softcap_active') || 'Softcap Active'}</span>
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {/* Mobile thumb bar — persistent bottom bar */}

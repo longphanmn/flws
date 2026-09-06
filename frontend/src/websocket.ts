@@ -112,6 +112,8 @@ export class WorldSocket {
           entities: Array.from(this.entitiesMap.values()),
           paused: delta.paused ?? this.lastFullState.paused,
           analytics: (delta as any).analytics ?? (this.lastFullState as any)?.analytics,
+          safeguard_active: delta.safeguard_active ?? this.lastFullState?.safeguard_active ?? false,
+          softcap_active: delta.softcap_active ?? this.lastFullState?.softcap_active ?? false,
         }
         this.lastFullState = reconstructed
         this.handlers.onState?.(reconstructed)

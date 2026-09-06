@@ -128,6 +128,78 @@ body {
   touch-action: none; /* pointer events handle pan/pinch */
 }
 
+/* ---- regulation status indicator (bottom-left of screen) ---- */
+.regulation-status-container {
+  position: absolute;
+  bottom: 12px;
+  left: 14px;
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: left 0.2s ease, opacity 0.2s ease;
+}
+
+.regulation-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  border-radius: 6px;
+  background: rgba(13, 17, 23, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+  user-select: none;
+  width: fit-content;
+}
+
+.regulation-status-badge.safeguard {
+  color: #3fb950;
+  border: 1px solid rgba(63, 185, 80, 0.55);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.55), 0 0 12px rgba(63, 185, 80, 0.2);
+}
+
+.regulation-status-badge.safeguard .regulation-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3fb950;
+  box-shadow: 0 0 6px #3fb950;
+  animation: pulse-dot-green 2s infinite ease-in-out;
+  flex: none;
+}
+
+.regulation-status-badge.softcap {
+  color: #f85149;
+  border: 1px solid rgba(248, 81, 73, 0.55);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.55), 0 0 12px rgba(248, 81, 73, 0.2);
+}
+
+.regulation-status-badge.softcap .regulation-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f85149;
+  box-shadow: 0 0 6px #f85149;
+  animation: pulse-dot-red 2s infinite ease-in-out;
+  flex: none;
+}
+
+@keyframes pulse-dot-green {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+@keyframes pulse-dot-red {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
 .chip.alive b {
   color: #3fb950;
 }

@@ -134,6 +134,8 @@ class StateMessage(BaseModel):
     age_day: int = 1
     age_total_days: int = 10
     paused: bool = False
+    safeguard_active: bool = False
+    softcap_active: bool = False
 
 
 class DeltaStateMessage(BaseModel):
@@ -173,6 +175,8 @@ class DeltaStateMessage(BaseModel):
     age_day: int = 1
     age_total_days: int = 10
     paused: bool = False
+    safeguard_active: bool = False
+    softcap_active: bool = False
 
 
 

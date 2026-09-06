@@ -1783,6 +1783,9 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
                         pass
             except Exception:
                 pass
+        elif not getattr(self.config, "safeguard_enabled", True):
+            self._safeguard_eta = 0.0
+            self._safeguard_tier = 0
         _ph_society = time.perf_counter()
         self._reproduce()
         # BC bake traits for any new SoA morph entries (lazy)

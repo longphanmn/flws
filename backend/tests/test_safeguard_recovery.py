@@ -147,3 +147,71 @@ def test_simulation_single_miracle_then_allows_extinction(monkeypatch):
 
     assert sim._safeguard.miracles == 1, "Miracles must not exceed max_miracles=1"
     assert len(sim.world.creatures()) == 0, "World must be allowed to go extinct when safeguard fails"
+
+
+def test_safeguard_and_softcap_active_flags(monkeypatch):
+    import app.simulation
+    monkeypatch.setattr(app.simulation, "_IS_TEST", False)
+
+    cfg = Config(
+        seed=999,
+        carrying_capacity=50,
+        safeguard_relief_ratio=0.30,  # Ksafe = 15
+        safeguard_critical_pop=5,
+        safeguard_enabled=True,
+        soft_cap_enabled=True,
+        num_triangles=0,
+        num_squares=0,
+        num_pentagons=0,
+        num_hexagons=0,
+        num_priests=0,
+        num_women=0,
+        num_houses=0,
+    )
+    sim = Simulation(cfg)
+    for e in list(sim.world.entities.values()):
+        sim.world.remove(e.id)
+    sim._refresh_cache()
+
+    # 1. Extinct: neither should be active
+    snap = sim.snapshot_payload()
+    assert snap["safeguard_active"] is False
+    assert snap["softcap_active"] is False
+
+    # 2. Low population (N = 10 < Ksafe = 15): safeguard active, softcap inactive
+    for i in range(10):
+        shape = "line" if i % 2 == 0 else "polygon"
+        sides = 2 if shape == "line" else 4
+        sim.world.add(Creature(shape=shape, sides=sides, x=20.0, y=20.0, energy=80.0, age=100, lifespan=1000))
+    sim.step()
+    snap = sim.snapshot_payload()
+    delta = sim.snapshot_delta_payload()
+    assert snap["safeguard_active"] is True
+    assert snap["softcap_active"] is False
+    assert delta["safeguard_active"] is True
+    assert delta["softcap_active"] is False
+
+    # 3. Normal population (N = 30, between Ksafe=15 and Kcap=50): neither active
+    for i in range(20):
+        shape = "line" if i % 2 == 0 else "polygon"
+        sides = 2 if shape == "line" else 4
+        sim.world.add(Creature(shape=shape, sides=sides, x=25.0, y=25.0, energy=80.0, age=100, lifespan=1000))
+    for _ in range(10):
+        sim.step()
+    snap = sim.snapshot_payload()
+    assert snap["safeguard_active"] is False
+    assert snap["softcap_active"] is False
+
+    # 4. Overpopulation (N = 60 > Kcap = 50): softcap active, safeguard inactive
+    for i in range(30):
+        shape = "line" if i % 2 == 0 else "polygon"
+        sides = 2 if shape == "line" else 4
+        sim.world.add(Creature(shape=shape, sides=sides, x=30.0, y=30.0, energy=80.0, age=100, lifespan=1000))
+    sim.step()
+    snap = sim.snapshot_payload()
+    delta = sim.snapshot_delta_payload()
+    assert snap["safeguard_active"] is False
+    assert snap["softcap_active"] is True
+    assert delta["safeguard_active"] is False
+    assert delta["softcap_active"] is True
+

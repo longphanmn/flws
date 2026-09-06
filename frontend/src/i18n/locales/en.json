@@ -14,7 +14,9 @@
       "connecting": "connecting",
       "live": "live",
       "reconnecting": "reconnecting…",
-      "paused": "PAUSED"
+      "paused": "PAUSED",
+      "safeguard_active": "Safeguard Active",
+      "softcap_active": "Softcap Active"
     },
     "controls": {
       "pause": "Pause (Space)",

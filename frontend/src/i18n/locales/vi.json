@@ -14,7 +14,9 @@
       "connecting": "đang kết nối",
       "live": "trực tiếp",
       "reconnecting": "đang kết nối lại…",
-      "paused": "TẠM DỪNG"
+      "paused": "TẠM DỪNG",
+      "safeguard_active": "Bảo hộ kích hoạt",
+      "softcap_active": "Hãm mật độ kích hoạt"
     },
     "controls": {
       "pause": "Tạm dừng (Space)",

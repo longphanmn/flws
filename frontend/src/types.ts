@@ -157,6 +157,8 @@ export interface StateMessage {
   age_total_days?: number
   paused?: boolean
   analytics?: any
+  safeguard_active?: boolean
+  softcap_active?: boolean
 }
 
 export interface DeltaStateMessage {
@@ -196,6 +198,8 @@ export interface DeltaStateMessage {
   age_day?: number
   age_total_days?: number
   paused?: boolean
+  safeguard_active?: boolean
+  softcap_active?: boolean
 }
 
 
