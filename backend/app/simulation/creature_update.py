@@ -1753,7 +1753,8 @@ class CreatureUpdateMixin:
         # Check if creature is inside a house (§L indoor/outdoor navigation)
         inside_house_obj: House | None = None
         if houses and not c.is_predator:
-            h_candidates = getattr(self, "_house_grid", {}).get((int(c.x // 50), int(c.y // 50)), houses)
+            grid = getattr(self, "_house_grid", None)
+            h_candidates = grid.get((int(c.x // 50), int(c.y // 50)), ()) if grid else houses
             for h in h_candidates:
                 if not h.is_ruin and abs(c.x - h.x) <= 14.0 and abs(c.y - h.y) <= 14.0 and self._is_inside_house(c, h):
                     inside_house_obj = h
@@ -2105,7 +2106,9 @@ class CreatureUpdateMixin:
         mdx, mdy = w.delta(c.x, c.y, px, py)
         was_blocked = False
         if houses and mdx * mdx + mdy * mdy <= step_len * step_len * 2.25:  # skip wrap teleports
-            near_houses = [h for h in getattr(self, "_house_grid", {}).get((int(px // 50), int(py // 50)), houses) if abs(px - h.x) <= 14.0 and abs(py - h.y) <= 14.0]
+            grid = getattr(self, "_house_grid", None)
+            h_cand = grid.get((int(px // 50), int(py // 50)), ()) if grid else houses
+            near_houses = [h for h in h_cand if abs(px - h.x) <= 14.0 and abs(py - h.y) <= 14.0]
             for h in near_houses:
                 crosses = (
                     _path_crosses_wall(px, py, px + mdx, py + mdy, h, predator_blocked=c.is_predator)
@@ -2404,34 +2407,24 @@ class CreatureUpdateMixin:
             elif leaderless:
                 decay_mult *= LEADERLESS_DECAY_MULT
         # BC.2 trait baking — perimeter scales burn, inertia scales steer
-        if getattr(cfg, "morphology_annealing_enabled", True) and getattr(self, "_soa", None) is not None and _morphology is not None and hasattr(self, "_soa_id_map"):
+        if getattr(c, "_decay_scale", -1.0) > 0.0:
+            decay_mult *= c._decay_scale
+        elif getattr(cfg, "morphology_annealing_enabled", True) and getattr(self, "_soa", None) is not None and _morphology is not None and hasattr(self, "_soa_id_map"):
             try:
                 idx = self._soa_id_map.get(c.id)
                 if idx is not None and 0 <= idx < getattr(self._soa, "N", 0):
-                    # perimeter scale 0.7-1.8 already baked in morph_traits[:,1] -> decay_scale via area/perim, but we use direct bake scale
                     try:
-                        # use baked decay_scale via morph_traits perim
-                        # bakeTraits scale 0.7-1.8, we apply 0.5*(1+scale) to keep moderate
-                        # Instead use morph bake helper
                         baked = _morphology.bake_traits_for_index(idx, self._soa, cfg)
-                        decay_mult *= baked.get("decay_scale", 1.0)
-                        # Dmult for damage handled in combat via _damage_with_morph
-                        # steer resistance via izz
+                        c._decay_scale = float(baked.get("decay_scale", 1.0))
+                        decay_mult *= c._decay_scale
                         izz = baked.get("izz", 0.0)
-                        # scale steer later via c._bc_steer_scale cached
                         c._bc_steer_scale = 1.0 / (1.0 + izz / (_morphology.I_REF + 1e-6))  # type: ignore
                     except Exception:
                         pass
             except Exception:
                 pass
         # Phase 5 safeguard Tier1 + Phase4 soft-cap Tier (overpopulation) effective decay
-        _eta_decay = float(getattr(self, "_safeguard_eta", 0.0) or 0.0)
-        _xi_decay = float(getattr(self, "_density_xi", 0.0) or 0.0)
-        _eff_decay_tick = cfg.energy_decay_per_tick
-        if _eta_decay:
-            _eff_decay_tick *= (1.0 - 0.4 * _eta_decay)
-        if _xi_decay:
-            _eff_decay_tick *= (1.0 + float(getattr(cfg, "crowding_stress_mult", 0.35)) * _xi_decay)
+        _eff_decay_tick = getattr(self, "_eff_decay_tick", cfg.energy_decay_per_tick)
         c.energy -= _eff_decay_tick * decay_mult
         # §AT-4 H-2: morale — the second health axis. Starvation erodes the
         # will; the leader's aura, festivals and simple resilience mend it.

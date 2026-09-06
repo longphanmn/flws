@@ -829,14 +829,16 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
         is_wrap = self.config.boundary == "wrap"
         half_w = w * 0.5
         half_h = h * 0.5
-        solids = list(self.rocks)
-        if self.config.rubble_blocking_enabled:
-            for rh in self._cached_houses:
-                if rh.is_ruin and rh.rubble > 0:
-                    solids.append({
-                        "x": rh.x, "y": rh.y,
-                        "r": rh.size * RUBBLE_RADIUS_FRAC, "_house_id": rh.id,
-                    })
+        solids = getattr(self, "_cached_solids", None)
+        if solids is None:
+            solids = list(self.rocks)
+            if self.config.rubble_blocking_enabled:
+                for rh in getattr(self, "_cached_houses", ()):
+                    if getattr(rh, "is_ruin", False) and getattr(rh, "rubble", 0) > 0:
+                        solids.append({
+                            "x": rh.x, "y": rh.y,
+                            "r": rh.size * RUBBLE_RADIUS_FRAC, "_house_id": rh.id,
+                        })
         for rock in solids:
             min_d = rock["r"] + c.radius
             rx, ry = rock["x"], rock["y"]
@@ -1114,6 +1116,18 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
                 for dgy in (-1, 0, 1):
                     house_grid.setdefault((gx + dgx, gy + dgy), []).append(h)
         self._house_grid = house_grid
+
+        # PERF: Cache solids (rocks + rubble) and house bed capacities once per tick
+        self._house_capacities = {h.id: self._house_beds(h) for h in houses}
+        solids = list(self.rocks)
+        if self.config.rubble_blocking_enabled:
+            for rh in self._cached_houses:
+                if getattr(rh, "is_ruin", False) and getattr(rh, "rubble", 0) > 0:
+                    solids.append({
+                        "x": rh.x, "y": rh.y,
+                        "r": rh.size * RUBBLE_RADIUS_FRAC, "_house_id": rh.id,
+                    })
+        self._cached_solids = solids
 
         # §AU CPU: merged single pass for sleeping occupancy + bodies under roof.
         house_occ: dict[int, int] = {}
@@ -1595,6 +1609,14 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
         else:
             self._torch_bearers = []  # type: ignore[attr-defined]
         _ph_creatures = time.perf_counter()
+        _eta_decay = float(getattr(self, "_safeguard_eta", 0.0) or 0.0)
+        _xi_decay = float(getattr(self, "_density_xi", 0.0) or 0.0)
+        _eff_decay = self.config.energy_decay_per_tick
+        if _eta_decay:
+            _eff_decay *= (1.0 - 0.4 * _eta_decay)
+        if _xi_decay:
+            _eff_decay *= (1.0 + float(getattr(self.config, "crowding_stress_mult", 0.35)) * _xi_decay)
+        self._eff_decay_tick = _eff_decay
         for creature in list(self._cached_creatures):
             if creature.id in self.world.entities:
                 self._update_creature(creature, houses, tod, is_night, env_sight, env_speed, clan_house_map)

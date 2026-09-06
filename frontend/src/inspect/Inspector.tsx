@@ -315,7 +315,7 @@ interface Props {
 
 type TabKey = 'vitals' | 'skills' | 'lineage' | 'chronicle'
 
-export default function Inspector({ id, onClose, onNavigate, onSelectClan }: Props) {
+export default function Inspector({ id, state, onClose, onNavigate, onSelectClan }: Props) {
   const { t } = useI18n()
   const [data, setData] = useState<CreatureResponse | null>(null)
   const [snap, setSnap] = useState<'peek' | 'half' | 'full'>('half')
@@ -372,8 +372,11 @@ export default function Inspector({ id, onClose, onNavigate, onSelectClan }: Pro
     }
   }, [id])
 
-  const e = data?.entity
-  const fam = data?.family
+  // Instant live entity from WebSocket state while full dossier is loading
+  const liveEntity = state?.entities?.find((ent: any) => ent.id === id)
+  const isCurrent = data?.entity?.id === id
+  const e = isCurrent ? data.entity : (liveEntity || null)
+  const fam = isCurrent ? data.family : undefined
 
   const statusChips: Array<{ text: string; cls: string }> = []
   if (e?.status === 'hungry') statusChips.push({ text: t('inspector.hungry'), cls: 'st-hungry' })

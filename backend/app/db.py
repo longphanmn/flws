@@ -93,6 +93,7 @@ CREATE TABLE IF NOT EXISTS settings (
     created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_events_world ON events(world_id, id);
+CREATE INDEX IF NOT EXISTS idx_events_world_entity ON events(world_id, entity_id, id DESC);
 CREATE INDEX IF NOT EXISTS idx_creatures_world ON creatures(world_id, entity_id);
 """
 
@@ -152,6 +153,7 @@ class Database:
         # AZ Phase 3 P0: missing indices — guarded migration (2.6M rows)
         try:
             self._conn.execute("CREATE INDEX IF NOT EXISTS idx_events_world_type ON events(world_id, type)")
+            self._conn.execute("CREATE INDEX IF NOT EXISTS idx_events_world_entity ON events(world_id, entity_id, id DESC)")
             self._conn.execute("CREATE INDEX IF NOT EXISTS idx_creatures_world_mother ON creatures(world_id, mother_id)")
             self._conn.execute("CREATE INDEX IF NOT EXISTS idx_creatures_world_father ON creatures(world_id, father_id)")
             self._conn.execute("CREATE INDEX IF NOT EXISTS idx_law_changes_world ON law_changes(world_id)")
@@ -548,9 +550,10 @@ class Database:
     def genealogy_children(self, world_id: int, entity_id: int) -> list[dict]:
         with self._lock:
             rows = self._require().execute(
-                "SELECT entity_id, caste FROM creatures WHERE world_id=?"
-                " AND (mother_id=? OR father_id=?)",
-                (world_id, entity_id, entity_id),
+                "SELECT entity_id, caste FROM creatures WHERE world_id=? AND mother_id=?"
+                " UNION "
+                "SELECT entity_id, caste FROM creatures WHERE world_id=? AND father_id=?",
+                (world_id, entity_id, world_id, entity_id),
             ).fetchall()
         return [{"id": r["entity_id"], "caste": r["caste"]} for r in rows]
 

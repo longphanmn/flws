@@ -449,17 +449,53 @@ class SettlementMixin:
         if not houses:
             return None
 
+        # PERF: Resolve which house (if any) creature is currently inside once (at most one)
+        inside_h = None
+        house_grid = getattr(self, "_house_grid", None)
+        if house_grid:
+            cell_houses = house_grid.get((int(c.x // 50), int(c.y // 50)))
+            if cell_houses:
+                for cand in cell_houses:
+                    if not cand.is_ruin:
+                        half = cand.size * 0.5 - 0.3
+                        dx = c.x - cand.x
+                        if dx < 0: dx = -dx
+                        if dx < half:
+                            dy = c.y - cand.y
+                            if dy < 0: dy = -dy
+                            if dy < half:
+                                inside_h = cand
+                                break
+
+        house_occ = getattr(self, "_house_occupants", None) or {}
+        beds_dict = getattr(self, "_beds", None) or {}
+        house_caps = getattr(self, "_house_capacities", None) or {}
+
         def dist_sq(h: House) -> float:
             return self.world.distance_sq(c.x, c.y, h.x, h.y)
 
         def has_room(h: House) -> bool:
-            occ = max(getattr(self, "_house_occupants", {}).get(h.id, 0), self._beds.get(h.id, 0))
-            if self._inside_house(c, h):
+            occ = max(house_occ.get(h.id, 0), beds_dict.get(h.id, 0))
+            if inside_h is h:
                 occ = max(0, occ - 1)
-            return occ < self._house_beds(h)
+            cap = house_caps.get(h.id)
+            if cap is None:
+                cap = self._house_beds(h)
+            return occ < cap
 
         def allowed(h: House) -> bool:
             return not self.config.house_claim_enabled or h.clan_id == 0 or h.clan_id == c.clan_id
+
+        def best_free_house(candidates: list[House]) -> House | None:
+            best = None
+            min_d2 = float("inf")
+            for h in candidates:
+                if has_room(h):
+                    d2 = dist_sq(h)
+                    if d2 < min_d2:
+                        min_d2 = d2
+                        best = h
+            return best
 
         if getattr(c, "waypoints", None) and "home" in c.waypoints:
             hx, hy = c.waypoints["home"]
@@ -482,18 +518,18 @@ class SettlementMixin:
                         return main_house
 
                 # Members (or leader if main house full) choose nearest own house with room
-                own_free = [h for h in own_houses if has_room(h)]
-                if own_free:
-                    return min(own_free, key=dist_sq)
+                best_own = best_free_house(own_houses)
+                if best_own is not None:
+                    return best_own
 
             # All own roofs full (or none): spill to the nearest UNCLAIMED roof
             # with space — never into another clan's house (§AT-2/AT-3).
             unclaimed = getattr(self, "_unclaimed_houses", None)
             if unclaimed is None:
                 unclaimed = [h for h in houses if isinstance(h, House) and not h.is_ruin and h.clan_id == 0]
-            free = [h for h in unclaimed if has_room(h)]
-            if free:
-                return min(free, key=dist_sq)
+            best_unclaimed = best_free_house(unclaimed)
+            if best_unclaimed is not None:
+                return best_unclaimed
 
             # Every eligible roof is full: queue at main house (if leader) or nearest own house
             if own_houses:
@@ -507,8 +543,7 @@ class SettlementMixin:
             h for h in houses
             if isinstance(h, House) and not h.is_ruin and (h.clan_id == 0 or not self.config.house_claim_enabled)
         ]
-        free = [h for h in unclaimed if has_room(h)]
-        return min(free, key=dist_sq) if free else None
+        return best_free_house(unclaimed)
 
     def _door_pos(self, h: House) -> tuple[float, float]:
         """Center of the doorway gap (where creatures can pass)."""

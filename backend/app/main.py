@@ -3270,87 +3270,21 @@ def _kin_card(entity_id: int) -> dict:
     }
 
 
-def _family_of(creature_id: int) -> dict:
-    """Parents above, children below — live world first, genealogy to fill gaps."""
-    mother = father = None
-    children: dict[int, dict] = {}
-
-    # AZ Phase 1 P1: use cached creatures instead of full entity scan
-    for other in RT.sim._cached_creatures if getattr(RT.sim, "_cached_creatures", None) else RT.sim.world.creatures():
-        if other.id != creature_id and creature_id in (other.mother_id, other.father_id):
-            children[other.id] = _kin_card(other.id)
-
-    ent = RT.sim.world.entities.get(creature_id)
-    if isinstance(ent, Creature):
-        if ent.mother_id:
-            mother = _kin_card(ent.mother_id)
-        if ent.father_id:
-            father = _kin_card(ent.father_id)
-
-    if RT.world_id is not None:
-        gm, gf = DB.genealogy_parents(RT.world_id, creature_id)
-        if mother is None and gm:
-            mother = {**gm, "alive": False, "clan_color": None}
-        if father is None and gf:
-            father = {**gf, "alive": False, "clan_color": None}
-        for kid in DB.genealogy_children(RT.world_id, creature_id):
-            if kid["id"] not in children and kid["id"] != creature_id:
-                children[kid["id"]] = {**kid, "alive": False, "clan_color": None}
-
-    return {"mother": mother, "father": father, "children": list(children.values())}
-
-
 @app.get("/api/creature/{creature_id}")
 async def get_creature(creature_id: int) -> dict:
     """Live status + personal chronicle + family tree for one creature."""
-    # AZ Phase 1 P1: no forced flush — merge pending in dossier instead
+    # Fast memory snapshot inside lock, DB history outside lock to prevent blocking sim tick
     with RT.lock:
-        return _creature_dossier(creature_id)
+        mem = _creature_mem_dossier(creature_id)
+    return _enrich_dossier_from_db(creature_id, mem)
 
 
-def _creature_dossier(creature_id: int) -> dict:
+def _creature_mem_dossier(creature_id: int) -> dict:
     ent = RT.sim.world.entities.get(creature_id)
+    entity = None
     if ent is not None:
         entity = RT.sim._entity_payload(ent)
-    elif RT.world_id is not None:
-        # deceased: synthesize minimal dossier from genealogy so name/glyph still show
-        try:
-            row = DB._require().execute(
-                "SELECT caste, clan_id, generation, born_tick FROM creatures WHERE world_id=? AND entity_id=?",
-                (RT.world_id, creature_id),
-            ).fetchone()
-        except Exception:
-            row = None
-        if row is not None:
-            gen = int(row["generation"] or 0)
-            clan_id = int(row["clan_id"] or 0)
-            v = variation_for(creature_id, RT.sim.config.seed)
-            entity = {
-                "id": creature_id,
-                "kind": "creature",
-                "x": 0.0,
-                "y": 0.0,
-                "angle": 0.0,
-                "caste": row["caste"],
-                "clan_id": clan_id or None,
-                "clan_color": RT.sim.clans.get(clan_id, {}).get("color") if clan_id else None,
-                "clan_name": RT.sim.clans.get(clan_id, {}).get("name") if clan_id else None,
-                "clan_totem": RT.sim.clans.get(clan_id, {}).get("totem") if clan_id else None,
-                "generation": gen,
-                "born_tick": row["born_tick"],
-                "personal_name": personal_name_for(creature_id, RT.sim.config.seed, gen),
-                "glyph": glyph_for(creature_id, RT.sim.config.seed, gen),
-                "hue_shift": v["hue_shift"],
-                "scale_jitter": v["scale_jitter"],
-                "angle_jitter": v["angle_jitter"],
-                "sex": "female" if row["caste"] == "Woman" else "male" if row["caste"] else None,
-            }
-        else:
-            entity = None
-    else:
-        entity = None
-    # §BG: enrich dossier with detailed polar morph arrays (for Inspector radar) when available
-    if entity is not None and ent is not None:
+        # §BG: enrich dossier with detailed polar morph arrays (for Inspector radar) when available
         try:
             soa = getattr(RT.sim, "_soa", None)
             midx = -1
@@ -3439,20 +3373,112 @@ def _creature_dossier(creature_id: int) -> dict:
                     pass
         except Exception:
             pass
-    # AZ Phase 1 P1: pass entity_id to DB.history to avoid 2000 json.loads filter
+
+    # Live kin from in-memory creatures
+    mother = None
+    father = None
+    children: dict[int, dict] = {}
+    cached = getattr(RT.sim, "_cached_creatures", None)
+    all_c = cached if cached is not None else (RT.sim.world.creatures() if hasattr(RT.sim.world, "creatures") else [])
+    for other in all_c:
+        if other.id != creature_id and creature_id in (other.mother_id, other.father_id):
+            children[other.id] = _kin_card(other.id)
+
+    if isinstance(ent, Creature):
+        if ent.mother_id:
+            mother = _kin_card(ent.mother_id)
+        if ent.father_id:
+            father = _kin_card(ent.father_id)
+
+    seed = RT.sim.config.seed if hasattr(RT.sim, "config") else RT.config.seed
+    clans_dict = dict(getattr(RT.sim, "clans", {}))
+
+    return {
+        "entity": entity,
+        "mother": mother,
+        "father": father,
+        "children": children,
+        "seed": seed,
+        "clans": clans_dict,
+    }
+
+
+def _enrich_dossier_from_db(creature_id: int, mem: dict) -> dict:
+    entity = mem["entity"]
+    mother = mem["mother"]
+    father = mem["father"]
+    children = dict(mem["children"])
+    seed = mem["seed"]
+    clans = mem["clans"]
+
+    if entity is None and RT.world_id is not None:
+        try:
+            row = DB._require().execute(
+                "SELECT caste, clan_id, generation, born_tick FROM creatures WHERE world_id=? AND entity_id=?",
+                (RT.world_id, creature_id),
+            ).fetchone()
+        except Exception:
+            row = None
+        if row is not None:
+            gen = int(row["generation"] or 0)
+            clan_id = int(row["clan_id"] or 0)
+            v = variation_for(creature_id, seed)
+            c_info = clans.get(clan_id, {})
+            entity = {
+                "id": creature_id,
+                "kind": "creature",
+                "x": 0.0,
+                "y": 0.0,
+                "angle": 0.0,
+                "caste": row["caste"],
+                "clan_id": clan_id or None,
+                "clan_color": c_info.get("color") if clan_id else None,
+                "clan_name": c_info.get("name") if clan_id else None,
+                "clan_totem": c_info.get("totem") if clan_id else None,
+                "generation": gen,
+                "born_tick": row["born_tick"],
+                "personal_name": personal_name_for(creature_id, seed, gen),
+                "glyph": glyph_for(creature_id, seed, gen),
+                "hue_shift": v["hue_shift"],
+                "scale_jitter": v["scale_jitter"],
+                "angle_jitter": v["angle_jitter"],
+                "sex": "female" if row["caste"] == "Woman" else "male" if row["caste"] else None,
+            }
+
+    if RT.world_id is not None:
+        try:
+            gm, gf = DB.genealogy_parents(RT.world_id, creature_id)
+            if mother is None and gm:
+                mother = {**gm, "alive": False, "clan_color": None}
+            if father is None and gf:
+                father = {**gf, "alive": False, "clan_color": None}
+            for kid in DB.genealogy_children(RT.world_id, creature_id):
+                if kid["id"] not in children and kid["id"] != creature_id:
+                    children[kid["id"]] = {**kid, "alive": False, "clan_color": None}
+        except Exception:
+            pass
+
     events = DB.history(RT.world_id, since_id=0, limit=500, entity_id=creature_id) if RT.world_id else []
-    # merge pending without flush
     if RT.world_id and DB.pending:
         try:
             pend = DB.pending_events(RT.world_id, limit=500)
             for ev in pend:
                 if ev["entity_id"] == creature_id:
                     events.append(ev)
-            # cap and sort by tick desc
             events = sorted(events, key=lambda e: e.get("tick", 0), reverse=True)[:500]
         except Exception:
             pass
-    return {"entity": entity, "events": events, "family": _family_of(creature_id)}
+    return {"entity": entity, "events": events, "family": {"mother": mother, "father": father, "children": list(children.values())}}
+
+
+def _creature_dossier(creature_id: int) -> dict:
+    with RT.lock:
+        mem = _creature_mem_dossier(creature_id)
+    return _enrich_dossier_from_db(creature_id, mem)
+
+
+def _family_of(creature_id: int) -> dict:
+    return _creature_dossier(creature_id).get("family", {"mother": None, "father": None, "children": []})
 
 
 @app.get("/api/state", response_model=StateMessage)

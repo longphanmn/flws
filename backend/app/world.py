@@ -228,6 +228,7 @@ class World:
         h = self.height
         half_w = self.half_width
         half_h = self.half_height
+        cs = self.cell_size
         res: list[tuple[Entity, float]] = []
         res_append = res.append
 

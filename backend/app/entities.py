@@ -208,6 +208,8 @@ class Creature(Entity):
     # §BE Creature Movement AI Overhaul: correlated wander, territory patrol
     _heading_bias: float = 0.0  # OU drift for wander (decays ×0.80/tick)
     _patrol_target: tuple[float, float] | None = None  # territory patrol point (refreshed when reached or 80 ticks)
+    _decay_scale: float = -1.0
+    _bc_steer_scale: float = 1.0
 
     @property
     def max_health(self) -> float:

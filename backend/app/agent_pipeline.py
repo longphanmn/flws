@@ -55,45 +55,59 @@ def _raycast_world(world, origin: tuple[float, float], angle: float, max_dist: f
 def _batch_raycast_all(grid, x: float, y: float, ray_angles: tuple, max_ds: tuple, ignore_id: int | None = None) -> list:
     """PERF (no logic change): ONE agent-centered query serves all 3 rays.
 
-    Coverage: every step disc (point P on ray i at |P| <= max_d_i, radius
-    0.6*max_d_i) sits inside the origin disc of radius 1.6*max(max_d_i)
-    (triangle inequality, wrap and clamp modes). Any candidate passing the
-    proj/perp test lies within some step disc (spacing << diameter), so each
-    ray evaluates a superset containing every candidate the per-step version
-    would test. Per-candidate math is verbatim SpatialHashGrid.raycast, and
-    only (dist, None-type) escape — ties resolve to identical floats.
+    A point passing the proj/perp test lies within distance sqrt(max_dist^2 + 1.5^2) <= max_dist + 0.1
+    from the origin. radius = r_max + 1.5 guarantees 100% of candidates are tested, reducing query
+    area by ~58% compared to the legacy 1.6*r_max. Evaluating candidates once across all 3 rays avoids
+    recalculating toroidal deltas 3x per candidate.
     """
-    r_max = max_ds[0]
-    for _m in max_ds:
-        if _m > r_max:
-            r_max = _m
-    radius = r_max * 1.6
+    r0, r1, r2 = max_ds
+    r_max = r0 if (r0 >= r1 and r0 >= r2) else (r1 if r1 >= r2 else r2)
+    radius = r_max + 1.5
     candidates = grid.query_radius(x, y, radius)
     _pos = grid._pos
     _delta = grid._toroidal_delta
     _w = grid.width
     _h = grid.height
-    out: list = []
-    for a, max_dist in zip(ray_angles, max_ds):
-        cos_a = math.cos(a)
-        sin_a = math.sin(a)
-        best = max_dist
-        best_type = None
-        for eid in candidates:
-            if ignore_id is not None and eid == ignore_id:
-                continue
-            ex, ey, et = _pos[eid]
-            dx = _delta(ex, x, _w)
-            dy = _delta(ey, y, _h)
-            proj = dx * cos_a + dy * sin_a
-            if proj <= 0.2 or proj >= best:
-                continue
-            perp = abs(dx * sin_a - dy * cos_a)
-            if perp <= 1.5:
-                best = proj
-                best_type = et
-        out.append((best, best_type))
-    return out
+
+    a0, a1, a2 = ray_angles
+    c0, s0 = math.cos(a0), math.sin(a0)
+    c1, s1 = math.cos(a1), math.sin(a1)
+    c2, s2 = math.cos(a2), math.sin(a2)
+    best0, best1, best2 = r0, r1, r2
+    type0 = type1 = type2 = None
+
+    for eid in candidates:
+        if eid == ignore_id:
+            continue
+        ex, ey, et = _pos[eid]
+        dx = _delta(ex, x, _w)
+        dy = _delta(ey, y, _h)
+
+        # Ray 0
+        p0 = dx * c0 + dy * s0
+        if 0.2 < p0 < best0:
+            perp0 = dx * s0 - dy * c0
+            if -1.5 <= perp0 <= 1.5:
+                best0 = p0
+                type0 = et
+
+        # Ray 1
+        p1 = dx * c1 + dy * s1
+        if 0.2 < p1 < best1:
+            perp1 = dx * s1 - dy * c1
+            if -1.5 <= perp1 <= 1.5:
+                best1 = p1
+                type1 = et
+
+        # Ray 2
+        p2 = dx * c2 + dy * s2
+        if 0.2 < p2 < best2:
+            perp2 = dx * s2 - dy * c2
+            if -1.5 <= perp2 <= 1.5:
+                best2 = p2
+                type2 = et
+
+    return [(best0, type0), (best1, type1), (best2, type2)]
 
 
 def build_inputs_batch(soa, spatial_grid=None, world=None, max_chill: float = 12.0) -> object:
