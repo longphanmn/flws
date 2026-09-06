@@ -77,51 +77,51 @@ UI_I18N = {
         "live_pulse": "Live World",
     },
     "vi": {
-        "title": "Flatland — Bách khoa toàn thư Wiki — Mô phỏng Thế giới bởi Long Phan",
-        "description": "Tài liệu bách khoa toàn thư và wiki sống chính thức của Flatland: Hệ thống mô phỏng thế giới tự trị 2D phát triển bởi Long Phan (long@minhnhan.in).",
+        "title": "Flatland — Bách khoa toàn thư & Wiki — Mô phỏng Thế giới bởi Long Phan",
+        "description": "Tài liệu bách khoa toàn thư và wiki sống chính thức của Flatland: Mô phỏng thế giới 2D tự hành phát triển bởi Long Phan (long@minhnhan.in).",
         "og_title": "Flatland — Living Wiki | Hệ thống Mô phỏng Thế giới bởi Long Phan",
-        "og_desc": "Tài liệu chính thức về cơ chế mô phỏng, cấu hình mẫu và các định luật tự nhiên của Flatland bởi Long Phan (long@minhnhan.in).",
+        "og_desc": "Tài liệu chính thức về cơ chế mô phỏng, thiết lập mẫu và thiên luật tự nhiên của Flatland bởi Long Phan (long@minhnhan.in).",
         "wiki_heading": "📖 Bách khoa toàn thư Flatland",
-        "search_placeholder": "Tìm kiếm định luật, API, tài liệu… ( / )",
-        "swagger_docs": "Swagger /docs",
+        "search_placeholder": "Tìm kiếm thiên luật, endpoint, tài liệu… ( / )",
+        "swagger_docs": "Tài liệu Swagger /docs",
         "openapi": "OpenAPI",
         "guide": "Cẩm nang",
         "json_api": "Dữ liệu JSON",
         "live_world": "← Thế giới trực tiếp",
-        "presets_label": "Cấu hình mẫu:",
+        "presets_label": "Thiết lập mẫu:",
         "dev_by": "Phát triển bởi",
         "dev_name": "Long Phan",
         "built_with": "Xây dựng với OpenCode & Antigravity<br/>Lấy cảm hứng từ Edwin A. Abbott",
-        "badge_laws": "{laws} định luật",
-        "badge_routes": "{routes} tuyến API",
-        "badge_presets": "{presets} cấu hình",
-        "sphere_motto": "The Sphere ban hành định luật, không can thiệp số mệnh",
+        "badge_laws": "{laws} thiên luật",
+        "badge_routes": "{routes} endpoint",
+        "badge_presets": "{presets} mẫu",
+        "sphere_motto": "Khối Cầu định đoạt thiên luật, không can thiệp số mệnh",
         "guide_link": "Cẩm nang",
-        "footer": "Tự động sinh từ mã nguồn thực tế — <code>Config</code> + <code>GodLaws</code> + <code>app.routes</code>. Bách khoa toàn thư và tài liệu sống chính thức của Flatland. · Phát triển bởi <strong>Long Phan</strong> — <a href=\"mailto:long@minhnhan.in\">long@minhnhan.in</a> · <a href=\"https://minhnhan.in\">minhnhan.in</a> · Xây dựng với OpenCode & Antigravity",
-        "preset_col_name": "Cấu hình",
-        "preset_col_laws": "Các luật trọng tâm",
+        "footer": "Trích xuất trực tiếp từ mã nguồn — <code>Config</code> + <code>GodLaws</code> + <code>app.routes</code>. Bách khoa toàn thư sống chính thức của Flatland. · Phát triển bởi <strong>Long Phan</strong> — <a href=\"mailto:long@minhnhan.in\">long@minhnhan.in</a> · <a href=\"https://minhnhan.in\">minhnhan.in</a> · Xây dựng với OpenCode & Antigravity",
+        "preset_col_name": "Thiết lập mẫu",
+        "preset_col_laws": "Quy luật trọng tâm",
         "preset_col_apply": "Áp dụng",
-        "preset_via_app": "Qua app hoặc TUI",
-        "preset_sidebar_note": "Chỉ xem tại đây — hãy áp dụng trong app hoặc TUI.",
+        "preset_via_app": "Thực hiện qua ứng dụng hoặc TUI",
+        "preset_sidebar_note": "Chỉ xem tại đây — áp dụng mẫu thông qua giao diện ứng dụng hoặc TUI.",
         "active_badge": "ĐANG DÙNG",
-        "api_ref_title": "# Tham chiếu API\n\nDanh sách tuyến API trực tiếp từ `app.routes` + tài liệu tương tác tại [/docs](/docs). Xem các ví dụ lệnh `curl` bên dưới.",
-        "laws_title": "# Các Định luật của Thượng đế (The Sphere)\n\nTất cả các trường `GodLaws` (`protocol.py:108`) — kiểu dữ liệu, phạm vi và giá trị mặc định. Thay đổi qua `POST /api/laws` hoặc chọn cấu hình mẫu.",
-        "presets_title": "# Cấu hình mẫu — Khởi tạo thế giới 1-chạm\n\n'sustainable' là thế giới hưng thịnh hòa bình 1000 ngày. Áp dụng qua bảng The Sphere hoặc lệnh `POST /api/presets/{name}?reset`.",
+        "api_ref_title": "# Tham chiếu API\n\nDanh sách endpoint từ `app.routes` + tài liệu tương tác tại [/docs](/docs). Xem các ví dụ `curl` bên dưới.",
+        "laws_title": "# Thiên luật của Khối Cầu (The Sphere)\n\nToàn bộ định luật trong `GodLaws` (`protocol.py:108`) kèm kiểu dữ liệu, phạm vi và giá trị mặc định. Thay đổi qua `POST /api/laws` hoặc chọn thiết lập mẫu.",
+        "presets_title": "# Thiết lập mẫu — Định hình thế giới với 1 chạm\n\n'sustainable' mang lại nền thái bình thịnh trị 1000 ngày. Áp dụng qua bảng Khối Cầu hoặc lệnh `POST /api/presets/{name}?reset`.",
         "roadmap_title": "Lộ trình phát triển",
-        "roadmap_desc": "# Lộ trình phát triển\n\nXem `TODO.md` (đang mở) + `docs/roadmap-archive.md` (đã hoàn thành) — {sections} phần + {laws} định luật + {routes} tuyến API + {presets} cấu hình mẫu. Wiki mở rộng Guide với các preset, tính bền vững & công cụ thử nghiệm.",
-        "law_col_law": "Định luật",
+        "roadmap_desc": "# Lộ trình phát triển\n\nXem `TODO.md` (đang mở) + `docs/roadmap-archive.md` (đã hoàn thành) — {sections} phần + {laws} thiên luật + {routes} endpoint + {presets} thiết lập mẫu. Wiki bổ trợ Cẩm nang với các preset, cân bằng sinh thái và công cụ thử nghiệm.",
+        "law_col_law": "Thiên luật",
         "law_col_type": "Kiểu",
         "law_col_range": "Khoảng",
         "law_col_default": "Mặc định",
-        "law_col_hint": "Gợi ý & tài liệu",
+        "law_col_hint": "Giải thích & tài liệu",
         "route_col_method": "Phương thức",
         "route_col_path": "Đường dẫn",
         "route_col_name": "Tên hàm",
         "route_col_desc": "Mô tả",
-        "curl_title": "## Công cụ dòng lệnh Curl",
+        "curl_title": "## Khu vực chạy thử Curl",
         "nav_group_core": "Tri thức Cốt lõi",
         "nav_group_systems": "Hệ thống & Cân bằng",
-        "nav_group_reference": "Định luật & Tham chiếu",
+        "nav_group_reference": "Thiên luật & Tham chiếu",
         "live_pulse": "Thế giới Trực tiếp",
     },
     "fr": {
@@ -181,19 +181,19 @@ UI_I18N = {
 NAV_SECTIONS = [
     # Core Knowledge
     ("overview", {"en": "Overview", "vi": "Tổng quan", "fr": "Aperçu"}, "core", "📖"),
-    ("book-comparison", {"en": "Flatland Book vs Simulation", "vi": "Sách Flatland vs Mô phỏng", "fr": "Livre Flatland vs Simulation"}, "core", "📐"),
+    ("book-comparison", {"en": "Flatland Book vs Simulation", "vi": "Tiểu thuyết Abbott vs Mô phỏng", "fr": "Livre Flatland vs Simulation"}, "core", "📐"),
     ("quickstart", {"en": "Quickstart", "vi": "Bắt đầu nhanh", "fr": "Démarrage rapide"}, "core", "⚡"),
     ("how-the-world-works", {"en": "How the world works", "vi": "Nguyên lý vận hành", "fr": "Fonctionnement du monde"}, "core", "⚙️"),
 
     # Systems & Balance
     ("sustainability", {"en": "Sustainability", "vi": "Tính bền vững & Cân bằng", "fr": "Durabilité & Équilibre"}, "systems", "🌿"),
     ("performance", {"en": "Performance & Scale", "vi": "Hiệu năng & Quy mô", "fr": "Performance & Échelle"}, "systems", "🚀"),
-    ("codebase-map", {"en": "Codebase map", "vi": "Bản đồ mã nguồn", "fr": "Carte du code source"}, "systems", "🗺️"),
+    ("codebase-map", {"en": "Codebase map", "vi": "Kiến trúc mã nguồn", "fr": "Carte du code source"}, "systems", "🗺️"),
     ("data-model-protocol", {"en": "Data model & protocol", "vi": "Mô hình dữ liệu & Giao thức", "fr": "Modèle de données & Protocole"}, "systems", "💾"),
 
     # Laws & Reference
-    ("god-laws", {"en": "Laws of the Sphere", "vi": "Các định luật của Chúa", "fr": "Lois de la Sphère"}, "reference", "⚖️"),
-    ("presets", {"en": "Presets", "vi": "Cấu hình mẫu", "fr": "Préréglages"}, "reference", "🎯"),
+    ("god-laws", {"en": "Laws of the Sphere", "vi": "Thiên luật Khối Cầu", "fr": "Lois de la Sphère"}, "reference", "⚖️"),
+    ("presets", {"en": "Presets", "vi": "Thiết lập mẫu", "fr": "Préréglages"}, "reference", "🎯"),
     ("api-reference", {"en": "API reference", "vi": "Tham chiếu API", "fr": "Référence de l'API"}, "reference", "🔌"),
     ("configuration-ops", {"en": "Configuration & ops", "vi": "Cấu hình & Vận hành", "fr": "Configuration & Exploitation"}, "reference", "🛠️"),
 ]
@@ -228,22 +228,22 @@ This project is **developed from the Flatland idea rather than mimicking the boo
 # Bách khoa toàn thư & Wiki Flatland
 
 > **Phát triển bởi [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · [minhnhan.in](https://minhnhan.in) · [world.minhnhan.in](https://world.minhnhan.in))  
-> Xây dựng và hoàn thiện bằng **OpenCode** & **Antigravity** · Phát triển từ ý tưởng cốt lõi trong tác phẩm kinh điển ***Flatland: A Romance of Many Dimensions*** (1884) của **Edwin A. Abbott**.
+> Xây dựng và hoàn thiện bằng **OpenCode** & **Antigravity** · Phát triển từ ý niệm nền tảng trong danh tác ***Flatland: A Romance of Many Dimensions*** (1884) của **Edwin A. Abbott**.
 
-Flatland là một thế giới mô phỏng sự sống nhân tạo 2D tự trị, được phát triển từ các tiền đề toán học và không gian trong cuốn sách kinh điển *Flatland* (Xứ Phẳng) xuất bản năm 1884 của Edwin A. Abbott.
+Flatland là một thế giới mô phỏng sự sống nhân tạo 2D tự hành, vận dụng sáng tạo các tiền đề toán học và không gian từ tác phẩm kinh điển *Flatland* (Xứ Phẳng) xuất bản năm 1884 của Edwin A. Abbott.
 
 ### Triết lý thiết kế
-Dự án này được **phát triển từ ý niệm của Xứ Phẳng thay vì mô phỏng máy móc từng chi tiết trong cuốn sách**. Hệ thống kế thừa các tiền đề cốt lõi của Abbott — các giới hạn trong mặt phẳng 2D, đẳng cấp dựa trên số đỉnh hình học, nhận thức thị giác trong khí quyển và góc nhìn quan sát từ chiều không gian cao hơn — làm nền móng để kiến tạo một **hệ sinh thái sự sống nhân tạo tiến hóa sống động, tự thích nghi và phát triển hữu cơ theo thời gian**.
+Dự án được **phát triển từ ý niệm cốt lõi của Xứ Phẳng chứ không sao chép máy móc từng câu chữ trong tiểu thuyết**. Hệ thống tiếp thu các tiên đề hình học của Abbott — mặt phẳng 2D, trật tự xã hội dựa trên số đỉnh, tầm nhìn trong sương mù và góc quan sát từ chiều không gian cao hơn — để kiến tạo một **hệ sinh thái sự sống nhân tạo tự sinh, tự thích nghi và phát triển hữu cơ theo thời gian**.
 
 ### Kiến trúc & Các hệ thống cốt lõi
-- **The Sphere (Mô hình Thượng đế)**: The Sphere (Khối Cầu) thiết lập các **định luật của tự nhiên** (sức chứa môi trường, tốc độ sinh trưởng thực vật, trao đổi chất, dịch bệnh, khí hậu) từ Spaceland (Không Gian 3 Chiều), hoàn toàn không can thiệp vi mô vào từng cá thể. Được cấu hình thông qua **🎯 Cấu hình mẫu (Presets)** và 6 **⚖️ Lĩnh vực Vĩ mô** với thanh trượt kép và tìm kiếm trực tiếp. Sinh vật định hướng liên tục qua 16 cảm biến tia và mạng nơ-ron Micro-RNN.
-- **Sinh thái thực vật & Dinh dưỡng chức năng**: 6 loài thực vật đa dạng (`cỏ`, `ngũ cốc`, `quả mọng`, `thảo dược`, `nấm`, `độc thảo`) với mật độ calo riêng biệt, đồng hồ phân hủy, dược tính trị bệnh và hành vi tìm kiếm thức ăn thông minh dựa trên trạng thái sức khỏe.
-- **Trí tuệ nhận thức & Xã hội bộ tộc**: AI thỏa dụng đa mục tiêu thay thế hoàn toàn các cây lệnh rẽ nhánh cứng nhắc; bản đồ tinh thần điểm mốc không gian; đội hình phalanx của binh sĩ, chiến thuật thả diều của nữ giới (đoạn thẳng), kết bạn tin cậy đôi bạn cùng tiến, bảng phân công lao động bộ tộc tự trị, các thể chế chính trị (Quân chủ, Thần quyền, Quân phiệt, Cộng hòa), luật lệ thích ứng (chia khẩu phần mùa đông, thiết quân luật), cớ tuyên chiến (Casus Belli), các đoàn buôn liên bộ tộc và lễ hội thu hoạch mùa thu hàng năm.
-- **Tiến hóa tự trị & Văn hóa**: 6 hình mẫu tính cách di truyền (`dũng cảm`, `thận trọng`, `vị tha`, `tham lam`, `thám hiểm`, `thợ xây`), công cụ chế tạo (giáo, giỏ đựng, thuốc đắp, vương miện thủ lĩnh), 4 kỹ năng tinh thông (Nông nghiệp 🌾, Chiến đấu ⚔️, Thu lượm 🦴, Y thuật 🌿), danh hiệu động đạt được qua chiến công, truyền khẩu tri thức từ người già sang thế hệ trẻ trong nhà, và bong bóng suy nghĩ trực quan.
-- **Năng lượng & Trao đổi chất thực tế**: Ấu trùng có mức tiêu hao năng lượng thấp ($0.45\times$), thể lực tiêu hao trong giao tranh, và quản lý dự trữ lương thực cá nhân thông qua giỏ đeo.
-- **Khu định cư & Ngoại giao**: Nhà có tường bao quanh với cửa ra vào chuẩn kích thước cơ thể, lãnh thổ bộ tộc đa nhà ở, kho lương thực chung, liên minh phòng thủ tương trợ, cống nạp và phân rã bộ tộc khi quá tải.
-- **Vật lý hình học & Tiến hóa hình thái (K∈[3,24])**: Bộ gen cực $(r_i,\phi_i)$ $K\in[3,24]$ (`KMAX 24`, `morphology_engine.py`) với tính toán đặc tính thể chất SoA ($A,P,I_{zz},\theta_{\min},asym,D_{mult}$) và va chạm đa giác SAT thu hẹp; ủ nhiệt hình thái $\lambda(g)$ dung hòa giữa khuôn mẫu Abbott truyền thống và tiến hóa tự do, phối ngẫu nơ-ron, và các cơ chế bảo vệ khỏi tuyệt chủng ($\eta(N)$, Phép màu Khởi nguyên Cấp 1/2/3).
-- **Đồng bộ hóa thời gian thực**: Vòng lặp mô phỏng xác định truyền phát trạng thái thế giới qua WebSocket (`/ws`) ở tốc độ ~30–60 FPS cùng kho lưu trữ biên niên sử bền vững SQLite.
+- **Khối Cầu (Đấng Sáng Tạo)**: Khối Cầu (The Sphere) ban hành **thiên luật tự nhiên** (sức tải môi trường, tốc độ mọc cây, trao đổi chất, dịch bệnh, thời tiết) từ Spaceland, hoàn toàn không can thiệp thô bạo vào số mệnh cá thể. Người dùng có thể điều chỉnh qua **🎯 Thiết lập mẫu** và 6 **⚖️ Lĩnh vực Vĩ mô** bằng thanh trượt trực quan. Sinh vật định hướng liên tục qua 16 cảm biến tia quét và mạng nơ-ron Micro-RNN.
+- **Sinh thái thực vật & Dinh dưỡng chức năng**: 6 loài thực vật chuyên biệt (`cỏ`, `lúa mì`, `quả mọng`, `thảo dược`, `nấm`, `cây độc`) với mật độ calo riêng biệt, đồng hồ phân hủy, dược tính trị bệnh và hành vi tự tìm kiếm thức ăn theo nhu cầu sinh tồn.
+- **Trí tuệ nhân tạo & Xã hội thị tộc**: AI thỏa dụng đa mục tiêu đánh giá sinh tồn, nghĩa vụ và gắn kết huyết thống; bản đồ tinh thần ghi nhớ địa hình; đội hình phalanx của binh sĩ, chiến thuật thả diều linh hoạt của nữ giới (đoạn thẳng), kết bạn đồng hành dựa trên tin cậy, phân công lao động thị tộc, các thể chế (Quân chủ, Thần quyền, Quân phiệt, Cộng hòa), sắc lệnh thích ứng (phát chẩn mùa đông, thiết quân luật), cớ tuyên chiến (Casus Belli), đoàn buôn liên tộc và đại yến mùa thu mừng vụ mùa.
+- **Tiến hóa tự hành & Bản sắc văn hóa**: 6 hình mẫu tính cách di truyền (`dũng cảm`, `thận trọng`, `vị tha`, `tư lợi`, `khai phá`, `xây dựng`), công cụ chế tác (giáo, túi cói, thuốc đắp, vương miện thủ lĩnh), 4 kỹ năng tinh thông (Nông canh 🌾, Chiến đấu ⚔️, Hái lượm 🦴, Y thuật 🌿), tước hiệu động, truyền dạy tri thức trong nhà ở và hiển thị suy nghĩ trực quan.
+- **Năng lượng & Trao đổi chất thực tế**: Con non tiêu hao ít năng lượng ($0.45\times$), thể lực sụt giảm khi tác chiến, và thói quen dự trữ thức ăn trong túi cói.
+- **Ấp định cư & Bang giao**: Nhà tường kín có cửa ra vào vừa vặn kích thước cơ thể, lãnh thổ thị tộc đa công trình, kho lương chung, khối liên minh phòng thủ, nộp cống và phân liệt ly khai khi bất mãn.
+- **Vật lý hình học & Đột biến hình thái (K∈[3,24])**: Bộ gen cực $(r_i,\phi_i)$ $K\in[3,24]$ (`KMAX 24`, `morphology_engine.py`) với đặc tính thể chất tích hợp ($A,P,I_{zz},\theta_{\min},asym,D_{mult}$) và va chạm đa giác SAT; cơ chế ủ nhiệt $\lambda(g)$ dung hòa giữa chuẩn mực Abbott cổ điển và tiến hóa tự do, ghép đôi nơ-ron, cùng mạng lưới bảo hộ chống tuyệt diệt ($\eta(N)$, Phép Màu Khai Thế Cấp 1/2/3).
+- **Đồng bộ hóa thời gian thực**: Vòng lặp mô phỏng xác định truyền phát trạng thái thế giới qua WebSocket (`/ws`) ở tốc độ ~30–60 FPS kết hợp lưu trữ biên niên sử bền vững trên SQLite.
 """,
     "fr": r"""
 # Encyclopédie & Wiki Flatland
@@ -305,35 +305,35 @@ When population drops below $K_{safe} = K_{cap} \times \text{safeguard\_relief\_
     "vi": r"""
 # Tính bền vững — Cân bằng sinh thái Đa thế hệ
 
-Thế giới tự động duy trì sự cân bằng qua hàng trăm ngày và tạo điều kiện cho các dòng họ hưng thịnh qua nhiều thế hệ dưới trạng thái cân bằng sinh thái và xã hội hoàn chỉnh.
+Thế giới tự động duy trì sự cân bằng qua hàng trăm ngày và tạo điều kiện cho các thị tộc hưng thịnh truyền đời dưới trạng thái cân bằng sinh thái và xã hội hoàn chỉnh.
 
-## Các cấu hình mẫu tuyển chọn (Presets)
+## Các thiết lập mẫu tuyển chọn (Presets)
 
-- **balance** ⚖️ (Mặc định) — Trạng thái cân bằng vàng cho **200–350 cư dân** với 380 thức ăn, sức chứa 400 (tối đa 500), chiến tranh nhẹ nhàng, hiếm khi săn mồi ăn thịt, có nông nghiệp, hãm mật độ ($\xi$), cơ chế bảo vệ khỏi tuyệt chủng ($\eta$) và các bộ tộc đa thế hệ phát triển phồn vinh.
-- **sustainable** 🌿 — Thái bình thịnh trị 1000 ngày: thức ăn dồi dào (550), sức chứa 550 (tối đa 600), kho lương thực trù phú, lễ hội mùa gặt, yến tiệc và hãm mật độ êm dịu.
-- **theocracy** 🔮 — Kỷ nguyên Khối Cầu: tôn sùng các hóa thân linh thiêng, đền thờ rực sáng, phép màu hóa thân, hiển linh 3 chiều, công đồng tôn giáo và dâng nộp đức tin.
-- **warlords** ⚔️ — Chiến tranh quân phiệt: các cuộc chinh phạt đế chế, cướp bóc kho lương, chiếm đoạt nhà cửa, bành trướng lãnh thổ và lập liên minh phòng thủ.
-- **chaos** 🔥 — Tỷ lệ thú săn mồi cao, chiến tranh đẫm máu, cháy rừng, động đất, dịch bệnh thường xuyên và mùa vụ thay đổi dồn dập.
-- **extinction** 💀 — Nạn đói khắc nghiệt (120 thức ăn), mùa đông giá buốt (0.30×), hao tổn ngoài trời cao, thử thách sức chống chịu của xã hội trước bờ vực diệt vong.
-- **boom** 🚀 — Tỷ lệ sinh sản cực cao, 440 thức ăn, sức chứa 800 (tối đa 850) phục vụ thử nghiệm các siêu đô thị đông đúc.
+- **balance** ⚖️ (Mặc định) — Trạng thái cân bằng vàng cho **200–350 cư dân** với 380 thức ăn, sức tải 400 (tối đa 500), chiến tranh vừa độ, chuỗi săn mồi cân bằng, nông nghiệp bài bản, tự hãm mật độ ($\xi$), cơ chế bảo hộ tuyệt chủng ($\eta$) và các thị tộc đa thế hệ phát triển phồn vinh.
+- **sustainable** 🌿 — Nghìn ngày thái bình: thức ăn dồi dào (550), sức tải 550 (tối đa 600), vựa thóc trù phú, lễ hội mùa gặt, đại yến và hãm mật độ êm dịu.
+- **theocracy** 🔮 — Thời đại Khối Cầu: tôn sùng các Đồ đằng thiêng liêng, đại đền rực sáng, thần tích hiển linh, đốn ngộ 3 chiều, công đồng tôn giáo và dâng nộp đức tin.
+- **warlords** ⚔️ — Quần hùng tranh bá: chinh phạt đế chế, cướp bóc kho lương, chiếm đoạt nhà cửa, thôn tính lãnh thổ và thiết lập khối liên minh phòng thủ.
+- **chaos** 🔥 — Thú săn hung dữ bủa vây, huyết chiến đẫm máu, cháy rừng, động đất, dịch bệnh liên miên và thời tiết biến đổi khôn lường.
+- **extinction** 💀 — Nạn đói cùng cực (120 thức ăn), mùa đông giá buốt (0.30×), phơi sương gió kiệt quệ, thử thách sức chống chịu của xã hội trước bờ vực diệt vong.
+- **boom** 🚀 — Đại thịnh vượng: sinh sản bùng nổ, 440 thức ăn, sức tải 800 (tối đa 850) phục vụ thử nghiệm các siêu đô thị sầm uất.
 
-Sử dụng: `curl -X POST localhost:8000/api/presets/balance?reset=true` hoặc chọn trên bảng điều khiển The Sphere.
+Sử dụng: `curl -X POST localhost:8000/api/presets/balance?reset=true` hoặc chọn trực tiếp trên Bảng Khối Cầu.
 
-## Cân bằng nội môi động & Phòng ngừa tuyệt chủng
+## Cân bằng nội môi động & Cơ chế phòng chống diệt vong
 
-Flatland tích hợp hai cơ chế phản hồi khép kín bổ trợ nhau để đảm bảo sự ổn định dài hạn:
+Flatland tích hợp hai cơ chế phản hồi khép kín tự động nhằm đảm bảo trật tự dài hạn:
 
-### 1. Cơ chế hãm mềm phụ thuộc mật độ ($\xi$)
-Khi dân số $N$ vượt quá sức chứa môi trường $K_{cap}$, tỷ lệ vượt ngưỡng $\xi = (N - K_{cap}) / K_{cap}$ đóng vai trò như chiếc phanh phi tuyến tính:
-- **Kiềm chế sinh sản**: $R_{birth} = R_0 / (1 + \text{damping\_steepness} \cdot \xi^2)$
+### 1. Cơ chế hãm mềm phụ thuộc mật độ quá tải ($\xi$)
+Khi dân số $N$ vượt quá sức tải môi trường $K_{cap}$, tỷ lệ vượt ngưỡng $\xi = (N - K_{cap}) / K_{cap}$ đóng vai trò như chiếc phanh phi tuyến tính:
+- **Kìm hãm sinh sản**: $R_{birth} = R_0 / (1 + \text{damping\_steepness} \cdot \xi^2)$
 - **Áp lực trao đổi chất do chật chội**: $M_{decay} = M_0 \cdot (1 + \text{crowding\_stress\_mult} \cdot \xi)$
-- **Căng thẳng tài nguyên**: Tốc độ sinh trưởng và phát tán của thực vật chậm lại tương ứng với mức độ bão hòa sinh thái.
+- **Căng thẳng tài nguyên**: Tốc độ sinh trưởng và phát tán hạt giống chậm lại tương ứng với mức độ bão hòa sinh thái.
 
-### 2. Cơ chế cứu trợ diệt vong & Phép màu Khởi nguyên ($\eta$)
-Khi dân số giảm xuống dưới ngưỡng an toàn $K_{safe} = K_{cap} \times \text{safeguard\_relief\_ratio}$, các tầng cứu trợ khẩn cấp sẽ kích hoạt:
-- **Cấp 1 ($\eta \le 0.5$)**: Cứu trợ nạn đói, giảm mức tiêu hao năng lượng trao đổi chất tới 40%, đẩy nhanh tăng trưởng cây trồng lên tới 60%.
-- **Cấp 2 ($\eta > 0.5$)**: Cứu trợ khẩn cấp, giảm một nửa thời gian hồi sinh sản, đình chỉ loại bỏ dị tật (`safeguard_morph_mercy`).
-- **Cấp 3 ($N \le K_{crit}$)**: The Sphere can thiệp bằng Phép màu Khởi nguyên (Genesis Miracle), tạo ra `safeguard_genesis_batch` sinh vật hình học chính quy hoàn hảo để duy trì nòi giống.
+### 2. Cơ chế cứu trợ diệt vong & Phép Màu Khai Thế ($\eta$)
+Khi dân số sụt giảm xuống dưới ngưỡng an toàn $K_{safe} = K_{cap} \times \text{safeguard\_relief\_ratio}$, các cấp độ cứu trợ khẩn cấp sẽ kích hoạt:
+- **Cấp 1 ($\eta \le 0.5$)**: Cứu tế nạn đói, giảm mức tiêu hao năng lượng trao đổi chất tới 40%, đẩy nhanh cây lớn lên tới 60%.
+- **Cấp 2 ($\eta > 0.5$)**: Cứu trợ nguy cấp, giảm một nửa thời gian chờ sinh sản, đình chỉ việc an tử cá thể dị tật (`safeguard_morph_mercy`).
+- **Cấp 3 ($N \le K_{crit}$)**: Khối Cầu can thiệp bằng Phép Màu Khai Thế (Genesis Miracle), tạo ra `safeguard_genesis_batch` sinh vật hình học hoàn hảo để cứu vãn sự diệt vong của thế giới.
 """,
     "fr": r"""
 # Durabilité — Équilibre Multi-Générationnel
@@ -382,14 +382,14 @@ PERFORMANCE_MD_I18N = {
 - **Decoupled React State**: High-frequency simulation snapshots stream directly into mutable refs at 60 FPS for canvas rendering, while React virtual DOM reconciliation (HUD stats, charts) is throttled to ~6 Hz to keep the main browser thread light and responsive.
 """,
     "vi": r"""
-# Hiệu năng & Quy mô — Hơn 1000 cá thể @ 60 FPS
+# Hiệu năng & Quy mô — Hơn 1000 thực thể @ 60 FPS
 
-- **Bảng băm không gian không phân cấp (Zero-Allocation Spatial Hash)**: Danh sách ô 1 chiều cấp phát sẵn trong `world.py` loại bỏ việc tạo bộ tuple và băm lại từ điển mỗi tick; hàm `query_radius` so sánh khoảng cách bình phương thoát sớm không cần gọi `math.hypot`.
-- **Tìm bạn tình siêu tốc**: Truy vấn đối tác tiềm năng lân cận qua chỉ mục không gian trong độ phức tạp $O(1)$ thay vì quét lồng nhau $O(N^2)$.
-- **Bộ nhớ đệm ảnh chụp (Snapshot Caching)**: Địa hình tĩnh và chướng ngại vật được lưu sẵn vào bộ nhớ đệm, loại bỏ việc sao chép danh sách từ điển thừa thãi ở mỗi khung phát sóng.
-- **Vẽ hàng loạt Canvas 2D (Batched Canvas 2D Rendering)**: Gộp các lượt vẽ theo giai cấp, biến thể thực vật và nhà ở với phép biến đổi góc lượng giác nội dòng, loại bỏ hoàn toàn chi phí `ctx.save()` / `ctx.restore()` cho từng sinh vật (lệnh vẽ giảm từ hơn 20.000 xuống còn ~30-50).
-- **Độ chi tiết động (Dynamic LOD)**: Hiển thị phụ thuộc mức phóng to/thu nhỏ sẽ bỏ qua văn bản ký hiệu chi tiết và gợn sóng khi nhìn xa, duy trì độ mượt 60 FPS ổn định ngay cả với mật độ dân số dày đặc.
-- **Tách biệt trạng thái React**: Dữ liệu mô phỏng tần số cao truyền thẳng vào các tham chiếu biến đổi (mutable refs) ở 60 FPS cho Canvas, trong khi giao diện React (thống kê HUD, đồ thị) được điều tiết ở tần số ~6 Hz giúp trình duyệt nhẹ nhàng và phản hồi tức thì.
+- **Bảng băm không gian Zero-Allocation**: Mảng 1 chiều cấp phát sẵn trong `world.py` loại bỏ việc tạo bộ tuple và băm lại từ điển mỗi nhịp; hàm `query_radius` sử dụng so sánh khoảng cách bình phương thoát sớm không cần gọi `math.hypot`.
+- **Tìm bạn tình siêu tốc**: Truy vấn đối tác tiềm năng lân cận qua chỉ mục không gian trong thời gian $O(1)$ thay vì quét lặp lồng nhau $O(N^2)$.
+- **Bộ nhớ đệm ảnh chụp (Snapshot Caching)**: Địa hình tĩnh và công trình được nạp sẵn vào bộ nhớ đệm, loại bỏ việc sao chép danh sách cấu trúc thừa thãi trong mỗi khung hình truyền phát.
+- **Vẽ gộp nhóm Canvas 2D (Batched Canvas 2D)**: Gom nhóm các lượt vẽ theo giai tầng, biến thể cây và nhà ở với phép biến đổi lượng giác nội dòng, loại bỏ hoàn toàn chi phí `ctx.save()` / `ctx.restore()` cho từng cá thể (lệnh vẽ giảm từ hơn 20.000 xuống còn ~30-50).
+- **Mức độ chi tiết động (Dynamic LOD)**: Hiển thị phụ thuộc tỷ lệ thu phóng, tự động lược bỏ văn bản danh tính và gợn sóng khi nhìn xa, bảo toàn độ mượt mà 60 FPS ngay cả khi dân số dày đặc.
+- **Tách biệt trạng thái React**: Ảnh chụp trạng thái mô phỏng tần số cao truyền thẳng vào tham chiếu biến đổi (mutable refs) ở tốc độ 60 FPS cho Canvas, trong khi giao diện React (thống kê HUD, đồ thị) được điều tiết ở tần số ~6 Hz giúp trình duyệt nhẹ nhàng và phản hồi tức thì.
 """,
     "fr": r"""
 # Performance & Échelle — Plus de 1000 individus @ 60 FPS
@@ -480,79 +480,79 @@ The most profound connection between the app and the book is the **role of the u
   - **The Sphere Panel**: You hold the power of The Sphere to alter the "Laws of Nature" in real-time — toggling famine, changing food growth multipliers, curing or spreading plagues, introducing winter freezes, or blessing clans with prosperity.
 """,
     "vi": r"""
-# Xứ Phẳng: Tiểu thuyết vs. Hệ thống Mô phỏng
+# Xứ Phẳng: Đối Chiếu Tiểu Thuyết Abbott & Bản Mô Phỏng
 
-Nghiên cứu đối chiếu giữa tiểu thuyết châm biếm kinh điển năm 1884 của **Edwin A. Abbott — *Flatland: A Romance of Many Dimensions*** và hệ sinh thái mô phỏng sự sống nhân tạo tự trị này.
+Khảo cứu đối chiếu giữa danh tác châm biếm kinh điển năm 1884 của **Edwin A. Abbott — *Flatland: A Romance of Many Dimensions*** và hệ sinh thái mô phỏng sự sống nhân tạo tự hành.
 
 ---
 
-## 1. Đẳng cấp, Hình học & Thứ bậc Xã hội
+## 1. Giai tầng, Hình học & Trật tự Xã hội
 
-| Khía cạnh | Tiểu thuyết của Abbott (*Flatland*, 1884) | Ứng dụng Mô phỏng (*Flatland Simulator*) |
+| Khía cạnh | Tiểu thuyết của Abbott (*Flatland*, 1884) | Bản Mô Phỏng (*Flatland Simulator*) |
 | :--- | :--- | :--- |
-| **Nguyên lý thứ bậc** | *"Hình thù tạo nên nhân cách."* Địa vị xã hội được quyết định nghiêm ngặt bởi số lượng cạnh và độ đều của các góc. | Các thực thể kế thừa đẳng cấp hình học chính xác dựa trên số đỉnh (đa giác N cạnh) và tính đều đặn. |
-| **Phụ nữ (Đoạn thẳng)** | Là những đường thẳng không có bề dày góc. Vì gần như vô hình khi nhìn trực diện và sắc bén như dao cạo, họ buộc phải liên tục cất tiếng kêu hòa bình và đi cửa riêng. | Thể hiện dưới dạng đoạn thẳng 1D (`shape: 'line'`). Nhanh nhẹn vượt trội, cách di chuyển và cơ chế trú ẩn đặc thù. |
-| **Binh lính & Thợ thuyền** | Tam giác cân với góc đỉnh rất hẹp và nhọn hoắt (nguy hiểm, dễ kích động, mầm mống bạo loạn). | **Binh lính (Soldier)** (`#ff7b72`): Chiến binh sắc bén với lực công kích cao, kỷ luật quân sự và tuần tra bảo vệ biên giới. |
-| **Thợ thủ công & Trung lưu** | Tam giác đều (3 cạnh bằng nhau) — tầng lớp lao động ổn định và đáng kính. | **Thợ thủ công (Artisans)** (3–4 cạnh, `#f2cc60`): Nông dân, người hái lượm và thợ xây phụ trách thu hoạch và bảo dưỡng nhà cửa. |
-| **Thân sĩ & Trí thức** | Hình vuông (4 cạnh) và Ngũ giác (5 cạnh) — tầng lớp quản lý và chuyên gia thượng lưu. | **Thân sĩ** (4 cạnh, `#ffa657`) & **Chuyên gia** (5 cạnh, `#d2a8ff`): Đảm nhiệm các vai trò quản trị và chuyên trách. |
-| **Giới Quý tộc** | Lục giác (6 cạnh) và các đa giác cao hơn — tầng lớp quý tộc và lãnh đạo nhà nước. | **Quý tộc** (6–8 cạnh, `#79c0ff`): Có tầm ảnh hưởng xã hội lớn và được ưu tiên trong gia phả dòng tộc. |
-| **Hàng Giáo phẩm (Hình tròn)** | Đa giác có quá nhiều cạnh (≥ 24 đến hàng trăm) đến mức các đỉnh không còn nhận thấy được, tạo thành vòng tròn trơn nhẵn. Nắm giữ luật pháp và tôn giáo. | **Giáo sĩ (Priest)** (≥ 24 cạnh, `#e6edf3`): Phát hào quang xoa dịu, chữa lành vết thương/bệnh tật cho đồng loại và kháng dịch bệnh. |
+| **Nguyên lý giai tầng** | *"Hình thù làm nên địa vị."* Thứ bậc xã hội được ấn định nghiêm ngặt bởi số lượng cạnh và độ đều của các góc. | Các cá thể kế thừa giai tầng hình học chính xác dựa trên số đỉnh (đa giác N cạnh) và tính đều đặn. |
+| **Phụ nữ (Đoạn thẳng)** | Là các đoạn thẳng không có độ dày góc. Do gần như vô hình khi nhìn trực diện và sắc bén như dao cạo, họ buộc phải liên tục cất tiếng ngâm nga hòa bình và đi lối cửa phụ. | Hiển thị dưới dạng đoạn thẳng 1D (`shape: 'line'`). Cực kỳ linh hoạt, có tập tính di chuyển và nhu cầu trú ẩn đặc thù. |
+| **Binh lính & Tiền đạo** | Tam giác cân với góc đỉnh rất nhọn hoắt (hung hãn, hiếu chiến, mầm mống bạo loạn). | **Binh sĩ** (`#ff7b72`): Chiến binh sắc bén với sát thương cao, kỷ luật tác chiến và tuần tra bảo vệ biên giới. |
+| **Thợ thủ công & Trung lưu** | Tam giác đều (3 cạnh bằng nhau) — tầng lớp lao động và buôn bán ổn định, đáng kính. | **Nghệ nhân** (3–4 cạnh, `#f2cc60`): Nông dân, thợ hái lượm và thợ xây phụ trách thu hoạch mùa màng, chăm sóc vựa lương và sửa chữa nhà cửa. |
+| **Thân sĩ & Quý tộc** | Hình vuông (4 cạnh) và Ngũ giác (5 cạnh) — tầng lớp quản lý hành chính và học giả. | **Thân sĩ** (4 cạnh, `#ffa657`) & **Học giả** (5 cạnh, `#d2a8ff`): Đảm nhiệm vai trò quản lý và điều hành cộng đồng. |
+| **Giới Quý tộc thượng lưu** | Lục giác (6 cạnh) và các đa giác bậc cao — giới quý tộc và nhà lập pháp. | **Quý tộc** (6–8 cạnh, `#79c0ff`): Có tiếng nói xã hội lớn và vị thế ưu tiên trong gia phả dòng tộc. |
+| **Tế tư (Hình tròn)** | Đa giác có vô số cạnh (≥ 24 đến hàng trăm) đến mức các đỉnh tạo thành đường tròn trơn láng. Nắm giữ luật pháp và đức tin. | **Tế tư** (≥ 24 cạnh, `#e6edf3`): Tỏa ánh hào quang chữa lành vết thương, xua tan mầm bệnh cho đồng tộc và miễn nhiễm dịch tễ. |
 
 ---
 
-## 2. "Định luật Tự nhiên" & Sự Thăng tiến Thế hệ
+## 2. "Định luật Tự nhiên" & Sự Thăng tiến Dòng tộc
 
 - **Trong Tiểu thuyết**:
-  - Abbott xây dựng **"Định luật Phát triển Hướng thượng"**: Một bé trai con của đa giác đều hầu như luôn thừa hưởng **nhiều hơn cha mình một cạnh** (ví dụ: Hình Vuông sinh ra Ngũ Giác, rồi sinh ra Lục Giác), nâng tầm dòng dõi hướng tới sự hoàn hảo của Hình Tròn qua nhiều thế hệ.
-  - Những kẻ **"Dị dạng"** (các cạnh/góc bất thường) bị coi là mối nguy hiểm cho xã hội và bị giam giữ hoặc xử tử.
+  - Abbott xây dựng **"Định luật Thăng tiến"**: Con trai của đa giác đều hầu như luôn thừa hưởng **nhiều hơn cha mình một cạnh** (ví dụ: Hình Vuông sinh ra Ngũ Giác, rồi sinh ra Lục Giác), nâng tầm dòng dõi hướng tới sự hoàn hảo tròn trịa của Tế tư qua nhiều đời.
+  - Những cá thể **"Dị dạng"** (các cạnh/góc bất thường) bị coi là mối họa cho xã hội và bị cách ly hoặc xử tử.
 - **Trong Ứng dụng Mô phỏng**:
-  - **Tiến hóa thế hệ**: Thế hệ con kế thừa các đặc tính từ cha mẹ với xác suất tăng cạnh (`sides += 1`), mô phỏng chân thực sự thăng tiến dần dần qua các thời kỳ lịch sử.
-  - **Dị tật & Giáng cấp**: Sinh vật phát triển dị tật gen hoặc gặp chấn thương sẽ bị theo dõi chỉ số bất thường, bị cộng đồng đánh giá và có dấu hiệu nhận biết trực quan riêng.
-  - **Gia phả dòng họ**: Cây phả hệ lưu giữ chi tiết cha, mẹ và dòng dõi qua hàng thập kỷ trong lịch sử thế giới.
+  - **Tiến hóa thế hệ**: Thế hệ con kế thừa các đặc tính từ cha mẹ với xác suất tăng thêm cạnh (`sides += 1`), mô phỏng chân thực sự thăng tiến dần dần qua các thời kỳ lịch sử.
+  - **Dị tật & Giáng cấp**: Sinh vật phát triển dị tật gen sẽ bị theo dõi độ dị hình, bị giáng cấp và có biểu tượng nhận diện trực quan riêng.
+  - **Gia phả dòng họ**: Cây phả hệ lưu giữ chi tiết cha, mẹ và dòng dõi qua hàng trăm ngày lịch sử thế giới.
 
 ---
 
-## 3. Nhận biết Thị giác, Khí quyển & Sương mù
+## 3. Nhận biết Thị giác, Thời tiết & Cảm nhận Sương mù
 
 - **Trong Tiểu thuyết**:
-  - Trong thế giới 2 chiều phẳng, mọi cư dân nhìn từ cạnh bên đều chỉ là một đoạn thẳng!
-  - Ở **Vùng Nam Sương mù**, cư dân sử dụng **"Nhận biết bằng mắt"** — phán đoán góc và khoảng cách của một đa giác đang đến gần qua tốc độ mờ dần của các cạnh trong sương mù khí quyển.
-  - Ở **Vùng Bắc Trong trẻo**, họ phải dựa vào **"Sờ soạng"** (chạm vào các đỉnh bằng đầu ngón tay).
+  - Trong thế giới 2 chiều phẳng, mọi cư dân nhìn ngang đều chỉ là những đoạn dẹt!
+  - Ở **Miền Nam Sương mù**, cư dân dùng **"Nhận biết bằng mắt"** — phán đoán góc và khoảng cách của một đa giác qua tốc độ mờ dần của các cạnh trong sương mù.
+  - Ở **Miền Bắc Trong trẻo**, họ phải dựa vào **"Sờ soạng"** (chạm vào các đỉnh bằng đầu ngón tay).
 - **Trong Ứng dụng Mô phỏng**:
-  - **Động cơ thời tiết động**: Mô phỏng 4 trạng thái **Quang đãng**, **Sương mù**, **Mưa** và **Bão tố**.
-  - **Tầm nhìn khí quyển**: Sương mù và bão tố trực tiếp thu hẹp bán kính quan sát của sinh vật, buộc chúng phải dùng tín hiệu âm thanh và cảm biến khoảng cách gần.
-  - **Ngày & Đêm**: Đường cong chiếu sáng thay đổi tự nhiên qua bình minh, giữa trưa, hoàng hôn và đêm tối mịt mù, thúc đẩy sinh vật tìm đường về nơi trú ẩn.
+  - **Động cơ thời tiết động**: Tái hiện 4 trạng thái **Quang đãng**, **Sương mù**, **Mưa** và **Giông bão**.
+  - **Tầm nhìn khí quyển**: Sương mù và giông bão trực tiếp thu hẹp bán kính quan sát, buộc sinh vật phải dựa vào tiếng hú báo động và cảm biến khoảng cách gần.
+  - **Ngày & Đêm**: Cường độ chiếu sáng thay đổi tự nhiên qua bình minh, giữa trưa, hoàng hôn và đêm tối mịt mùng, thúc đẩy sinh vật tìm đường về nhà trú ẩn.
 
 ---
 
 ## 4. Nhà ở, Khu định cư & Kiến trúc Lãnh thổ
 
 - **Trong Tiểu thuyết**:
-  - Nhà ở bắt buộc phải có hình ngũ giác hoặc lục giác với các lối vào phân biệt: cửa nhỏ phía sau cho phụ nữ (đoạn thẳng) và cửa chính cho nam giới đa giác.
+  - Nhà ở bắt buộc phải có hình ngũ giác hoặc lục giác với cửa riêng: cửa nhỏ phía sau cho phụ nữ (đoạn thẳng) và cửa chính cho nam giới đa giác.
 - **Trong Ứng dụng Mô phỏng**:
-  - **Kinh tế định cư**: Nhà cửa là các cấu trúc vật lý 2D thực thụ với ranh giới bên trong, cửa ra vào có hướng (`bắc`, `đông`, `nam`, `tây`) và số giường ngủ giới hạn.
-  - **Trụ sở duy nhất**: Mỗi bộ tộc sở hữu đúng **một Nhà Trụ sở / Đại bản doanh** (nơi ở của Thủ lĩnh) cùng các chòi trú ẩn vệ tinh xung quanh.
-  - **Nhu cầu trú ẩn**: Sinh vật tìm về nhà để ngủ khi màn đêm buông xuống, tránh sương muối mùa đông, hồi phục thể lực và nuôi dạy con cái.
-  - **Điều hướng qua cửa**: Sinh vật tính toán điểm đứng chờ thông minh để di chuyển mượt mà qua cửa khi trời tối và tỏa ra tìm thức ăn khi bình minh, không bị kẹt vào tường.
+  - **Kinh tế định cư**: Nhà cửa là cấu trúc vật lý 2D với ranh giới bên trong, cửa ra vào có hướng (`bắc`, `đông`, `nam`, `tây`) và số chỗ ngủ giới hạn.
+  - **Bản doanh duy nhất**: Mỗi thị tộc sở hữu đúng **một Nhà Chính / Bản doanh** (nơi ở của Thủ lĩnh) cùng các chòi trú ẩn vệ tinh bao quanh.
+  - **Nhu cầu trú ẩn**: Sinh vật tìm về nhà để ngủ khi màn đêm buông xuống, tránh rét buốt mùa đông, hồi phục sinh lực và nuôi dưỡng con non.
+  - **Điều hướng qua cửa**: Sinh vật tính toán điểm đứng chờ thông minh để di chuyển mượt mà qua khe cửa khi trời tối và tỏa ra tìm thức ăn khi bình minh, không bị kẹt vào vách tường.
 
 ---
 
-## 5. Ngoại giao Bộ tộc, Linh thú Totem & Xã hội Tự trị
+## 5. Bang giao Thị tộc, Đồ đằng & Xã hội Tự hành
 
-Khác với chính quyền tập quyền thời Victoria trong sách, ứng dụng triển khai **mô phỏng xã hội tiến hóa**:
-- **Linh thú Totem**: Mỗi bộ tộc mang một trong 8 Hóa thân Linh thiêng của Sphere (⭕ Radiant Circle, ⚡ Celestial Strike, 👁️ All-Seeing Vertex, 🛡️ Indomitable Monolith, 🌿 Sacred Spiral, ⚖️ Cosmic Scales, 🌀 Dimensional Rift, 🕯️ Eternal Hearth), tạo nên xu hướng tính cách và sự chuyên môn hóa kinh tế khác biệt giữa các chiến binh, nông dân và thợ săn.
-- **Ngoại giao, Cống nạp & Chiến tranh**: Quan hệ bộ tộc diễn tiến linh hoạt với các hiệp ước hòa bình, liên minh quân sự, nộp cống và nguy cơ phân liệt phe phái.
-- **Quyền tự trị cá nhân**: Các hình mẫu tính cách độc lập (Dũng cảm, Cẩn trọng, Vị tha, Tham lam, Thám hiểm, Thợ xây) mang giỏ thức ăn cá nhân, vũ khí và phản xạ tự cứu mình khi nguy cấp.
+Khác với mô hình chính quyền tập quyền thời Victoria trong sách, ứng dụng triển khai **mô phỏng xã hội tiến hóa tự sinh**:
+- **Đồ đằng Thần thánh**: Mỗi thị tộc tôn sùng một trong 8 Đồ đằng thiêng của Khối Cầu (⭕ Sung Túc, ⚡ Nộ Thần, 👁️ Toàn Tri, 🛡️ Trường Tồn, 🌿 Tái Sinh, ⚖️ Cân Bằng, 🌀 Huyền Bí, 🕯️ Bếp Ấm), định hình thiên hướng nghề nghiệp và sự chuyên môn hóa giữa các chiến binh, nông dân và thợ hái lượm.
+- **Bang giao, Cống nạp & Chiến tranh**: Quan hệ thị tộc diễn tiến linh hoạt với hòa ước đình chiến, liên minh tương trợ, cống nạp bảo hộ và nguy cơ phân liệt nội bộ.
+- **Tính cách độc lập**: Các hình mẫu tính cách (Dũng cảm, Thận trọng, Vị tha, Tư lợi, Khai phá, Xây dựng) mang túi cói cá nhân, công cụ (giáo, thuốc đắp, vương miện) và phản xạ tự cứu mình khi nguy cấp.
 
 ---
 
-## 6. Chiều Không Gian Cao Hơn: Người Dùng Chính Là "The Sphere"
+## 6. Chiều Không Gian Cao Hơn: Người Dùng Trong Vai "Khối Cầu"
 
-Mối liên kết sâu sắc nhất giữa ứng dụng và tác phẩm chính là **vai trò của người dùng**:
-- Trong tiểu thuyết, nhân vật chính **A Square (Hình Vuông)** được viếng thăm bởi **A Sphere (Khối Cầu)** đến từ *Spaceland (Không Gian 3D)*, người có thể nhìn từ trục Z xuống, thấy được bên trong các căn phòng khóa kín, nhìn thấu nội tạng và thao túng mặt phẳng 2D như một Thượng đế toàn năng.
+Mối liên kết sâu sắc nhất giữa ứng dụng và tiểu thuyết chính là **vai trò của người quan sát**:
+- Trong tiểu thuyết, nhân vật chính **A Square (Hình Vuông)** được viếng thăm bởi **Khối Cầu (A Sphere)** đến từ *Không Gian 3D (Spaceland)*, người có thể nhìn từ trục Z xuống, thấy được bên trong các căn phòng kín, nhìn thấu tâm can và thao túng mặt phẳng 2D như một Đấng Sáng Tạo toàn năng.
 - **Trong Ứng dụng của chúng ta**:
-  - **Bạn chính là Khối Cầu (Thượng đế)**: Khi nhìn vào màn hình, bạn đang quan sát Xứ Phẳng từ chiều không gian thứ ba.
-  - **Bảng The Sphere**: Bạn nắm giữ quyền năng tối thượng để thay đổi "Định luật của Tự nhiên" theo thời gian thực — kích hoạt nạn đói, điều chỉnh sinh trưởng thức ăn, phát tán hoặc chữa lành bệnh tật, tạo ra mùa đông băng giá hoặc ban phước lành thịnh vượng cho các bộ tộc.
+  - **Bạn chính là Khối Cầu (Chúa)**: Khi nhìn vào màn hình, bạn đang quan sát Xứ Phẳng từ chiều không gian thứ ba.
+  - **Bảng Khối Cầu**: Bạn nắm giữ quyền năng tối thượng để ban bố "Thiên luật Tự nhiên" theo thời gian thực — tạo ra nạn đói, điều chỉnh sinh trưởng thức ăn, phát tán hoặc chữa lành dịch bệnh, mang mùa đông buốt giá đến hoặc ban phước lành thịnh vượng cho các thị tộc.
 """,
     "fr": r"""
 # Flatland : Le Roman vs. La Simulation
@@ -739,106 +739,106 @@ LAW_HINTS_I18N = {
         "door_clearance": "Width multiplier for house doorways relative to the largest creature size (1.5).",
     },
     "vi": {
-        "boundary": "Địa hình đường biên thế giới: 'wrap' (vòng lặp xuyến liền mạch) vs 'clamp' (tường va chạm cứng).",
-        "food_count": "Số lượng cây thức ăn sống được duy trì trên toàn thế giới (mùa hè ×1.2, mùa đông ×0.5).",
-        "energy_max": "Mức năng lượng trao đổi chất tối đa một sinh vật có thể tích trữ (10–500).",
-        "energy_decay_per_tick": "Mức tiêu hao năng lượng cơ bản mỗi tick khi không có thức ăn (0.025).",
-        "energy_from_food": "Năng lượng thu được khi thu hoạch cây chín (quả mọng 48, cỏ 32, nấm 24, độc thảo 8).",
-        "plant_variants_enabled": "Công tắc chính kích hoạt đa dạng sinh học với 6 loài thực vật chức năng.",
-        "plant_growth_rate": "Tốc độ cây mầm lớn lên thành thức ăn có thể thu hoạch (0.045).",
-        "plant_spread_rate": "Xác suất mỗi tick cây chín rụng hạt xuống vùng đất màu mỡ xung quanh (0.006).",
-        "nutrient_cycle_rate": "Tốc độ gia tăng sinh trưởng thực vật quanh xác sinh vật phân hủy (0.65) — cái chết nuôi dưỡng sự sống mới.",
-        "poison_rate": "Xác suất một mầm cây mới mọc mang độc tính (-30 HP sát thương khi ăn phải).",
-        "food_decay_enabled": "Cho phép cây chín tự nhiên tàn lụi theo thời gian và bồi đắp chất dinh dưỡng cho đất.",
-        "food_lifespan_ticks": "Thời gian tính bằng tick một cây chín tồn tại trước khi tàn lụi vào đất (8000).",
-        "agriculture_enabled": "Kích hoạt thu nhặt hạt giống, luống canh tác (lớn nhanh 2×, sản lượng 2.5×), rãnh tưới và làm cỏ.",
-        "granaries_enabled": "Kích hoạt kho thóc cộng đồng của khu định cư để tích trữ ngũ cốc và quả mọng qua mùa đông.",
-        "granary_capacity": "Dung lượng thức ăn kho thóc có thể chứa (400) — yến tiệc kích hoạt khi đạt ≥80% dung lượng.",
-        "perceive_radius": "Bán kính thị giác cơ bản (16) — điều chỉnh theo giai cấp (Nữ giới 0.8×, Giáo sĩ 1.35×), đêm (0.6×) và sương mù (0.6×).",
-        "eat_radius": "Khoảng cách tiếp xúc vật lý tối đa để ăn cây, xác chết hoặc con mồi (1.4).",
-        "hungry_ratio": "Ngưỡng năng lượng đói (≤35%) đưa tín hiệu vào mạng nơ-ron để kích hoạt hành vi tìm thức ăn.",
-        "starving_ratio": "Ngưỡng kiệt sức nghiêm trọng (≤15%) kích hoạt nước rút sinh tồn và phát tín hiệu cầu cứu.",
-        "steer_turn": "Góc quay đầu tối đa mỗi tick, tỷ lệ theo mô-men quán tính Izz của sinh vật.",
-        "birth_enabled": "Công tắc chính cho phép sinh sản, giao phối và thăng tiến thế hệ.",
-        "lifespan_mult": "Hệ số nhân tuổi thọ cho tất cả giai cấp (Nữ giới: 4.800 ticks → Giáo sĩ: 9.000 ticks).",
-        "adult_age": "Số tick để ấu trùng trưởng thành thành cá thể có khả năng sinh sản (220).",
-        "birth_rate": "Xác suất sinh sản cơ bản cho mỗi cặp giao phối đủ điều kiện mỗi tick (0.28).",
-        "carrying_capacity": "Ngưỡng mật độ dân số mà khi vượt qua, khả năng sinh sản sẽ giảm dần (-1 = tự động).",
-        "max_population": "Giới hạn dân số toàn cầu tuyệt đối, chặn mọi ca sinh mới cho đến khi mật độ giảm (-1 = tự động).",
-        "mutation_rate": "Xác suất con trai sinh ra lệch ±1 cạnh so với kế thừa giai cấp cổ điển (0.05).",
-        "sex_ratio": "Xác suất một đứa trẻ sinh ra là con trai (đa giác thăng tiến) vs con gái (đoạn thẳng nhanh nhẹn) (0.50).",
-        "max_sides": "Giới hạn số cạnh tối đa của đa giác đều (lên đến cấp Giáo sĩ / Hình tròn) (24).",
-        "euthanasia_threshold": "Ngưỡng dị tật hình thể; ấu trùng vượt quá mức này sẽ bị tiêu hủy khi trưởng thành (0.70).",
-        "mutation_sigma": "Độ lệch chuẩn đột biến Gauss (σ) áp dụng lên trọng số bộ gen khi lai ghép (0.08).",
-        "crossover_rate": "Tỷ lệ hòa trộn 50/50 bộ gen cha mẹ trong quá trình sinh sản hữu tính (0.50).",
-        "morphology_annealing_enabled": "Công tắc chính cho vật lý hình học — ủ nhiệt (r,φ), va chạm đa giác SAT và tính toán đặc tính thể chất.",
-        "annealing_decay_generations": "Số thế hệ để quá trình ủ nhiệt hình thái chuyển dần từ mẫu chuẩn Abbott sang tiến hóa tự do (150).",
-        "disease_enabled": "Công tắc chính cho bùng phát mầm bệnh truyền nhiễm và lây lan dịch tả.",
-        "disease_outbreak_rate": "Xác suất bùng phát dịch bệnh tự phát mỗi tick trong điều kiện đông đúc (0.00006).",
-        "disease_rate": "Xác suất lây truyền bệnh mỗi tick trong cự ly tiếp xúc gần (0.035).",
-        "disease_energy_drain": "Năng lượng trao đổi chất bị rút cạn mỗi tick ở sinh vật đang nhiễm bệnh (0.05).",
-        "disease_lethality": "Sát thương máu (HP) trực tiếp trừ mỗi tick lên sinh vật mắc bệnh (0.18).",
-        "weather_enabled": "Công tắc chính cho chu kỳ khí tượng động (nắng, mưa, sương mù, bão tố).",
-        "sleep_enabled": "Kích hoạt chu kỳ ngủ ngày/đêm, nghỉ ngơi trong nhà và truyền khẩu tri thức sau khi trời tối.",
-        "day_length": "Tổng độ dài tính bằng tick của một chu kỳ ngày/đêm (1200).",
-        "season_length": "Độ dài tính bằng tick của mỗi mùa (Xuân, Hạ, Thu, Đông) (12000).",
-        "winter_food_mult": "Hệ số thức ăn theo mùa vào mùa đông (0.70 êm dịu, 0.50 khắc nghiệt, 0.30 tuyệt chủng).",
-        "night_sight_mult": "Hệ số tầm nhìn ban đêm đối với các loài sinh hoạt ban ngày (0.60).",
-        "weather_change_rate": "Tần suất chuyển đổi trạng thái khí tượng giữa trời trong, mưa, sương mù và bão (0.002).",
-        "weather_sickness_enabled": "Kích hoạt hạ thân nhiệt và cảm lạnh khi ở ngoài trời không có mái che lúc mưa rét.",
-        "chill_drain": "Sát thương máu trực tiếp mỗi tick khi bị nhiễm lạnh ngoài trời không có nơi trú ẩn (0.18).",
-        "shelter_enabled": "Công tắc chính cho cơ chế chiếm nhà, điều hướng qua cửa và mái che bảo vệ.",
-        "exposure_drain": "Hao tổn máu và năng lượng mỗi tick khi ở ngoài trời lúc thời tiết khắc nghiệt (0.025).",
-        "house_capacity": "Sức chứa giường ngủ trong một sảnh nhà định cư (12); thành viên dôi dư phải ngủ ngoài trời.",
-        "house_decay_ticks": "Số tick trước khi một căn nhà bỏ hoang, mất mái sụp đổ thành đống đổ nát (10000).",
-        "rest_recovery_mult": "Hệ số hồi phục sinh lực khi ngủ trong nhà có mái che (2.0).",
-        "territory_enabled": "Kích hoạt cắm mốc ranh giới bộ tộc, bảo vệ lãnh thổ và phạt xâm phạm.",
-        "territory_radius": "Bán kính tầm ảnh hưởng lãnh thổ của bộ tộc xung quanh các căn nhà (16).",
-        "trespass_decay": "Điểm quan hệ ngoại giao mất đi mỗi tick khi bộ tộc đối địch xâm phạm lãnh thổ (0.15).",
-        "max_clans": "Số lượng bộ tộc tối đa được khởi tạo khi lập thế giới mới (-1 = tự động).",
-        "totems_enabled": "Kích hoạt phước lành từ Linh thú Totem Hóa thân cho mỗi khu định cư bộ tộc.",
-        "succession_enabled": "Kích hoạt cơ chế kế vị lãnh đạo bộ tộc linh hoạt khi thủ lĩnh qua đời.",
-        "communication_enabled": "Kích hoạt phát âm, tiếng chim báo động, tiếng ngân hòa bình và bong bóng suy nghĩ cảm xúc.",
-        "knowledge_enabled": "Kích hoạt bộ nhớ không gian, bản đồ lộ trình và truyền tin đồn trong bộ tộc.",
-        "schism_enabled": "Kích hoạt phân liệt bộ tộc khi thành viên bị đói hoặc thiếu chỗ ở.",
-        "schism_threshold": "Tỷ lệ bất mãn (đói khát, vô gia cư) kích hoạt cuộc phân liệt phe phái nội bộ (0.40).",
-        "war_enabled": "Kích hoạt chiến tranh liên bộ tộc, tập kích chiến thuật và xâm chiếm lãnh thổ.",
-        "attack_damage": "Sát thương cơ bản do binh lính và chiến binh gây ra trong giao tranh (32.0).",
-        "predation_enabled": "Kích hoạt sinh thái thú săn mồi ăn thịt và con mồi ăn cỏ.",
-        "predator_ratio": "Tỷ lệ dân số sinh ra là loài thú săn mồi chuyên ăn thịt (0.02).",
-        "hunt_radius": "Bán kính phát hiện con mồi mà thú săn mồi hoặc đội săn nhắm tới (16.0).",
-        "bite_damage": "Sát thương chiến đấu gây ra trong mỗi cú cắn hoặc vồ của thú săn mồi (28.0).",
-        "energy_from_prey": "Năng lượng calo hấp thụ được khi hạ gục và ăn thịt con mồi (45.0).",
-        "fear_radius": "Khoảng cách mà loài ăn cỏ và giai cấp dễ tổn thương phát hiện nguy hiểm để bỏ chạy (12.0).",
-        "coalitions_enabled": "Kích hoạt liên minh phòng thủ tương trợ và hiệp ước ngoại giao giữa các bộ tộc thân thiện.",
-        "coalition_threshold": "Điểm tin cậy ngoại giao cần thiết để hai bộ tộc thân hữu lập liên minh phòng thủ (40).",
-        "leader_decisions_enabled": "Kích hoạt các sắc lệnh quản trị của tù trưởng (chia khẩu phần, thiết quân luật, tuyên chiến).",
-        "resource_sharing_enabled": "Kích hoạt kho lương chung của khu định cư và chia sẻ thức ăn từ giỏ cá nhân.",
-        "larder_capacity": "Dung lượng dự trữ năng lượng của kho lương thực chung trong khu định cư (300).",
-        "cannibalism_enabled": "Kích hoạt hành vi ăn thịt đồng loại trong tuyệt vọng khi nạn đói cùng cực xảy ra.",
-        "eat_kin_enabled": "Cho phép ăn thịt đồng loại đã chết với cái giá là bị trục xuất khỏi bộ tộc và gây thù hằn.",
-        "cannibalism_energy": "Năng lượng hấp thụ được khi sinh vật chết đói ăn thịt đồng loại hoặc kẻ thù (45.0).",
-        "theology_enabled": "Kích hoạt 8 Linh thú Hóa thân, điện thờ, đền đài, phép màu và dâng nộp đức tin.",
-        "tithe_rate": "Tỷ lệ năng lượng tín đồ sùng đạo dâng nộp tại điện thờ mỗi bình minh & hoàng hôn để tích lũy đức tin (0.04).",
-        "temple_faith_cost": "Điểm đức tin cần thiết để thánh hóa một Ngôi Đền Khối Cầu rực sáng (400.0).",
-        "age_enabled": "Kích hoạt tiến trình các kỷ nguyên lịch sử (Kỷ Hoàng kim, Kỷ Băng hà, Kỷ Hỗn mang, Kỷ Dịch bệnh).",
-        "age_length": "Thời lượng tính bằng tick cho mỗi kỷ nguyên lịch sử thế giới (50000).",
-        "culture_enabled": "Kích hoạt phong tục tập quán, thể chế quản trị và lan tỏa văn hóa.",
-        "culture_spread_rate": "Tốc độ các bộ tộc láng giềng tiếp thu các nét văn hóa và tín ngưỡng của nhau (0.0005).",
-        "rivers_enabled": "Kích hoạt dòng sông, khúc cạn, dòng chảy xiết, cầu cống và đập nước.",
-        "river_count": "Số lượng kênh sông tự nhiên được kiến tạo trên địa hình khi lập thế giới (2).",
-        "relief_enabled": "Kích hoạt độ cao địa hình, quán tính dốc, vách đá và đường mòn đầm nén.",
-        "structural_enabled": "Kích hoạt sự hao mòn công trình do thời tiết, thợ xây sửa chữa và mái sập thành gạch vụn.",
-        "earthquake_enabled": "Kích hoạt các chấn động địa chấn làm rung chuyển mặt đất và nứt vỡ nhà cửa.",
-        "earthquake_rate": "Tần suất các trận động đất gây nứt vỡ công trình và sạt lở địa hình (0.00008).",
-        "lightning_enabled": "Kích hoạt sét đánh chân thực trong bão, gây cháy rừng và sát thương sinh vật.",
-        "lightning_strike_rate": "Tần suất các tia sét chết người giáng xuống trong cơn giông bão (0.0015).",
-        "wildfire_enabled": "Kích hoạt sự bùng cháy và lan truyền ngọn lửa qua các thảm thực vật dày đặc.",
-        "fire_rate": "Xác suất mỗi tick cây chín bốc cháy khi khô hạn hoặc sét đánh (0.00008).",
-        "disaster_enabled": "Kích hoạt thiên thạch rơi, lũ quét và các thảm họa môi trường thảm khốc.",
-        "disaster_rate": "Xác suất ngẫu nhiên xảy ra các thảm họa môi trường tàn khốc (0.0003).",
-        "anomaly_count": "Số lượng dị thường không gian huyền bí làm biến dạng các quy luật vật lý cục bộ (3).",
-        "door_clearance": "Hệ số độ rộng cửa nhà so với kích thước sinh vật lớn nhất (1.5).",
+        "boundary": "Quy tắc ranh giới thế giới: 'wrap' (vòng xuyến vô tận) vs 'clamp' (tường chắn vật lý).",
+        "food_count": "Lượng cây lương thực thế giới duy trì liên tục (mùa hè ×1.2, mùa đông ×0.5).",
+        "energy_max": "Mức năng lượng tối đa một cá thể có thể tích lũy (10–500).",
+        "energy_decay_per_tick": "Tiêu hao năng lượng trao đổi chất cơ bản mỗi nhịp khi nhịn đói (0.025).",
+        "energy_from_food": "Năng lượng thu được khi thu hoạch cây chín (quả mọng 48, cỏ 32, nấm 24, cây độc 8).",
+        "plant_variants_enabled": "Công tắc chính bật tính đa dạng với 6 loài thực vật chuyên biệt.",
+        "plant_growth_rate": "Tốc độ cây non sinh trưởng thành cây có thể thu hoạch (0.045).",
+        "plant_spread_rate": "Xác suất mỗi nhịp cây chín phát tán hạt giống sang ô đất màu mỡ lân cận (0.006).",
+        "nutrient_cycle_rate": "Gia tốc mọc cây quanh xác thực thể phân hủy (0.65) — cái chết bồi đắp cho sự sống.",
+        "poison_rate": "Xác suất chồi non mọc ra là cây có độc (-30 sinh lực khi ăn phải).",
+        "food_decay_enabled": "Phân hủy xác thực vật già cỗi bồi bổ dưỡng chất cho đất.",
+        "food_lifespan_ticks": "Thời gian tồn tại của cây trưởng thành trước khi tự rũ bỏ thân xác vào đất (8000 nhịp).",
+        "agriculture_enabled": "Khai phá nông canh, luống cày xới (lớn nhanh 2×, sản lượng 2.5×), rãnh tưới và làm cỏ.",
+        "granaries_enabled": "Dựng vựa thóc lớn tại làng để tích trữ lương thực vượt qua mùa đông.",
+        "granary_capacity": "Dung tích tối đa của vựa lương (400) — mở đại yến khi đầy ≥80%.",
+        "perceive_radius": "Bán kính quan sát chuẩn (16) — biến đổi theo giai tầng (Nữ giới 0.8×, Tế tư 1.35×), đêm tối (0.6×) và sương mù (0.6×).",
+        "eat_radius": "Khoảng cách tiếp xúc vật lý tối thiểu để ăn thức ăn, rỉa xác hoặc bắt mồi (1.4).",
+        "hungry_ratio": "Ngưỡng đói (≤35%) đưa tín hiệu vào mạng nơ-ron để thôi thúc tìm kiếm thức ăn.",
+        "starving_ratio": "Ngưỡng đói lả nguy kịch (≤15%) kích hoạt nước rút sinh tồn và phát tín hiệu báo nguy.",
+        "steer_turn": "Góc quay đầu tối đa mỗi nhịp, tính toán theo quán tính hình thể của sinh vật.",
+        "birth_enabled": "Công tắc chính cho phép giao phối, sinh sản và kế thừa dòng dõi.",
+        "lifespan_mult": "Hệ số nhân thọ mệnh cho mọi giai tầng (Nữ giới: 4.800 nhịp → Tế tư: 9.000 nhịp).",
+        "adult_age": "Số nhịp cần thiết để con non trưởng thành và có thể sinh sản (220).",
+        "birth_rate": "Tỷ lệ thụ thai cơ bản của mỗi cặp đôi trưởng thành đủ no mỗi nhịp (0.28).",
+        "carrying_capacity": "Ngưỡng sức tải môi trường: vượt ngưỡng này tỷ lệ sinh sẽ suy giảm (-1 = tự động).",
+        "max_population": "Trần dân số cứng: ngăn chặn mọi ca sinh mới cho đến khi mật độ giảm (-1 = tự động).",
+        "mutation_rate": "Xác suất con trai sinh ra bị đột biến lệch ±1 cạnh so với quy luật thừa kế (0.05).",
+        "sex_ratio": "Xác suất sinh con trai (đa giác tiến hóa) so với con gái (đoạn thẳng linh hoạt) (0.50).",
+        "max_sides": "Giới hạn số cạnh tối đa của đa giác đều (chạm ngưỡng Tế tư / Hình tròn) (24).",
+        "euthanasia_threshold": "Ngưỡng dị hình; cá thể vượt mốc này sẽ bị loại trừ khi vừa trưởng thành (0.70).",
+        "mutation_sigma": "Độ lệch chuẩn Gaussian (σ) áp dụng lên trọng số não bộ khi lai phối (0.08).",
+        "crossover_rate": "Tỷ lệ hòa trộn đồng đều 50/50 bộ gen cha mẹ trong quá trình thụ thai (0.50).",
+        "morphology_annealing_enabled": "Công tắc chính cho vật lý hình học — ủ nhiệt (r,φ), va chạm SAT và giải phóng hình thể.",
+        "annealing_decay_generations": "Số thế hệ để quá trình ủ nhiệt chuyển từ khuôn mẫu Abbott sang tiến hóa tự do (150).",
+        "disease_enabled": "Công tắc chính cho phép dịch bệnh bùng phát và lây nhiễm trong quần thể.",
+        "disease_outbreak_rate": "Xác suất tự bùng phát dịch bệnh mỗi nhịp khi mật độ dân cư ngột ngạt (0.00006).",
+        "disease_rate": "Tỷ lệ lây truyền mầm bệnh mỗi nhịp khi tiếp xúc gần cá thể nhiễm bệnh (0.035).",
+        "disease_energy_drain": "Năng lượng bị hao hụt mỗi nhịp do lâm bệnh nặng (0.05).",
+        "disease_lethality": "Sát thương rút máu trực tiếp mỗi nhịp do độc lực của bệnh tật (0.18).",
+        "weather_enabled": "Công tắc chính cho chu kỳ khí tượng biến đổi (nắng, mưa, sương, giông).",
+        "sleep_enabled": "Tập tính ngủ nghỉ ban đêm, trú ẩn trong nhà và truyền thụ kinh nghiệm lúc đêm tối.",
+        "day_length": "Tổng số nhịp của một chu kỳ ngày đêm trọn vẹn (1200).",
+        "season_length": "Độ dài của một mùa (Xuân, Hạ, Thu, Đông) theo số nhịp (12000).",
+        "winter_food_mult": "Hệ số khan hiếm thức ăn khi mùa đông buốt giá tràn về (0.70 nhẹ, 0.50 khốc liệt, 0.30 tuyệt diệt).",
+        "night_sight_mult": "Hệ số thu hẹp tầm nhìn trong bóng đêm đối với sinh vật ban ngày (0.60).",
+        "weather_change_rate": "Tần suất biến chuyển giữa các trạng thái thời tiết (0.002).",
+        "weather_sickness_enabled": "Bị nhiễm hàn khí và hạ thân nhiệt khi đứng ngoài mưa gió buốt lạnh không có mái che.",
+        "chill_drain": "Tổn hao sinh lực mỗi nhịp khi cơ thể bị nhiễm lạnh ngoài trời (0.18).",
+        "shelter_enabled": "Công tắc chính cho cơ chế nhận nhà, điều hướng qua cửa và mái che bảo vệ.",
+        "exposure_drain": "Tổn hại máu và năng lượng mỗi nhịp khi phơi mình ngoài sương gió mùa đông (0.025).",
+        "house_capacity": "Số lượng chỗ nằm trong mỗi căn nhà (12); thành viên vượt mức phải ngủ ngoài trời.",
+        "house_decay_ticks": "Thời gian một căn nhà bỏ hoang sụp đổ thành phế tích (10000 nhịp).",
+        "rest_recovery_mult": "Hệ số tăng tốc hồi sinh lực khi ngủ trong nhà ấm có che chắn (2.0).",
+        "territory_enabled": "Xác lập ranh giới lãnh thổ thị tộc, bảo vệ biên cương và phạt xâm nhập.",
+        "territory_radius": "Bán kính tầm ảnh hưởng lãnh thổ tỏa ra từ các căn nhà của thị tộc (16).",
+        "trespass_decay": "Điểm bang giao bị khấu trừ mỗi nhịp khi kẻ thù tự tiện bước vào lãnh địa (0.15).",
+        "max_clans": "Số lượng thị tộc tối đa được khởi tạo khi lập thế giới mới (-1 = tự động).",
+        "totems_enabled": "Cho phép thị tộc đón nhận phước lành từ một trong 8 Đồ đằng Thần thánh thiêng liêng.",
+        "succession_enabled": "Tự động bầu chọn người tài kế vị quyền lãnh đạo khi thủ lĩnh băng hà.",
+        "communication_enabled": "Phát tiếng gọi tìm mồi, hú báo nguy, ngâm nga hòa bình và bóng suy nghĩ.",
+        "knowledge_enabled": "Ghi nhớ địa hình thức ăn, mối hiểm họa và truyền miệng tin tức trong thị tộc.",
+        "schism_enabled": "Thành viên đói kém và mất chỗ ở sẽ nổi dậy ly khai lập tộc mới.",
+        "schism_threshold": "Tỷ lệ bất mãn thổi bùng làn sóng ly khai chia rẽ nội bộ (0.40).",
+        "war_enabled": "Chiến tranh liên thị tộc, tập kích cướp lương và mở rộng bờ cõi.",
+        "attack_damage": "Sát thương cơ bản do binh sĩ gây ra trong chiến trận (32.0).",
+        "predation_enabled": "Kích hoạt chuỗi thức ăn thú săn mồi ăn thịt và con mồi ăn cỏ.",
+        "predator_ratio": "Tỷ lệ sinh ra thú ăn thịt hung hãn trong tự nhiên (0.02).",
+        "hunt_radius": "Bán kính săn mồi và truy sát mục tiêu của thú ăn thịt (16.0).",
+        "bite_damage": "Sát thương từ vết cắn xé của thú ăn thịt (28.0).",
+        "energy_from_prey": "Năng lượng calo hấp thụ được khi săn gục và ăn thịt con mồi (45.0).",
+        "fear_radius": "Khoảng cách thú ăn cỏ đánh hơi thấy nguy hiểm để bỏ chạy tháo thân (12.0).",
+        "coalitions_enabled": "Ký kết hòa ước liên minh phòng thủ tương trợ giữa các thị tộc thân thiện.",
+        "coalition_threshold": "Điểm tin cậy ngoại giao tối thiểu để hai tộc kết nghĩa liên minh phòng thủ (40).",
+        "leader_decisions_enabled": "Thủ lĩnh ban bố sắc lệnh (phát chẩn lúc đói, thiết quân luật, phát động chiến tranh).",
+        "resource_sharing_enabled": "Kho lương chung tại bản doanh giúp sẻ chia miếng ăn và cứu đói nhau.",
+        "larder_capacity": "Trữ lượng năng lượng tối đa của kho lương tập thể thị tộc (300).",
+        "cannibalism_enabled": "Ăn thịt đồng loại trong tuyệt vọng khi rơi vào đường cùng của nạn đói.",
+        "eat_kin_enabled": "Cho phép ăn thịt người cùng dòng tộc (phải trả giá bằng lưu đày và thù hận muôn đời).",
+        "cannibalism_energy": "Năng lượng thu được khi ăn thịt một cá thể đồng loại lúc đói lả (45.0).",
+        "theology_enabled": "Thần học 8 Đồ đằng, dựng đền miếu, dâng lễ vật đức tin và thần tích hiển linh.",
+        "tithe_rate": "Tỷ lệ năng lượng tín đồ dâng hiến vào lúc bình minh và hoàng hôn để tích lũy đức tin (0.04).",
+        "temple_faith_cost": "Lượng đức tin cần thiết để nâng cấp đền miếu thành Đại Đền Khối Cầu (400.0).",
+        "age_enabled": "Tiến trình các thời đại lịch sử lớn (Hoàng Kim, Băng Hà, Hỗn Thoát, Dịch Bệnh).",
+        "age_length": "Độ dài của một thời đại lịch sử tính theo số nhịp (50000).",
+        "culture_enabled": "Bản sắc văn hóa, tập tục và sự lan tỏa tập quán giữa các thị tộc.",
+        "culture_spread_rate": "Tốc độ truyền bá tập tục văn hóa sang các thị tộc đồng minh cận kề (0.0005).",
+        "rivers_enabled": "Dòng sông tự nhiên ngăn cách đôi bờ, kèm vùng nước xiết, bãi cạn và cầu bắc ngang.",
+        "river_count": "Số nhánh sông được kiến tạo tự nhiên ngăn chia bản đồ (2).",
+        "relief_enabled": "Địa hình trập trùng: dốc cao tốn sức, vách đá gây ngã gãy xương, đường mòn đi nhanh.",
+        "structural_enabled": "Công trình bị hao mòn do bão lốc, thợ xây sửa chữa, sập thành đống đổ nát.",
+        "earthquake_enabled": "Địa chấn làm rung chuyển mặt đất, làm đổ sập những căn nhà ọp ẹp.",
+        "earthquake_rate": "Tần suất xảy ra địa chấn rung chuyển mặt đất mỗi nhịp (0.00008).",
+        "lightning_enabled": "Tia sét đánh trúng mặt đất trong cơn giông, phát hỏa và sát thương sinh mệnh.",
+        "lightning_strike_rate": "Tần suất tia sét giáng xuống mặt đất trong cơn giông bão (0.0015).",
+        "wildfire_enabled": "Cháy rừng lan truyền nhanh chóng qua các thảm cỏ và rừng rậm rạp.",
+        "fire_rate": "Xác suất thực vật bốc cháy khi khô hạn hoặc bị sét giáng trúng (0.00008).",
+        "disaster_enabled": "Đại thảm họa bất ngờ như mưa thiên thạch hoặc hồng thủy dâng trào.",
+        "disaster_rate": "Xác suất ngẫu nhiên giáng xuống đại thảm họa thiên nhiên (0.0003).",
+        "anomaly_count": "Số lượng vùng dị thường không gian làm biến dạng quy luật vật lý cục bộ (3).",
+        "door_clearance": "Tỷ lệ độ rộng cửa nhà so với kích thước cá thể lớn nhất (1.5).",
     },
     "fr": {
         "boundary": "Topologie des frontières : 'wrap' (boucle toroïdale continue) vs 'clamp' (parois rigides infranchissables).",
