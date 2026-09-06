@@ -68,7 +68,7 @@ Polar genomes $(r_i,\phi_i)$, $K\in[3,64]$ (`PRIEST_SIDES 24` threshold, ultra-c
 
 ### 4. Settlements, Clans & Diplomacy
 - **Settlement Houses**: Square walled halls with creature-sized doorways; houses block outside elements and wild carnivores.
-- **Territory & Clan Banners**: Foundational houses establish spatial clans with distinct banner colors, procedurally generated clan names, and totems (Wolf, Bear, Tree, Shield, Eye, Stag, Owl, etc.).
+- **Territory & Clan Banners**: Foundational houses establish spatial clans with distinct banner colors, procedurally generated clan names, and Sacred Avatars of the Sphere (⭕ Radiant Circle, ⚡ Celestial Strike, 👁️ All-Seeing Vertex, 🛡️ Indomitable Monolith, 🌿 Sacred Spiral, ⚖️ Cosmic Scales, 🌀 Dimensional Rift, 🕯️ Eternal Hearth).
 - **Division of Labor & Task Board**: Dynamic macro priorities (`balanced`, `food_security`, `defense`, `quarantine_healing`) boost harvester (2.0×) and guard (2.5×) action weights.
 - **Governance Archetypes & Succession**: Distinct institutional models (`Monarchy` royal dynasty, `Theocracy` priest succession, `Junta` combat mastery, `Republic` council of elders).
 - **Dynamic Bylaws**: Automated policies including winter food rationing (<35 energy threshold) and wartime martial law curfews.
@@ -172,42 +172,68 @@ Flatland includes a complete terminal client powered by **Textual** (`backend/tu
 ws/
 ├── backend/
 │   ├── app/
-│   │   ├── config.py       # Configuration dataclass & default environment values
-│   │   ├── entities.py     # Creature castes, traits, food variants, and houses
-│   │   ├── world.py        # Entity spatial hash index & wrap-aware proximity queries
-│   │   ├── simulation.py   # Deterministic step pipeline: perceive, steer, eat, reproduce
-│   │   ├── auth.py         # Passkey authentication dependency & cryptographic verification
-│   │   ├── protocol.py     # Pydantic schemas shared between backend & frontend
-│   │   ├── db.py           # SQLite persistence for worlds, events, and lineage
-│   │   ├── guide.py        # Backend-rendered HTML Living Guide
-│   │   ├── wiki.py         # Living Wiki & API documentation
-│   │   ├── morphology.py   # BC polar traits: shoelace A/P/Izz/θmin, baking, SAT overlap
-│   │   ├── evolution_manager.py # BC annealing λ(g), Abbott templates, child interpolation
-│   │   ├── agent_soa.py    # SoA buffers (pos/vel/genomes + morph_radii/angles/k/traits)
-│   │   └── main.py         # FastAPI app, WebSocket broadcaster, REST + /api/metrics/morphology
-│   ├── tui/                # Textual terminal client
-│   └── tests/              # Pytest test suite (450+ automated tests)
+│   │   ├── config.py            # Configuration dataclass & environment loaders
+│   │   ├── entities.py          # Creature castes, traits, food variants, and houses
+│   │   ├── world.py             # Entity spatial hash index & wrap-aware proximity queries
+│   │   ├── simulation/          # Decomposed simulation engine package (§BI)
+│   │   │   ├── core.py          # Master Simulation class, deterministic step loop, SoA sync
+│   │   │   ├── creature_update.py # Decomposed 7-phase agent tick pipeline
+│   │   │   ├── settlement.py    # Housing economy, construction, claims & takeover
+│   │   │   ├── lifecycle.py     # Spawning, reproduction, birth, death, skills & diseases
+│   │   │   ├── ecology.py       # Flora lifecycle, farming, banquets & nutrient cycling
+│   │   │   ├── theology.py      # Faith pools, shrines, miracles, synods & epiphanies
+│   │   │   ├── society.py       # Clans, diplomacy, war, coalitions, trade & larders
+│   │   │   ├── serialization.py # Snapshot & delta wire protocol serialization
+│   │   │   ├── environment.py   # Weather, wind, temperature grid & disasters
+│   │   │   └── constants.py     # Simulation constants, tables & name generators
+│   │   ├── agent_soa.py         # Vectorized Structure-of-Arrays buffers (positions/velocities/genomes)
+│   │   ├── agent_pipeline.py    # Batch vector update pipeline & raycast processing
+│   │   ├── neural_engine.py     # Micro-Elman RNN (16→12→7, 295 weights) forward inference
+│   │   ├── morphology_engine.py # Polar geometry SAT collision & physical trait baking
+│   │   ├── evolution_manager.py # Annealing λ(g), Abbott templates & polar crossover
+│   │   ├── spatial_grid.py      # Vectorized spatial grid for fast proximity searches
+│   │   ├── analytics.py         # TelemetryRing, macro metrics, demography & biodiversity
+│   │   ├── safeguard_engine.py  # Extinction safeguards & Genesis miracles
+│   │   ├── density_damping.py   # Soft-cap density damping (ξ)
+│   │   ├── auth.py              # God passkey dependency & PBKDF2 cryptographic verification
+│   │   ├── protocol.py          # Pydantic schemas shared between backend & frontend
+│   │   ├── db.py                # SQLite WAL persistence for worlds, events, lineage & snapshots
+│   │   ├── wiki.py              # Living Wiki, API documentation & guide routes
+│   │   └── main.py              # FastAPI app, SimEngine thread, Hub broadcaster, REST & WebSocket
+│   ├── tui/                     # Textual terminal client
+│   └── tests/                   # Pytest test suite (490+ automated tests)
 └── frontend/
     └── src/
+        ├── analytics/           # Observatory & Macro Analytics Engine
+        │   ├── Observatory.tsx  # Full-screen macro dashboard & tab container
+        │   ├── MacroOverview.tsx # Demographics, vital health, biomass & speed sparklines
+        │   ├── SociologyTab.tsx # Clan hegemony, trade caravans, wars & succession
+        │   ├── EcologyTab.tsx   # Botanical diversity, soil health & trophic pyramid
+        │   ├── CrisisTab.tsx    # Epidemic spread, starvation alerts & disaster logs
+        │   ├── MutationLab.tsx  # Morphological phylogeny tree & 2D morphospace scatter
+        │   ├── MetricCard.tsx   # Formatted metric card with trend badges
+        │   └── Sparkline.tsx    # Lightweight SVG time-series sparkline
         ├── render/
-        │   ├── CanvasRenderer.tsx    # High-performance 60 FPS batched HTML5 Canvas renderer
-        │   ├── ClanPanel.tsx         # Live clan settlements, totems, and war records
-        │   ├── ChronicleFeed.tsx     # Filterable, scrollable real-time event log
-        │   ├── PlotsPanel.tsx        # Multi-metric population and caste sparklines
-        │   ├── OverviewPanel.tsx     # Day-trend demographics, mortality, hegemon
-        │   └── Collapsible.tsx       # Dynamic flex collapsible accordion component
+        │   ├── CanvasRenderer.tsx # High-performance 60 FPS batched Canvas renderer
+        │   ├── ClanPanel.tsx      # Live clan settlements, totems, and war records
+        │   ├── ChronicleFeed.tsx  # Filterable, scrollable real-time event log
+        │   ├── PlotsPanel.tsx     # Multi-metric population and caste sparklines
+        │   ├── OverviewPanel.tsx  # Day-trend demographics, mortality, hegemon
+        │   └── Collapsible.tsx    # Dynamic flex collapsible accordion component
         ├── clan/
-        │   └── ClanDetails.tsx       # Clan profile, leader residence, founded day & casualty stats
+        │   └── ClanDetails.tsx    # Clan profile, leader residence, founded day & casualty stats
         ├── history/
         │   └── WorldHistoryModal.tsx # Daily chronicle digest, wars, and AI Story export
         ├── god/
-        │   ├── GodPanel.tsx          # Interactive Laws of Nature control drawer (incl. Morphology)
-        │   └── auth.tsx              # Passkey dialog and authorized godFetch client
+        │   ├── GodPanel.tsx       # Interactive Laws of Nature control drawer (6 macro domains)
+        │   └── auth.tsx           # Passkey dialog and authorized godFetch client
         ├── inspect/
-        │   └── Inspector.tsx         # Creature dossier, vitals, inventory & family tree
+        │   └── Inspector.tsx      # Creature dossier, vitals, inventory & family tree
         ├── wiki/
-        │   └── Wiki.tsx              # In-app wiki (content-only presets) & API playground
-        └── App.tsx                   # Main layout, HUD, WS sync, day-trend demographics
+        │   └── Wiki.tsx           # In-app interactive wiki & API playground
+        ├── types.ts               # TypeScript schemas mirroring backend protocol
+        ├── websocket.ts           # Auto-reconnecting WebSocket client
+        └── App.tsx                # Main layout, HUD, WS sync, mobile drawer navigation
 ```
 
 ---

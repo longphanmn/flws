@@ -21,7 +21,7 @@ HOW_IT_WORKS_EN = r"""
 **The Sphere (God model):** The Sphere (God) sets *laws* from Spaceland, never touches individual creatures. Everything else emerges.
 
 ## The deterministic tick
-`s = Simulation(Config(seed))` → `s.step()` is fully deterministic (one `random.Random` per world). Same seed ⇒ same world. Tick loop (`simulation.py:539` `simulation.py:335`) order: weather → plants → rebuild index → creatures → disease → war → reproduce → relations → food law → corpses → settlements → tick+=1. Snapshots are pushed over WebSocket `state` every tick.
+`s = Simulation(Config(seed))` → `s.step()` is fully deterministic (one `random.Random` per world). Same seed ⇒ same world. Tick loop (`backend/app/simulation/core.py` `Simulation.step()`) order: weather → plants → rebuild index → creatures → disease → war → reproduce → relations → food law → corpses → settlements → tick+=1. Simulation advances on a dedicated OS thread (`SimEngine`) with lockless serialization, streaming snapshots over WebSocket `state` every tick.
 
 ## Life cycle & stages (§A)
 Creature.age ticks + caste-based lifespan (Woman 4800 → Priest 9000). Stage by `age/lifespan`: infant <15%, juvenile <30%, adult <75%, else elder. Stage scales speed & sight (infant 0.6×, elder 0.85×) and fertility (elder ×0.5). Death causes: `starvation`, `old_age`, `euthanasia`, `disease`.
@@ -57,10 +57,10 @@ Mutated children's `irregularity` judged at `adult_age`: `≥euthanasia_threshol
 Clock from tick: `time_of_day` (`day_length` cycle, starts sunrise), `day`, `season` (`season_length`). Night `night_sight_mult`, fog `fog_sight_mult` stack. `SEASON_FOOD_MULT` spring 1.0/summer 1.2/autumn 1.0/winter 0.5; spring ×1.25 birth, winter ×1.5 disease. Weather FSM clear/rain/fog/storm at `weather_change_rate`: rain/storm `rain_speed_mult`, storm `storm_wander_bonus`.
 
 ## Clans & social order (§C/I/P/V)
-Settlements seed clans (§V): every non-ruin house founds a clan led by the founding creature nearest its centre, and every founding creature joins its nearest house's clan — soldiers, women, nobles and priests mix inside one settlement (`simulation.py` `_found_founding_clans`, deterministic given the seed). God law `max_clans` caps society granularity: `-1` = one clan per house; `N ≥ 1` clusters the founders into N spatial clans (greedy k-centre) instead — a pinned value applies at world creation. A clan's settlement IS its anchor house: claims match the clustering (`_assign_house_claims`/`_claim_house_for_clan` pick the free house nearest a clan's people, never round-robin), and territory/totem/crest anchor there. Children inherit mother's `clan_id`; orphans found new clans that settle at the nearest free house (or build one, §L). Procedural name (`CLAN_ADJECTIVES/NOUNS`) + Sacred Avatar of the Sphere (§AP: ⭕ Radiant Circle, ⚡ Celestial Strike, 👁️ All-Seeing Vertex, 🛡️ Indomitable Monolith, 🌿 Sacred Spiral, ⚖️ Cosmic Scales, 🌀 Dimensional Rift, 🕯️ Eternal Hearth — emoji on the map) if `totems_enabled` (`config.py:59`, `simulation.py` `AVATARS`/`TOTEM_BUFF`, `renderCore.tsx` pole + shrine). Clan crest color on snapshot, totem pole + glowing shrine beside the main house, `StateMessage.clans` carries `name`/`totem`/`faith`/`shrine_level`/`leader_id`/`color`. Clan stats & history (§P): `GET /api/clans` (`main.py:363`) roster with `leader_id`/`population`/`house`/`war_wins`/`losses`/`territory_radius`, polled by `ClanPanel.tsx` under trophic chart. Relations −100..+100 drift `relation_drift_rate` →0, threshold `alliance_threshold`/`rivalry_threshold` → `alliance`/`rivalry` events; shared feeding within `flock_radius` `+2`. Boids `cohesion_weight`/`alignment_weight`/`separation_weight` blended after food-seeking; social yielding `YIELD_RADIUS` 2.5. Territory (§P): each settlement anchors a `territory_radius` 14 circle (`config.py:49`, `simulation.py:793` `_update_territory`, `CanvasRenderer.tsx:514`) — members steer home when outside (`0.35×steer`), trespass inside a rival's circle sours relations `trespass_decay` (`protocol.py:127`) via `_bump_relation`. Totem buffs (§AP): eight Sacred Avatars with divine aspects — ⭕ `Radiant Circle` +30% harvest/+20% fertility, ⚡ `Celestial Strike` +25% warrior damage, 👁️ `All-Seeing Vertex` +40% sight + nocturnal clarity, 🛡️ `Indomitable Monolith` −30% damage/cold immunity, 🌿 `Sacred Spiral` herbs ×2/plague recovery/composting, ⚖️ `Cosmic Scales` reliable peace/refuses kin-eating, 🌀 `Dimensional Rift` faster promotion/adaptive mutation/elder lore, 🕯️ `Eternal Hearth` nocturnal calm. Theology (§AP): settled clans consecrate a shrine beside the main house (`_update_faith`); the devout tithe `tithe_rate` at dawn & dusk into the clan faith pool; the aura mends the faithful; faith overflowing at a season turn works a `miracle` (bloom + mending); `temple_faith_cost` raises a Temple whose aura covers all territory (`temple` event); when God sets laws every shrine chimes and priests preach doctrinal `sermons` (`on_law_change` from `POST /api/laws`); same/complementary-avatar clans sympathise (+1 relation, holy alliances); crisis ages convene the Great `synod` (+relations, sacred truce); and rarely an elder priest receives the 3D `epiphany` — all strife stills (`truce_ticks`). Leadership (§P): founder is `leader_id` (`simulation.py:323`), death triggers succession to oldest living member → `succession` event (`protocol.py:129`, `simulation.py:1225`) if `succession_enabled` (`config.py:54`).
+Settlements seed clans (§V): every non-ruin house founds a clan led by the founding creature nearest its centre, and every founding creature joins its nearest house's clan — soldiers, women, nobles and priests mix inside one settlement (`simulation/settlement.py` `_found_founding_clans`, deterministic given the seed). God law `max_clans` caps society granularity: `-1` = one clan per house; `N ≥ 1` clusters the founders into N spatial clans (greedy k-centre) instead — a pinned value applies at world creation. A clan's settlement IS its anchor house: claims match the clustering (`_assign_house_claims`/`_claim_house_for_clan` pick the free house nearest a clan's people, never round-robin), and territory/totem/crest anchor there. Children inherit mother's `clan_id`; orphans found new clans that settle at the nearest free house (or build one, §L). Procedural name (`CLAN_ADJECTIVES/NOUNS`) + Sacred Avatar of the Sphere (§AP: ⭕ Radiant Circle, ⚡ Celestial Strike, 👁️ All-Seeing Vertex, 🛡️ Indomitable Monolith, 🌿 Sacred Spiral, ⚖️ Cosmic Scales, 🌀 Dimensional Rift, 🕯️ Eternal Hearth — emoji on the map) if `totems_enabled` (`config.py:59`, `simulation/theology.py` `AVATARS`/`TOTEM_BUFF`, `renderCore.tsx` pole + shrine). Clan crest color on snapshot, totem pole + glowing shrine beside the main house, `StateMessage.clans` carries `name`/`totem`/`faith`/`shrine_level`/`leader_id`/`color`. Clan stats & history (§P): `GET /api/clans` roster with `leader_id`/`population`/`house`/`war_wins`/`losses`/`territory_radius`, polled by `ClanPanel.tsx` under trophic chart. Relations −100..+100 drift `relation_drift_rate` →0, threshold `alliance_threshold`/`rivalry_threshold` → `alliance`/`rivalry` events; shared feeding within `flock_radius` `+2`. Boids `cohesion_weight`/`alignment_weight`/`separation_weight` blended after food-seeking; social yielding `YIELD_RADIUS` 2.5. Territory (§P): each settlement anchors a `territory_radius` 14 circle (`config.py:49`, `simulation/society.py` `_update_territory`, `CanvasRenderer.tsx:514`) — members steer home when outside (`0.35×steer`), trespass inside a rival's circle sours relations `trespass_decay` (`protocol.py:127`) via `_bump_relation`. Totem buffs (§AP): eight Sacred Avatars with divine aspects — ⭕ `Radiant Circle` +30% harvest/+20% fertility, ⚡ `Celestial Strike` +25% warrior damage, 👁️ `All-Seeing Vertex` +40% sight + nocturnal clarity, 🛡️ `Indomitable Monolith` −30% damage/cold immunity, 🌿 `Sacred Spiral` herbs ×2/plague recovery/composting, ⚖️ `Cosmic Scales` reliable peace/refuses kin-eating, 🌀 `Dimensional Rift` faster promotion/adaptive mutation/elder lore, 🕯️ `Eternal Hearth` nocturnal calm. Theology (§AP): settled clans consecrate a shrine beside the main house (`_update_faith`); the devout tithe `tithe_rate` at dawn & dusk into the clan faith pool; the aura mends the faithful; faith overflowing at a season turn works a `miracle` (bloom + mending); `temple_faith_cost` raises a Temple whose aura covers all territory (`temple` event); when God sets laws every shrine chimes and priests preach doctrinal `sermons` (`on_law_change` from `POST /api/laws`); same/complementary-avatar clans sympathise (+1 relation, holy alliances); crisis ages convene the Great `synod` (+relations, sacred truce); and rarely an elder priest receives the 3D `epiphany` — all strife stills (`truce_ticks`). Leadership (§P): founder is `leader_id` (`simulation/society.py`), death triggers succession to oldest living member → `succession` event (`protocol.py:129`, `simulation/lifecycle.py`) if `succession_enabled` (`config.py:54`).
 
 ## Food economy (§H/N/O)
-`Food` is a living plant `growth` 0.15→1.0 (`plant_growth_rate`), spreads `plant_spread_rate` within `SPREAD_RADIUS` 6.0 if below seasonal bounty `food_count×SEASON_FOOD_MULT`. Winter die-back removes youngest first. A meal whose straight path is blocked by a rock circle or a house wall is abandoned for `food_giveup_ticks` — the hungry give up and seek food somewhere else instead of grinding against the obstacle until they starve; eating anything clears the grudge, 0 disables giving up (`_segment_hits_circle`, `_give_up_on`). Death leaves `Corpse` (`corpse_ttl`, `corpse_energy`) edible like food; decay boosts nearby plants `NUTRIENT_BOOST×nutrient_cycle_rate` within `NUTRIENT_RADIUS`. §O biodiversity: `Food.variant` grass/berry/mushroom/poisonous (`entities.py:169`) — `plant_variants_enabled`/`poison_rate` (`config.py:44`), `VARIANT_ENERGY` grass 32/berry 48/mushroom 24/poison 8 and `VARIANT_HEALTH` berry +1/poison -30 (`simulation.py:49`), growth `VARIANT_GROWTH_MULT`×`VARIANT_SEASON_MULT` (`simulation.py:754`), spawn picks berry burst in autumn / mushroom on corpses/rocks (`simulation.py:530`), `poisonous` mutates via `poison_rate`; `bloom` carries `variant` (`simulation.py:782`). Wild herbivores (§O): `Herbivore` clanless grazers (`entities.py:40`, `is_herbivore`) spawn `area×density×beast_ratio` (`config.py:46`, `simulation.py:289`), graze plants and are hunted by predators (plants → herbivores → predators); `beast_ratio`/`diet_strictness` GodLaws (`protocol.py:123`). Diet & preference (§O): `diet_strictness` (`config.py:46`) filters perceived meals (`simulation.py:1304`) — herbivore ignores `corpse` when strict, predator ignores `food`, higher castes skip low-energy `grass` when strict (`berry` preferred), herbivore avoids `poisonous`; `test_synergies.py:test_diet_preference_respects_strictness` verifies.
+`Food` is a living plant `growth` 0.15→1.0 (`plant_growth_rate`), spreads `plant_spread_rate` within `SPREAD_RADIUS` 6.0 if below seasonal bounty `food_count×SEASON_FOOD_MULT`. Winter die-back removes youngest first. A meal whose straight path is blocked by a rock circle or a house wall is abandoned for `food_giveup_ticks` — the hungry give up and seek food somewhere else instead of grinding against the obstacle until they starve; eating anything clears the grudge, 0 disables giving up (`_segment_hits_circle`, `_give_up_on`). Death leaves `Corpse` (`corpse_ttl`, `corpse_energy`) edible like food; decay boosts nearby plants `NUTRIENT_BOOST×nutrient_cycle_rate` within `NUTRIENT_RADIUS`. §O biodiversity: `Food.variant` grass/berry/mushroom/poisonous (`entities.py:169`) — `plant_variants_enabled`/`poison_rate` (`config.py:44`), `VARIANT_ENERGY` grass 32/berry 48/mushroom 24/poison 8 and `VARIANT_HEALTH` berry +1/poison -30 (`simulation/constants.py`), growth `VARIANT_GROWTH_MULT`×`VARIANT_SEASON_MULT` (`simulation/ecology.py`), spawn picks berry burst in autumn / mushroom on corpses/rocks (`simulation/ecology.py`), `poisonous` mutates via `poison_rate`; `bloom` carries `variant` (`simulation/ecology.py`). Wild herbivores (§O): `Herbivore` clanless grazers (`entities.py:40`, `is_herbivore`) spawn `area×density×beast_ratio` (`config.py:46`, `simulation/lifecycle.py`), graze plants and are hunted by predators (plants → herbivores → predators); `beast_ratio`/`diet_strictness` GodLaws (`protocol.py:123`). Diet & preference (§O): `diet_strictness` (`config.py:46`) filters perceived meals (`simulation/creature_update.py`) — herbivore ignores `corpse` when strict, predator ignores `food`, higher castes skip low-energy `grass` when strict (`berry` preferred), herbivore avoids `poisonous`; `test_synergies.py:test_diet_preference_respects_strictness` verifies.
 
 ## Communication & knowledge (§Q/X)
 Signals (§Q): food calls and alarm calls ripple within `signal_radius`; clan-mates respond strongly, strangers weakly. Knowledge (§X): creatures learn typed facts from experience — `food` spots seen/eaten, `danger` at predator sightings, `safe` roofs while sheltered, `enemy` clans that struck them (`Creature.facts`, decay after `knowledge_ttl`). Teaching: `knowledge_share_rate` chance/tick to broadcast the freshest fact to clan-mates; heard facts land at half confidence — retold knowledge is vaguer than firsthand sighting, only better news overwrites. Mobbing: an attacked creature emits a help call; clan-mates within `help_radius` converge on the attacker (warriors first via caste rank, the peaceful lag behind, high castes only when bold), and every defender inside earshot softens the attacker's blows by `defense_weight`. Clan memory: `/api/clans` surfaces each clan's remembered enemies/danger zones/food spots (`clan_knowledge()`), and clans that remember each other as enemies plot wars faster (§S foreshadowing). Full history (§AT-1): `GET /api/clans/{id}/history?page=&size=` paginates the clan's entire filtered event stream (newest first, `total`/`has_more`) alongside the internal milestone log; the durable chronicle filters by clan at the SQL level — `GET /api/history?clan_id=N` matches any clan-bearing payload key (`a`/`b`/`clan_id`/conquest/schism/takeover pairs) so events stay queryable after rolling off the in-memory deque; ClanDetails renders a lazy "Full History" panel with `load older`. Senses interact (§AR S-0): sleeping bodies are fully deaf — a sleeper never processes signals and never counts as a mob defender (`_mob_defenders` skips the asleep), so predators may stalk a silent village. Ripe plants smell through the dark: a hungry or starving creature with no visual target catches the scent of any mature plant (`growth 1.0`) within `FOOD_SCENT_RADIUS` 8.0 at night — blind starvation is cured by the nose. And starvation dulls fear: `_effective_fear_radius` halves `fear_radius` for the starving (traits paranoid +4 / bold −2.5 still apply first), so the desperate walk toward death chasing scented food.
@@ -119,7 +119,7 @@ A complete Textual terminal interface (`backend/tui/`) attaches to running world
 - God laws manager (`g`) and ASCII/half-block renderer (`a` / `f`).
 
 ## Micro-Neural Network & Evolutionary Engine (BA)
-Every creature carries a **micro Elman RNN** (`16 → 12 → 7`, 295 `float32` weights, fixed) evolved by selection — always on. Sensors (16): vitals, three raycasts ±35°, audio, scent, collision, slope and hidden state. Outputs (7): `thrust`/`steer` (movement + energy drain), `interact` (consume/attack), `social` (mating readiness replaces §B gating `simulation.py:6750`), `vocal_amp`/`vocal_freq`, `recurrent_out` (writes `hidden_state`). Physics 60 Hz, inference at `nn_inference_hz` (default 15 Hz, every 4th tick latched, zero-alloc `inputs_buf`/`outputs_buf`). Genomes init `N(0,0.5)` clipped `[-4,4]`; mating via spatial query when `energy > mate_energy_min` and `social > 0.5`; uniform crossover 50/50 + Gaussian mutation `N(0,0.08²)` `p=0.03` (`mutation_sigma`/`crossover_rate` laws). Always-on 295. See `backend/app/agent_soa.py`, `neural_engine.py`, `agent_pipeline.py`, `evolution.py`, `sim_loop.py`, `spatial_grid.py`.
+Every creature carries a **micro Elman RNN** (`16 → 12 → 7`, 295 `float32` weights, fixed) evolved by selection — always on. Sensors (16): vitals, three raycasts ±35°, audio, scent, collision, slope and hidden state. Outputs (7): `thrust`/`steer` (movement + energy drain), `interact` (consume/attack), `social` (mating readiness replaces §B gating), `vocal_amp`/`vocal_freq`, `recurrent_out` (writes `hidden_state`). Physics 60 Hz, inference at `nn_inference_hz` (default 15 Hz, every 4th tick latched, zero-alloc `inputs_buf`/`outputs_buf`). Genomes init `N(0,0.5)` clipped `[-4,4]`; mating via spatial query when `energy > mate_energy_min` and `social > 0.5`; uniform crossover 50/50 + Gaussian mutation `N(0,0.08²)` `p=0.03` (`mutation_sigma`/`crossover_rate` laws). Always-on 295. See `backend/app/agent_soa.py`, `neural_engine.py`, `agent_pipeline.py`, `evolution.py`, `sim_loop.py`, `spatial_grid.py`.
 """
 
 HOW_IT_WORKS_VI = r"""
@@ -128,7 +128,7 @@ HOW_IT_WORKS_VI = r"""
 **The Sphere (Thượng đế ba chiều):** The Sphere thiết lập các *định luật tự nhiên* từ Spaceland, tuyệt đối không can thiệp vào số phận của từng sinh vật riêng lẻ. Mọi hành vi và trật tự đều tự vận hành phát sinh.
 
 ## Vòng lặp tick tất định
-`s = Simulation(Config(seed))` → `s.step()` hoàn toàn tất định (mỗi thế giới dùng đúng một luồng số ngẫu nhiên `random.Random`). Cùng một seed ban đầu sẽ luôn tạo ra cùng một diễn biến lịch sử. Thứ tự thực thi mỗi tick (`simulation.py:539` `simulation.py:335`): thời tiết → cây cối sinh trưởng → cập nhật lưới không gian → sinh vật hành động → bệnh dịch lây lan → chiến tranh giao tranh → sinh sản → quan hệ ngoại giao → luật cân bằng thức ăn → xác chết phân hủy → khu định cư → tăng tick+=1. Trạng thái thế giới được đẩy qua kết nối WebSocket `state` mỗi tick.
+`s = Simulation(Config(seed))` → `s.step()` hoàn toàn tất định (mỗi thế giới dùng đúng một luồng số ngẫu nhiên `random.Random`). Cùng một seed ban đầu sẽ luôn tạo ra cùng một diễn biến lịch sử. Thứ tự thực thi mỗi tick (`backend/app/simulation/core.py` `Simulation.step()`): thời tiết → cây cối sinh trưởng → cập nhật lưới không gian → sinh vật hành động → bệnh dịch lây lan → chiến tranh giao tranh → sinh sản → quan hệ ngoại giao → luật cân bằng thức ăn → xác chết phân hủy → khu định cư → tăng tick+=1. Quá trình tính toán chạy trên một luồng hệ điều hành riêng biệt (`SimEngine`) với cơ chế tuần tự hóa không khóa (lockless), truyền phát trạng thái qua WebSocket `state` mỗi tick.
 
 ## Vòng đời & Các giai đoạn (§A)
 Tuổi thọ tính theo tick + đẳng cấp (từ Phụ nữ 4.800 tick đến Tu sĩ 9.000 tick). Phân chia giai đoạn theo tỷ lệ `tuổi/tuổi thọ`: Sơ sinh (<15%), Vị thành niên (<30%), Trưởng thành (<75%), Lão niên (≥75%). Tuổi tác ảnh hưởng đến tốc độ di chuyển và tầm nhìn (sơ sinh 0.6×, lão niên 0.85×) cũng như khả năng sinh sản (lão niên giảm 50%). Nguyên nhân tử vong gồm: `starvation` (chết đói), `old_age` (già yếu), `euthanasia` (thanh lọc dị hình), và `disease` (bệnh tật).
@@ -209,7 +209,7 @@ HOW_IT_WORKS_FR = r"""
 **La Sphère (Modèle divin) :** La Sphère (Dieu tridimensionnel) édicte les *lois naturelles* depuis Spaceland et n'intervient jamais directement sur le destin d'un être individuel. Tout le reste émerge spontanément.
 
 ## Le tick déterministe
-`s = Simulation(Config(seed))` → `s.step()` est rigoureusement déterministe (un seul générateur pseudo-aléatoire `random.Random` par monde). Une même graine produit toujours le même univers. Ordre d'exécution de chaque tick (`simulation.py:539` `simulation.py:335`) : météo → croissance végétale → mise à jour spatiale → action des créatures → propagation des maladies → combats et guerres → reproduction → relations diplomatiques → régulation des plantes → décomposition des cadavres → colonies → incrément tick+=1. Les instantanés du monde sont diffusés via WebSocket `state` à chaque tick.
+`s = Simulation(Config(seed))` → `s.step()` est rigoureusement déterministe (un seul générateur pseudo-aléatoire `random.Random` par monde). Une même graine produit toujours le même univers. Ordre d'exécution de chaque tick (`backend/app/simulation/core.py` `Simulation.step()`) : météo → croissance végétale → mise à jour spatiale → action des créatures → propagation des maladies → combats et guerres → reproduction → relations diplomatiques → régulation des plantes → décomposition des cadavres → colonies → incrément tick+=1. Le moteur s'exécute sur un thread dédié (`SimEngine`) avec sérialisation sans verrou (lockless), diffusant les instantanés via WebSocket `state` à chaque tick.
 
 ## Cycle de vie & Stades de développement (§A)
 L'âge en ticks s'additionne à l'espérance de vie propre à chaque caste (de 4 800 ticks pour une Femme à 9 000 ticks pour un Prêtre). Les stades se divisent selon le ratio `âge/longévité` : Nourrisson (<15 %), Juvénile (<30 %), Adulte (<75 %), Aîné (≥75 %). L'âge influe sur la vitesse et la portée visuelle (nourrisson 0.6×, aîné 0.85×) ainsi que sur la fertilité (aîné ×0.5). Les causes de trépas sont : `starvation` (inanition), `old_age` (vieillesse), `euthanasia` (purge d'irrégularité), et `disease` (maladie).
@@ -322,8 +322,11 @@ SQLite `flatworld.db` (WAL, thread lock). Tables:
 
 History survives restarts; `reset` closes old world row and opens new.
 
-## Concurrency stance
-The simulation is **single-threaded by design** — determinism is the product: one seeded RNG stream, one fixed tick order. Run uvicorn with **1 worker** (more workers = several disconnected worlds, not a faster one). The engine thread advances ticks while the asyncio loop serves HTTP/WS; shared state crosses threads strictly under `RT.lock`. Multi-core simulation is a non-goal (CPython's GIL makes thread parallelism a wash for pure-Python compute); performance work is algorithmic instead: spatial-hash neighbour queries for war/mobbing/relations, per-tick clan caches, plain-dict snapshots with cached identity (no pydantic validation per frame), `orjson` broadcast encoding and one SQLite commit per tick (`Database.batch()`).
+## Concurrency stance & SimEngine
+The simulation core is **strictly deterministic** (one seeded RNG stream, one fixed tick order). Run uvicorn with **1 worker** (more workers = several disconnected worlds, not a faster one). Under `SimEngine` (`main.py:446`), simulation advancement runs on its own dedicated background OS thread. State stepping occurs under `RT.lock` while JSON snapshot serialization runs outside the lock (`advance_world_lockless`), so heavy state dumps and WebSocket broadcasts never block REST endpoints or hold the GIL. Key operational & diagnostic endpoints:
+- `GET /healthz` — Live server health, current TPS, memory usage, uptime, and active WebSocket client count.
+- `GET /api/perf/telemetry` — Rolling telemetry rings: tick duration, lock wait time, and broadcast latencies.
+- `GET /api/analytics/summary` — High-level macro demographics, biomass, and trophic distribution.
 
 ## Run & deploy
 ```bash
@@ -365,8 +368,11 @@ Cơ sở dữ liệu SQLite `flatworld.db` chạy ở chế độ ghi nhật ký
 - `creatures`: Gia phả dòng dõi sinh vật (cha mẹ, thế hệ, thời điểm sinh/tử).
 - `snapshots`: Các bản sao lưu trạng thái thế giới để khôi phục khi khởi động lại.
 
-## Kiến trúc đơn luồng & Tính tất định
-Hệ thống mô phỏng được **thiết kế đơn luồng có chủ đích** nhằm đảm bảo tính tất định tuyệt đối: một luồng sinh số ngẫu nhiên duy nhất, một thứ tự thực thi tick cố định. Chạy uvicorn với **1 worker duy nhất** (nhiều worker sẽ tạo ra các thế giới tách rời nhau chứ không giúp tăng tốc). Luồng động cơ tính toán tiến từng tick trong khi luồng asyncio phục vụ các kết nối HTTP và WebSocket; dữ liệu dùng chung giữa các luồng được bảo vệ nghiêm ngặt qua khóa `RT.lock`. Việc tăng tốc được giải quyết bằng tối ưu thuật toán: chỉ mục lưới băm không gian cho các truy vấn lân cận, bộ nhớ đệm cache bộ tộc mỗi tick, mã hóa broadcast siêu tốc bằng `orjson` và gộp ghi SQLite theo đợt.
+## Kiến trúc luồng & Động cơ SimEngine
+Lõi mô phỏng được **thiết kế tất định tuyệt đối**: một luồng số ngẫu nhiên duy nhất, một thứ tự thực thi tick cố định. Chạy uvicorn với **1 worker duy nhất**. Với kiến trúc `SimEngine` (`main.py:446`), việc tính toán mô phỏng diễn ra trên một luồng OS nền chuyên trách độc lập với vòng lặp sự kiện asyncio. Bước tiến thế giới diễn ra dưới khóa `RT.lock` trong khi việc mã hóa JSON snapshot diễn ra bên ngoài khóa (`advance_world_lockless`), giúp các yêu cầu HTTP REST luôn phản hồi tức thì mà không bị nghẽn. Các điểm cuối vận hành & chẩn đoán quan trọng:
+- `GET /healthz` — Kiểm tra sức khỏe máy chủ, TPS thời gian thực, dung lượng RAM, thời gian chạy và số client kết nối.
+- `GET /api/perf/telemetry` — Vòng đo lường hiệu năng: thời gian tick, thời gian giữ khóa và độ trễ phát sóng.
+- `GET /api/analytics/summary` — Tổng hợp dữ liệu vĩ mô nhân khẩu học, sinh khối và chuỗi thức ăn.
 
 ## Khởi chạy & Vận hành
 ```bash
@@ -408,8 +414,11 @@ Base SQLite `flatworld.db` en mode journalisé WAL avec verrou réentrant thread
 - `creatures` : Lignées généalogiques complètes de chaque citoyen.
 - `snapshots` : Instantanés de sauvegarde permettant de restaurer le monde après redémarrage.
 
-## Architecture monothread & Déterminisme
-Le moteur physique est **volontairement monothread** : le déterminisme absolu constitue le cœur du produit (un seul flux de nombres aléatoires ordonné tick par tick). Uvicorn doit être exécuté avec **1 seul processus worker**. Le thread du moteur calcule la simulation tandis que la boucle événementielle asyncio gère les flux HTTP/WebSocket sous le verrou `RT.lock`. Les performances sont assurées par des optimisations algorithmiques de pointe : grille spatiale pour les requêtes de voisinage, caches de clans réutilisés, sérialisation C ultra-rapide via `orjson` et écritures SQLite groupées.
+## Architecture des threads & Moteur SimEngine
+Le cœur de calcul est **rigoureusement déterministe** : une seule graine pseudo-aléatoire ordonnée tick par tick. Uvicorn doit être exécuté avec **1 seul processus worker**. Avec le moteur `SimEngine` (`main.py:446`), l'avancement de la simulation s'exécute sur son propre thread OS dédié, découplé de la boucle asyncio. Le calcul du tick s'opère sous `RT.lock` tandis que la sérialisation JSON des instantanés s'effectue hors verrou (`advance_world_lockless`), évitant tout blocage des requêtes REST. Points d'accès d'exploitation :
+- `GET /healthz` — Santé globale du serveur, TPS réel, consommation mémoire, temps de service et clients connectés.
+- `GET /api/perf/telemetry` — Télémétrie de performance : temps de calcul par tick, attente de verrou et latence réseau.
+- `GET /api/analytics/summary` — Synthèse macroscopique démographique, biomasse et distribution trophique.
 
 ## Exécution & Déploiement
 ```bash
@@ -444,32 +453,56 @@ CODEBASE_MAP_EN = """
 - `config.py:13` — `Config` dataclass: world geometry, densities, food, corpses, behaviour, life, reproduction, disease, environment, shelter, terrain, society, houses, chronicle. `from_env()` + `tick_interval`.
 - `entities.py:1` — `CasteTraits`, `CASTE_TRAITS`, `YIELD_RANK`, `caste_name()`, `Creature` (shape/sides/caste/age/lifespan/health/infected/clan_id/sleeping...), `Food` (growth), `Corpse`, `House` (size/door/clan).
 - `world.py:32` — `World` registry + uniform spatial hash (`cell_size`, `rebuild_index`), `delta`/`distance` wrap-aware, `query_radius`.
-- `simulation.py:57` — `Simulation` deterministic tick: `CLAN_COLORS`, `STAGE_MULT`, `SEASONS`, `SEASON_FOOD_MULT`, `YIELD_RADIUS`, `SPREAD_RADIUS` etc.
-- `auth.py:1` — `require_god` FastAPI dependency for God passkey cryptographic verification (`X-God-Key`).
+- `simulation/` — Modular simulation package (§BI):
+  - `core.py` — `Simulation` class, deterministic step loop, SoA slot sync, and cache refreshes.
+  - `creature_update.py` — Decomposed 7-phase agent loop (`_creature_movement`, `_creature_feeding`, etc.).
+  - `settlement.py` — Housing economy, construction, claims, takeovers, and wall collision.
+  - `lifecycle.py` — Spawning, reproduction, birth, death, skill titles, and disease propagation.
+  - `ecology.py` — Flora lifecycle, farming, banquets, corpse decomposition, and nutrient cycling.
+  - `theology.py` — Faith pools, Sacred Avatars, shrines, miracles, synods, and epiphanies.
+  - `society.py` — Clans, diplomacy, war, coalitions, larders, trade caravans, and cannibalism.
+  - `serialization.py` — Wire snapshot and delta payload generation.
+  - `environment.py` — Weather FSM, wind, temperature grid, elevation, and wildfires.
+  - `constants.py` — Lookups, multipliers, names, and avatar configurations.
+- `agent_soa.py` — SoA buffers (pos/vel/genomes + morph_radii/angles/k/traits) vectorized.
+- `agent_pipeline.py` — Vectorized batch sensory raycasting and movement physics.
+- `neural_engine.py` — Micro-Elman RNN forward inference (16→12→7, 295 weights).
+- `morphology_engine.py` — Polar geometry SAT collision & physical trait baking.
+- `evolution_manager.py` — Annealing λ(g), Abbott templates K3..64, polar crossover.
+- `spatial_grid.py` — Vectorized spatial grid for fast proximity queries.
+- `analytics.py` — TelemetryRing, macro metrics, demography, biodiversity, timeseries.
+- `safeguard_engine.py` — Extinction safeguards & Genesis miracles.
+- `density_damping.py` — Soft-cap density damping (ξ).
+- `auth.py:1` — `require_god` FastAPI dependency for God passkey PBKDF2 verification (`X-God-Key`).
 - `protocol.py:7` — Pydantic wire schemas: `ControlAction`, `ControlMessage`, `EntityState`, `StateMessage`, `HistoryEvent`, `HelloMessage`, `GodLaws`.
-- `db.py:1` — `Database` stdlib `sqlite3` thin wrapper: `worlds`, `events`, `law_changes`, `creatures`, `snapshots`; WAL, thread-safe reentrant lock; §AD OS-log — RAM buffer + writer daemon (`log_event`/`log_birth`/`log_death`, `flush()` every 5s or 5000 ops, forced on world end/snapshot/close), reads may lag ≤5s.
-- `main.py:1` — FastAPI `app`, `Hub` broadcast, `RuntimeState`, `tick_loop`, `apply_control`, `hello_payload`, `LAW_FIELDS`, `get_laws`/`apply_laws`, WebSocket `/ws`, REST routes, `/wiki`, `/guide`, `/api/metrics/morphology`.
-- `morphology.py` — BC polar A/P/Izz/θmin/asym/Dmult, trait baking, SAT overlap.
-- `evolution_manager.py` — BC annealing λ(g), Abbott templates K3..64, child interpolation + topo mutation.
-- `agent_soa.py` — SoA (pos/vel/genomes + morph_radii/angles/k/traits) vectorized.
+- `db.py:1` — SQLite WAL persistence for worlds, events, lineage, and snapshots with write buffer.
+- `main.py:1` — FastAPI `app`, `SimEngine` dedicated tick thread, `Hub` broadcaster, REST & WebSocket routes.
 
 ## Frontend (`frontend/src/`)
 - `App.tsx` — Main application layout, HUD, WebSocket synchronization, mobile drawer tabs.
-- `render/CanvasRenderer.tsx` — High-performance 60 FPS batched HTML5 Canvas renderer with trigonometric vertex geometry.
+- `analytics/` — Macro Analytics Engine & Observatory:
+  - `Observatory.tsx` — Full-screen macro dashboard container with tabbed views.
+  - `MacroOverview.tsx` — Demographics, vital health, biomass & speed sparklines.
+  - `SociologyTab.tsx` — Clan hegemony, trade caravans, wars & succession tracking.
+  - `EcologyTab.tsx` — Botanical diversity, soil health & trophic pyramid.
+  - `CrisisTab.tsx` — Epidemic spread, starvation alerts & disaster log.
+  - `MutationLab.tsx` — Morphological phylogeny tree & 2D morphospace scatterplot.
+  - `MetricCard.tsx` / `Sparkline.tsx` — Lightweight SVG time-series visualizers.
+- `render/CanvasRenderer.tsx` — High-performance 60 FPS batched HTML5 Canvas renderer.
 - `render/ClanPanel.tsx` — Live clan settlements, totems, and war records.
 - `render/ChronicleFeed.tsx` — Filterable, scrollable real-time event log.
 - `render/PlotsPanel.tsx` — Multi-metric population, caste, and trophic sparklines.
 - `clan/ClanDetails.tsx` — Clan profile, leader residence, founded day & casualty tracking.
 - `history/WorldHistoryModal.tsx` — Daily chronicle digest, major wars, and AI Story export.
-- `god/GodPanel.tsx` — Interactive Laws of Nature drawer with 7 curated presets.
+- `god/GodPanel.tsx` — Interactive Laws of Nature drawer across 6 macro domains.
 - `god/auth.tsx` — God passkey modal dialog and authenticated fetch wrapper (`godFetch`).
-- `inspect/Inspector.tsx` — Creature dossier, vitals, inventory & family tree.
+- `inspect/Inspector.tsx` — Creature dossier, polar morphology radar, vitals & family tree.
 - `wiki/Wiki.tsx` — In-app interactive wiki & API playground.
 - `types.ts` — TypeScript definitions mirroring backend protocol schemas.
 - `websocket.ts` — Auto-reconnecting WebSocket client.
 
 ## Data flow
-`tick_loop` → `sim.step()` → `sim.snapshot()` → `HUB.broadcast` → `ws` → `CanvasRenderer` + `App` state. Client → `ControlMessage` → `apply_control` → `RT.config`/`RT.sim` → DB law_changes. Events → `DB.add_events` + genealogy.
+`SimEngine` (dedicated thread) → `sim.step()` → `sim.snapshot()` (lockless serialization) → `HUB.broadcast` → `ws` → `CanvasRenderer` + `App` state. Client → `ControlMessage` → `apply_control` → `RT.config`/`RT.sim` → DB law_changes. Events → `DB.add_events` + genealogy.
 """
 
 CODEBASE_MAP_VI = """
@@ -479,18 +512,42 @@ CODEBASE_MAP_VI = """
 - `config.py:13` — Dataclass `Config`: Hình học thế giới, mật độ sinh vật, thức ăn, xác chết, hành vi bầy đàn, sinh sản, dịch bệnh, môi trường, nhà ở, địa hình, xã hội và biên niên sử. Tự động đọc cấu hình từ biến môi trường qua `from_env()`.
 - `entities.py:1` — Định nghĩa các thực thể cốt lõi: `CasteTraits`, `CASTE_TRAITS`, `YIELD_RANK`, `caste_name()`, `Creature` (hình dạng, số cạnh, đẳng cấp, tuổi tác, máu, trạng thái nhiễm bệnh, bang phái, ngủ...), `Food` (độ chín sinh trưởng), `Corpse` (xác chết phân hủy), `House` (nhà ở, cửa ra vào, quyền sở hữu).
 - `world.py:32` — Lớp đăng ký thực thể `World` tích hợp lưới băm không gian đồng nhất (`cell_size`, `rebuild_index`), tính toán khoảng cách bao quanh hình xuyến và truy vấn bán kính `query_radius`.
-- `simulation.py:57` — Động cơ mô phỏng tất định `Simulation`: quản lý màu sắc bang phái, hệ số tuổi tác, bốn mùa, bán kính nhường đường, lây lan dịch bệnh.
-- `auth.py:1` — Cơ chế xác thực FastAPI dependency bảo vệ quyền Thượng đế thông qua mật mã băm (`X-God-Key`).
+- `simulation/` — Gói động cơ mô phỏng mô-đun hóa (§BI):
+  - `core.py` — Lớp điều phối `Simulation`, vòng lặp tick tất định, đồng bộ khe SoA và làm mới bộ nhớ đệm.
+  - `creature_update.py` — Vòng lặp hành vi sinh vật 7 giai đoạn phân rã (`_creature_movement`, `_creature_feeding`, v.v.).
+  - `settlement.py` — Kinh tế nhà ở, xây dựng, tuyên bố chủ quyền, chiếm nhà và va chạm tường.
+  - `lifecycle.py` — Khởi tạo dân số, sinh sản, sinh tử, danh hiệu kỹ năng và lây lan dịch bệnh.
+  - `ecology.py` — Vòng đời thực vật, nông nghiệp, yến tiệc, phân hủy xác chết và tái tạo dinh dưỡng.
+  - `theology.py` — Quỹ đức tin, 8 Avatar Linh thiêng, đền thờ, phép màu, công đồng và hiển linh.
+  - `society.py` — Bang tộc, ngoại giao, chiến tranh, liên minh, kho lương, đoàn buôn và ăn thịt đồng loại.
+  - `serialization.py` — Đóng gói dữ liệu snapshot và delta truyền qua mạng.
+  - `environment.py` — Máy trạng thái thời tiết, gió, lưới nhiệt độ, độ cao và cháy rừng.
+  - `constants.py` — Hằng số bảng tra cứu, hệ số nhân và quy tắc đặt tên.
+- `agent_soa.py` — Mảng cấu trúc SoA vector hóa tối ưu bộ nhớ đệm CPU cho hàng ngàn sinh vật.
+- `agent_pipeline.py` — Xử lý cảm biến raycast và vật lý chuyển động vector hóa hàng loạt.
+- `neural_engine.py` — Mạng nơ-ron hồi quy Elman RNN (16→12→7, 295 trọng số) suy luận trực tiếp.
+- `morphology_engine.py` — Động cơ hình thái cực, va chạm SAT đa giác và thuộc tính thể chất.
+- `evolution_manager.py` — Quản lý ủ nhiệt hình thái λ(g), khuôn mẫu Abbott K3..64 và lai ghép cực.
+- `spatial_grid.py` — Lưới không gian vector hóa phục vụ truy vấn lân cận nhanh chóng.
+- `analytics.py` — Vòng telemetry, chỉ số vĩ mô, nhân khẩu học và đa dạng sinh học.
+- `safeguard_engine.py` — Cơ chế bảo vệ khỏi tuyệt chủng và Phép màu Khởi nguyên.
+- `density_damping.py` — Hãm mềm phụ thuộc mật độ (ξ).
+- `auth.py:1` — Cơ chế xác thực FastAPI dependency bảo vệ quyền Thượng đế thông qua chuỗi băm PBKDF2 (`X-God-Key`).
 - `protocol.py:7` — Định nghĩa lược đồ dữ liệu mạng Pydantic: `ControlAction`, `ControlMessage`, `EntityState`, `StateMessage`, `HistoryEvent`, `HelloMessage`, `GodLaws`.
 - `db.py:1` — Lớp bọc SQLite3 `Database` tối ưu với nhật ký WAL, khóa luồng và bộ đệm ghi nền cho các sự kiện sinh, tử, chiến tranh và snapshot.
-- `main.py:1` — Điểm khởi đầu FastAPI `app`, bộ phát sóng WebSocket `Hub`, vòng lặp thời gian thực `tick_loop`, xử lý điều khiển `apply_control`, các tuyến API REST và tài liệu `/wiki`.
-- `morphology.py` — Động cơ hình thái học cực, tính toán diện tích, chu vi, quán tính và va chạm SAT.
-- `evolution_manager.py` — Quản lý ủ nhiệt hình thái λ(g), phôi hình học Abbott K3..64 và đột biến topo.
-- `agent_soa.py` — Kiến trúc mảng cấu trúc SoA vector hóa tối ưu bộ nhớ đệm CPU cho hàng ngàn sinh vật.
+- `main.py:1` — Điểm khởi đầu FastAPI `app`, luồng động cơ riêng `SimEngine`, bộ phát sóng WebSocket `Hub`, các tuyến API REST và tài liệu `/wiki`.
 
 ## Cấu trúc Frontend (`frontend/src/`)
 - `App.tsx` — Bố cục ứng dụng chính, thanh HUD thông số, đồng bộ WebSocket và bảng điều khiển đa năng.
-- `render/CanvasRenderer.tsx` — Bộ hiển thị HTML5 Canvas đồ họa 60 FPS hiệu năng cao với vẽ hàng loạt (batching) và hình học lượng giác.
+- `analytics/` — Đài thiên văn & Động cơ phân tích vĩ mô (Observatory):
+  - `Observatory.tsx` — Khung hiển thị toàn màn hình các bảng phân tích vĩ mô theo thẻ.
+  - `MacroOverview.tsx` — Biểu đồ sparkline nhân khẩu học, sinh lực, sinh khối và tốc độ.
+  - `SociologyTab.tsx` — Bá quyền bang tộc, đoàn buôn liên bộ tộc, chiến tranh và kế vị.
+  - `EcologyTab.tsx` — Đa dạng thực vật, độ màu mỡ đất và tháp sinh thái.
+  - `CrisisTab.tsx` — Lây lan dịch bệnh, cảnh báo nạn đói và nhật ký thiên tai.
+  - `MutationLab.tsx` — Cây phát sinh hình thái học và biểu đồ phân tán không gian hình thái 2D.
+  - `MetricCard.tsx` / `Sparkline.tsx` — Khung hiển thị thẻ chỉ số và biểu đồ đường nhẹ SVG.
+- `render/CanvasRenderer.tsx` — Bộ hiển thị HTML5 Canvas đồ họa 60 FPS hiệu năng cao với vẽ hàng loạt (batching).
 - `render/ClanPanel.tsx` — Bảng hiển thị thông tin bang phái trực tiếp, cây totem linh vật và chiến tích lịch sử.
 - `render/ChronicleFeed.tsx` — Dòng sự kiện biên niên sử thời gian thực có bộ lọc thông minh.
 - `render/PlotsPanel.tsx` — Biểu đồ sparkline theo dõi dân số, tỷ lệ đẳng cấp và chuỗi thức ăn sinh thái.
@@ -498,13 +555,13 @@ CODEBASE_MAP_VI = """
 - `history/WorldHistoryModal.tsx` — Nhật ký tóm tắt từng ngày, các cuộc đại chiến và tính năng xuất truyện AI Story.
 - `god/GodPanel.tsx` — Bảng điều khiển định luật tự nhiên tương tác với 7 cấu hình mẫu tuyển chọn.
 - `god/auth.tsx` — Hộp thoại xác thực mật mã Thượng đế và hàm gọi API bảo mật `godFetch`.
-- `inspect/Inspector.tsx` — Bảng hồ sơ cá nhân sinh vật, chỉ số sinh tồn, hành trang và cây gia phả.
+- `inspect/Inspector.tsx` — Bảng hồ sơ cá nhân sinh vật, radar hình thái cực, chỉ số sinh tồn và cây gia phả.
 - `wiki/Wiki.tsx` — Bách khoa toàn thư tích hợp sẵn trong ứng dụng và công cụ thử nghiệm API.
 - `types.ts` — Định nghĩa kiểu TypeScript ánh xạ chính xác lược đồ giao thức backend.
 - `websocket.ts` — Trình khách WebSocket tự động kết nối lại khi gián đoạn mạng.
 
 ## Luồng dữ liệu hệ thống
-`tick_loop` → `sim.step()` → `sim.snapshot()` → `HUB.broadcast` → `ws` → `CanvasRenderer` + Trạng thái React `App`. Phía người dùng gửi `ControlMessage` → `apply_control` → Cập nhật cấu hình mô phỏng → Lưu nhật ký luật vào DB. Biến cố thế giới → `DB.add_events` + Lưu hồ sơ gia phả.
+`SimEngine` (luồng riêng) → `sim.step()` → `sim.snapshot()` (tuần tự hóa không khóa) → `HUB.broadcast` → `ws` → `CanvasRenderer` + Trạng thái React `App`. Phía người dùng gửi `ControlMessage` → `apply_control` → Cập nhật cấu hình mô phỏng → Lưu nhật ký luật vào DB. Biến cố thế giới → `DB.add_events` + Lưu hồ sơ gia phả.
 """
 
 CODEBASE_MAP_FR = """
@@ -514,17 +571,41 @@ CODEBASE_MAP_FR = """
 - `config.py:13` — Dataclass `Config` : Géométrie du monde, densités, nourriture, dépouilles, dynamique de groupe, reproduction, épidémies, météo, abris, maisons et annales. Détection automatique des variables d'environnement via `from_env()`.
 - `entities.py:1` — Définition des entités fondamentales : `CasteTraits`, `CASTE_TRAITS`, `YIELD_RANK`, `caste_name()`, `Creature` (géométrie, côtés, caste, âge, santé, infection, clan, sommeil...), `Food` (maturation), `Corpse` (dépouille), `House` (dimensions, porte, clan).
 - `world.py:32` — Registre spatial `World` avec table de hachage spatiale uniforme (`cell_size`, `rebuild_index`), calcul des distances toriques et requêtes de voisinage `query_radius`.
-- `simulation.py:57` — Moteur déterministe `Simulation` : gestion des cycles de tick, saisons, propagation des maladies et équilibre biotique.
-- `auth.py:1` — Dépendance de sécurité FastAPI vérifiant la clé divine par hachage cryptographique (`X-God-Key`).
-- `protocol.py:7` — Schémas réseau Pydantic : `ControlAction`, `ControlMessage`, `EntityState`, `StateMessage`, `HistoryEvent`, `HelloMessage`, `GodLaws`.
-- `db.py:1` — Couche SQLite3 `Database` optimisée avec WAL, verrous réentrants et écriture en arrière-plan des naissances, décès et instantanés.
-- `main.py:1` — Point d'entrée FastAPI `app`, diffusion WebSocket `Hub`, boucle temporelle `tick_loop`, contrôles divins et documentation vivante `/wiki`.
-- `morphology.py` — Moteur morphologique polaire, calcul des surfaces, inerties et collisions SAT.
-- `evolution_manager.py` — Recuit morphologique λ(g), gabarits géométriques d'Abbott K3..64 et mutations topologiques.
+- `simulation/` — Moteur de simulation modulaire décomposé (§BI) :
+  - `core.py` — Classe maîtresse `Simulation`, boucle de tick déterministe et synchronisation SoA.
+  - `creature_update.py` — Pipeline d'agent en 7 étapes décomposées (`_creature_movement`, `_creature_feeding`, etc.).
+  - `settlement.py` — Économie de l'habitat, construction, revendications et franchissement des portes.
+  - `lifecycle.py` — Génération d'agents, reproduction, naissance, mort, compétences et propagation des épidémies.
+  - `ecology.py` — Cycle végétal, agriculture, banquets, décomposition et recyclage des nutriments.
+  - `theology.py` — Réserves de foi, 8 Avatars Sacrés, sanctuaires, miracles, synodes et épiphanies.
+  - `society.py` — Clans, diplomatie, guerres, coalitions, greniers, caravanes marchandes et cannibalisme.
+  - `serialization.py` — Encodage des trames d'instantanés complets et différentiels (deltas).
+  - `environment.py` — Météo, dynamique des vents, grille thermique et incendies.
+  - `constants.py` — Constantes de simulation, tables de coefficients et générateurs de noms.
 - `agent_soa.py` — Architecture SoA vectorisée pour le traitement en cache de milliers d'agents simultanés.
+- `agent_pipeline.py` — Pipeline de perception par lancer de rayons et physique vectorisée par lots.
+- `neural_engine.py` — Réseau récurrent Elman RNN (16→12→7, 295 poids) pour le contrôle moteur.
+- `morphology_engine.py` — Moteur de morphologie polaire, collisions SAT et calcul des propriétés physiques.
+- `evolution_manager.py` — Recuit morphologique λ(g), gabarits géométriques d'Abbott K3..64 et enjambement polaire.
+- `spatial_grid.py` — Grille spatiale vectorisée pour requêtes de proximité rapides.
+- `analytics.py` — Télémétrie en anneau, métriques macro, démographie et biodiversité.
+- `safeguard_engine.py` — Protocoles de sauvegarde contre l'extinction et Miracles de la Genèse.
+- `density_damping.py` — Amortissement dynamique de surpopulation (ξ).
+- `auth.py:1` — Dépendance de sécurité FastAPI vérifiant la clé divine par hachage PBKDF2 (`X-God-Key`).
+- `protocol.py:7` — Schémas réseau Pydantic : `ControlAction`, `ControlMessage`, `EntityState`, `StateMessage`, `HistoryEvent`, `HelloMessage`, `GodLaws`.
+- `db.py:1` — Couche SQLite3 `Database` optimisée avec WAL, verrous réentrants et écriture différée en arrière-plan.
+- `main.py:1` — Point d'entrée FastAPI `app`, moteur dédié `SimEngine`, diffusion WebSocket `Hub`, routes REST et `/wiki`.
 
 ## Architecture Frontend (`frontend/src/`)
 - `App.tsx` — Agencement principal de l'application, bandeau HUD, synchronisation WebSocket et volets d'onglets.
+- `analytics/` — Observatoire & Moteur d'analyses macroscopiques :
+  - `Observatory.tsx` — Conteneur plein écran des tableaux de bord analytiques par onglets.
+  - `MacroOverview.tsx` — Graphiques étincelles démographiques, santé, biomasse et vitesse.
+  - `SociologyTab.tsx` — Hégémonie des clans, caravanes de troc, guerres et successions.
+  - `EcologyTab.tsx` — Diversité botanique, régénération des sols et pyramide trophique.
+  - `CrisisTab.tsx` — Évolution des épidémies, alertes famines et catastrophes naturelles.
+  - `MutationLab.tsx` — Arbre phylogénétique morphologique et nuage de points morphospécifique 2D.
+  - `MetricCard.tsx` / `Sparkline.tsx` — Cartes métriques légères avec visualisations SVG.
 - `render/CanvasRenderer.tsx` — Moteur de rendu HTML5 Canvas à 60 FPS avec tracé vectoriel trigonométrique par lots.
 - `render/ClanPanel.tsx` — Affichage des colonies de clans en temps réel, totems sacrés et états de guerre.
 - `render/ChronicleFeed.tsx` — Fil d'actualité des événements historiques avec filtres contextuels.
@@ -533,13 +614,13 @@ CODEBASE_MAP_FR = """
 - `history/WorldHistoryModal.tsx` — Résumé historique quotidien, grandes guerres et exportation de récit littéraire IA.
 - `god/GodPanel.tsx` — Tiroir interactif des lois de la nature avec 7 préréglages de mondes.
 - `god/auth.tsx` — Boîte de dialogue d'authentification divine et adaptateur de requêtes `godFetch`.
-- `inspect/Inspector.tsx` — Dossier biologique du citoyen, constantes vitales, inventaire et arbre généalogique.
+- `inspect/Inspector.tsx` — Dossier biologique du citoyen, radar morphologique polaire, constantes et généalogie.
 - `wiki/Wiki.tsx` — Encyclopédie interactive intégrée et banc d'essai d'API.
 - `types.ts` — Interfaces TypeScript calquées sur les schémas du protocole serveur.
 - `websocket.ts` — Client WebSocket à reconnexion automatique résiliente.
 
 ## Flux de données
-`tick_loop` → `sim.step()` → `sim.snapshot()` → `HUB.broadcast` → `ws` → `CanvasRenderer` + État React `App`. Client → `ControlMessage` → `apply_control` → Mise à jour de la simulation → Journalisation en base. Événements → `DB.add_events` + Généalogie.
+`SimEngine` (thread dédié) → `sim.step()` → `sim.snapshot()` (sérialisation sans verrou) → `HUB.broadcast` → `ws` → `CanvasRenderer` + État React `App`. Client → `ControlMessage` → `apply_control` → Mise à jour de la simulation → Journalisation en base. Événements → `DB.add_events` + Généalogie.
 """
 
 CODEBASE_MAP_MD_I18N = {
@@ -565,13 +646,13 @@ DATA_MODEL_EN = """
 
 ## Wire schemas (`protocol.py`)
 - `EntityState` (`protocol.py:27`): `id`, `kind` creature|food|house|corpse, `x`/`y`/`angle`, plus optional fields above.
-- `StateMessage` (`protocol.py:62`): `tick`, `seed`, `width`/`height`/`boundary`, `population`, `entities`, `creatures_alive`/`creatures_dead`/`dead_by_cause`, `infected_count`, `time_of_day`/`day`/`season`/`weather`, `terrain_fertile`/`terrain_rocks`, `relations`, `events`.
+- `StateMessage` (`protocol.py:62`): `tick`, `seed`, `width`/`height`/`boundary`, `population`, `entities`, `clans`, `creatures_alive`/`creatures_dead`/`dead_by_cause`, `infected_count`, `time_of_day`/`day`/`season`/`weather`, `terrain_fertile`/`terrain_rocks`, `relations`, `events`, plus periodic 1 Hz `analytics` frame (coalesced macro metrics).
 - `HistoryEvent` (`protocol.py:86`): `type` death|birth|promotion|demotion|outbreak|recovery|bloom|alliance|rivalry|predation|war|ruin|settlement, `tick`, `entity_id`, `caste`, `cause`, `x`/`y`, `payload` (parents/sides/generation/clan_id etc).
 - `HelloMessage` (`protocol.py:99`): `seed`, `tick_rate`, `width`/`height`/`boundary`.
 - `ControlMessage` (`protocol.py:22`): `action` pause|resume|step|reset|set_speed + `value`.
 
 ## WebSocket flow
-Server → client: `{"type":"hello", ...}` then `{"type":"state", ...}` each tick. Client → server: `{"action":"pause"|"resume"|"step"|"reset"|"set_speed", "value":...}` (`main.py:270`).
+Server → client: `{"type":"hello", ...}` then `{"type":"state", ...}` each tick (with coalesced 1 Hz analytics frames for the Observatory). Client → server: `{"action":"pause"|"resume"|"step"|"reset"|"set_speed", "value":...}` (`main.py`).
 """
 
 DATA_MODEL_VI = """
@@ -586,13 +667,13 @@ DATA_MODEL_VI = """
 
 ## Cấu trúc dữ liệu mạng truyền tải (`protocol.py`)
 - `EntityState` (`protocol.py:27`): `id`, loại thực thể `kind` (`creature` | `food` | `house` | `corpse`), tọa độ `x`/`y`, hướng quay `angle`, kèm các trường trạng thái sinh học bổ trợ.
-- `StateMessage` (`protocol.py:62`): Thông điệp trạng thái toàn thế giới gửi mỗi tick gồm: số tick `tick`, hạt giống `seed`, kích thước bản đồ `width`/`height`/`boundary`, tổng dân số `population`, danh sách thực thể `entities`, số sinh vật sống/chết và nguyên nhân tử vong, số ca nhiễm bệnh, thời điểm trong ngày/ngày/mùa/thời tiết, địa hình, ma trận quan hệ ngoại giao, và danh sách biến cố mới phát sinh.
+- `StateMessage` (`protocol.py:62`): Thông điệp trạng thái toàn thế giới gửi mỗi tick gồm: số tick `tick`, hạt giống `seed`, kích thước bản đồ `width`/`height`/`boundary`, tổng dân số `population`, danh sách thực thể `entities`, thông tin bang phái `clans`, số sinh vật sống/chết và nguyên nhân tử vong, số ca nhiễm bệnh, thời điểm trong ngày/ngày/mùa/thời tiết, địa hình, ma trận quan hệ ngoại giao, danh sách biến cố mới phát sinh, kèm khung dữ liệu `analytics` định kỳ 1 Hz phục vụ Đài thiên văn.
 - `HistoryEvent` (`protocol.py:86`): Bản ghi sự kiện lịch sử gồm: loại sự kiện `type` (tử vong, sinh nở, thăng hạng, giáng cấp, bùng dịch, bình phục, cây nở hoa, liên minh, thù địch, săn mồi, tuyên chiến, phế tích, lập ấp), số tick xảy ra, mã thực thể liên quan, đẳng cấp, nguyên nhân, tọa độ và gói dữ liệu bổ trợ `payload`.
 - `HelloMessage` (`protocol.py:99`): Thông điệp chào ban đầu khi kết nối WebSocket thành công: hạt giống `seed`, tốc độ tick `tick_rate`, giới hạn thế giới `width`/`height`/`boundary`.
 - `ControlMessage` (`protocol.py:22`): Lệnh điều khiển gửi từ giao diện web lên máy chủ: hành động `action` (`pause` tạm dừng, `resume` tiếp tục, `step` chạy một bước, `reset` làm mới thế giới, `set_speed` chỉnh tốc độ) kèm giá trị số `value`.
 
 ## Giao thức đồng bộ WebSocket
-Máy chủ gửi về trình duyệt: Gửi `{"type":"hello", ...}` ngay khi kết nối, sau đó liên tục phát sóng `{"type":"state", ...}` theo tần số tick. Trình duyệt gửi lên máy chủ: Gửi gói tin điều khiển `{"action":"pause"|"resume"|"step"|"reset"|"set_speed", "value":...}`.
+Máy chủ gửi về trình duyệt: Gửi `{"type":"hello", ...}` ngay khi kết nối, sau đó liên tục phát sóng `{"type":"state", ...}` theo tần số tick (kèm gói `analytics` 1 Hz cho Đài thiên văn). Trình duyệt gửi lên máy chủ: Gửi gói tin điều khiển `{"action":"pause"|"resume"|"step"|"reset"|"set_speed", "value":...}`.
 """
 
 DATA_MODEL_FR = """
@@ -607,13 +688,13 @@ DATA_MODEL_FR = """
 
 ## Schémas du protocole réseau (`protocol.py`)
 - `EntityState` (`protocol.py:27`) : `id`, type `kind` (`creature` | `food` | `house` | `corpse`), coordonnées `x`/`y`, angle, et attributs biologiques optionnels.
-- `StateMessage` (`protocol.py:62`) : Données complètes diffusées à chaque tick : numéro de `tick`, graine `seed`, dimensions `width`/`height`/`boundary`, population totale, ensemble des entités actives, statistiques de mortalité, horloge nycthémérale, saison, météo, matrice diplomatique et événements récents.
+- `StateMessage` (`protocol.py:62`) : Données complètes diffusées à chaque tick : numéro de `tick`, graine `seed`, dimensions `width`/`height`/`boundary`, population totale, ensemble des entités actives, clans, statistiques de mortalité, horloge nycthémérale, saison, météo, matrice diplomatique, événements récents et charge utile `analytics` à 1 Hz pour l'Observatoire.
 - `HistoryEvent` (`protocol.py:86`) : Événement chronologique typé : décès, naissance, promotion, épidémie, rémission, floraison, alliance, guerre, assaut de colonie avec horodatage en tick et charge utile `payload`.
 - `HelloMessage` (`protocol.py:99`) : Message d'accueil émis à l'ouverture du WebSocket : graine, cadence de tick, et limites du monde.
 - `ControlMessage` (`protocol.py:22`) : Commande émise par l'utilisateur : `action` (`pause`, `resume`, `step`, `reset`, `set_speed`) accompagnée de son paramètre `value`.
 
 ## Flux de synchronisation WebSocket
-Serveur vers client : `{"type":"hello", ...}` à la connexion, suivi de flux continus `{"type":"state", ...}` à chaque tick d'horloge. Client vers serveur : Instructions de régulation divine `{"action":"pause"|"resume"|"step"|"reset"|"set_speed", "value":...}`.
+Serveur vers client : `{"type":"hello", ...}` à la connexion, suivi de flux continus `{"type":"state", ...}` à chaque tick d'horloge (intégrant les trames `analytics` 1 Hz). Client vers serveur : Instructions de régulation divine `{"action":"pause"|"resume"|"step"|"reset"|"set_speed", "value":...}`.
 """
 
 DATA_MODEL_MD_I18N = {

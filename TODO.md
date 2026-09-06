@@ -3,7 +3,7 @@
 The Sphere model: The Sphere (God) sets **laws** from Spaceland, never touches individual creatures. Everything else emerges.
 Legend: [P0] foundational · [P1] core Flatland identity · [P2] flavor/observability · `- [ ]` open · `- [x]` done · *parked* = decided, not pending
 
-> **Active backlog only.** Completed roadmaps §F–§BJ (675 items) → [`docs/roadmap-archive.md`](docs/roadmap-archive.md). This file tracks **10 open items** (10 in §BI) + 8 parked.
+> **Active backlog only.** Completed roadmaps §F–§BJ (675 items) → [`docs/roadmap-archive.md`](docs/roadmap-archive.md). This file tracks **0 open items** (all completed in §BI & §BJ) + 8 parked.
 
 ---
 
@@ -53,25 +53,25 @@ Legend: [P0] foundational · [P1] core Flatland identity · [P2] flavor/observab
 
 ---
 
-## §BI Simulation Engine Decomposition — 0/10 open — 2026-09-02
+## §BI Simulation Engine Decomposition — ✅ Done (10/10) — 2026-09-02
 
 > **Context**: `simulation.py` is an 11,624-line monolith containing 7 distinct domains. Decompose into a mixin-based `simulation/` package for maintainability, navigation, and merge-conflict reduction. Zero logic changes — method bodies move as-is. All 487 tests must remain green at every phase.
 
-### Phase 1: Scaffold Package [P0]
-- [ ] [P0] **BI-1 Create `simulation/` package scaffold** — Create `backend/app/simulation/` with `__init__.py` re-exporting `Simulation`. Move `simulation.py` → `simulation/core.py`. Update all imports across codebase. Verify `pytest -q` 487/487.
-- [ ] [P0] **BI-2 Extract `constants.py`** — Move all module-level constants, lookup tables, season/age multipliers, clan name generators, and utility functions (`personal_name_for`, `glyph_for`, `variation_for`) from L1–719 into `simulation/constants.py`.
+### Phase 1: Scaffold Package [P0] — ✅ Done
+- [x] [P0] **BI-1 Create `simulation/` package scaffold** — Create `backend/app/simulation/` with `__init__.py` re-exporting `Simulation`. Move `simulation.py` → `simulation/core.py`. Update all imports across codebase. Verify `pytest -q` 487/487.
+- [x] [P0] **BI-2 Extract `constants.py`** — Move all module-level constants, lookup tables, season/age multipliers, clan name generators, and utility functions (`personal_name_for`, `glyph_for`, `variation_for`) from L1–719 into `simulation/constants.py`.
 
-### Phase 2: Extract Domain Mixins (least coupled first) [P0]
-- [ ] [P0] **BI-3 Extract `SerializationMixin`** — Move snapshot/delta wire protocol, entity payloads, identity caching, and hash signatures (~600 lines) into `simulation/serialization.py`.
-- [ ] [P0] **BI-4 Extract `EcologyMixin`** — Move flora lifecycle, agriculture, banquets, corpse decomposition, nutrient cycling, and food law enforcement (~600 lines) into `simulation/ecology.py`.
-- [ ] [P0] **BI-5 Extract `EnvironmentMixin`** — Move sky/weather, wind, temperature grids, elevation, rivers, seismic, lightning, traffic, anomalies, fires, campfires, disasters, and builders (~1,300 lines) into `simulation/environment.py`.
-- [ ] [P0] **BI-6 Extract `SettlementMixin`** — Move housing economy, construction, claims, takeover, doorway navigation, and wall geometry caching (~520 lines) into `simulation/settlement.py`.
-- [ ] [P0] **BI-7 Extract `TheologyMixin`** — Move faith/shrines, blessings, miracles, synods, epiphanies, and dogma (~500 lines) into `simulation/theology.py`.
-- [ ] [P0] **BI-8 Extract `SocietyMixin`** — Move clans, diplomacy, warfare, coalitions, leaders, larders, defection, trade, culture, cannibalism, and specialization (~2,200 lines) into `simulation/society.py`.
-- [ ] [P0] **BI-9 Extract `LifecycleMixin`** — Move spawning, evolution init, morphology inheritance, reproduction, birth, death, disease, and skill/title progression (~1,700 lines) into `simulation/lifecycle.py`.
+### Phase 2: Extract Domain Mixins (least coupled first) [P0] — ✅ Done
+- [x] [P0] **BI-3 Extract `SerializationMixin`** — Move snapshot/delta wire protocol, entity payloads, identity caching, and hash signatures (~600 lines) into `simulation/serialization.py`.
+- [x] [P0] **BI-4 Extract `EcologyMixin`** — Move flora lifecycle, agriculture, banquets, corpse decomposition, nutrient cycling, and food law enforcement (~600 lines) into `simulation/ecology.py`.
+- [x] [P0] **BI-5 Extract `EnvironmentMixin`** — Move sky/weather, wind, temperature grids, elevation, rivers, seismic, lightning, traffic, anomalies, fires, campfires, disasters, and builders (~1,300 lines) into `simulation/environment.py`.
+- [x] [P0] **BI-6 Extract `SettlementMixin`** — Move housing economy, construction, claims, takeover, doorway navigation, and wall geometry caching (~520 lines) into `simulation/settlement.py`.
+- [x] [P0] **BI-7 Extract `TheologyMixin`** — Move faith/shrines, blessings, miracles, synods, epiphanies, and dogma (~500 lines) into `simulation/theology.py`.
+- [x] [P0] **BI-8 Extract `SocietyMixin`** — Move clans, diplomacy, warfare, coalitions, leaders, larders, defection, trade, culture, cannibalism, and specialization (~2,200 lines) into `simulation/society.py`.
+- [x] [P0] **BI-9 Extract `LifecycleMixin`** — Move spawning, evolution init, morphology inheritance, reproduction, birth, death, disease, and skill/title progression (~1,700 lines) into `simulation/lifecycle.py`.
 
-### Phase 3: Decompose the Agent Loop Monolith [P1]
-- [ ] [P1] **BI-10 Extract `CreatureUpdateMixin` & decompose `_update_creature`** — Move the 2,572-line `_update_creature` into `simulation/creature_update.py` and decompose into 7 named phase methods: `_creature_tick_timers`, `_creature_night_rest`, `_creature_predation`, `_creature_forage`, `_creature_steering`, `_creature_movement`, `_creature_collisions`, `_creature_feeding`, `_creature_metabolism`.
+### Phase 3: Decompose the Agent Loop Monolith [P1] — ✅ Done
+- [x] [P1] **BI-10 Extract `CreatureUpdateMixin` & decompose `_update_creature`** — Move the 2,572-line `_update_creature` into `simulation/creature_update.py` and decompose into 7 named phase methods: `_creature_tick_timers`, `_creature_night_rest`, `_creature_predation`, `_creature_forage`, `_creature_steering`, `_creature_movement`, `_creature_collisions`, `_creature_feeding`, `_creature_metabolism`.
 
 ---
 

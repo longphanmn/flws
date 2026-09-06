@@ -13,6 +13,10 @@ The God Panel is organized into two primary top-level sections:
 1. **`🎯 Presets` (Curated Worlds)**: Instant one-click simulation profiles (`⚖️ Balance`, `🌿 Sustainable`, `🔮 Theocracy`, `⚔️ Warlords`, `🔥 Chaos`, `💀 Extinction`, `🚀 Boom`) with Live Apply and World Reset options.
 2. **`⚖️ Laws of Nature` (Macro Domains)**: Direct fine-tuning across 6 high-level ecological domains with real-time baseline comparison, instant search, modified-only filtering, interactive `?` hints, and dual slider controls.
 
+> [!NOTE]
+> **Understanding Defaults vs. Balance Preset:**
+> The **Default** column in this reference reflects the active default preset (**⚖️ Balance**), which is loaded automatically when a world boots or resets to ensure a flourishing 200–350 multi-generational population. Where the bare dataclass baseline (`Config` in `config.py`) differs from the active **⚖️ Balance** preset, both values are explicitly noted (e.g. `380 (Balance) / 210 (Config bare)`).
+
 ---
 
 ## 1. Ecology & Survival 🌿
@@ -20,26 +24,26 @@ The God Panel is organized into two primary top-level sections:
 ### Food & Energy
 | Law Parameter | Type | Default | Ecological Effect & Hint |
 |---|:---:|:---:|---|
-| `food_count` | Integer | `380` | Target living food abundance across the world (winter reduces, summer boosts). |
+| `food_count` | Integer | `380` *(Config: 210)* | Target living food abundance across the world (winter reduces, summer boosts). |
 | `energy_max` | Float | `100.0` | Maximum metabolic energy capacity an organism can store before full saturation. |
 | `energy_start` | Float | `85.0` | Initial metabolic energy endowed to newly created founding creatures. |
-| `energy_decay_per_tick` | Float | `0.025` | Baseline metabolic burn rate per tick without food intake; shelter and infancy reduce decay. |
+| `energy_decay_per_tick` | Float | `0.018` *(Config: 0.025)* | Baseline metabolic burn rate per tick without food intake; shelter and infancy reduce decay. |
 | `energy_from_food` | Float | `32.0` | Base energy yield from harvesting a mature plant (berry: 48, grass: 32, mushroom: 24, poison: 8). |
 | `food_decay_enabled` | Boolean | `true` | Enables mature plants to naturally wither over time and fertilize the living soil. |
 | `food_lifespan_ticks` | Integer | `9000` | Ticks a mature plant lives before naturally withering into the living soil grid. |
 | `soil_depletion_enabled` | Boolean | `true` | Repeated harvesting from the same soil cell temporarily reduces subsequent crop yield. |
 | `fertile_patches` | Integer | `-1` | Number of high-yield fertile biome regions generated across the terrain. |
 | `fertile_food_bias` | Float | `0.7` | Growth rate multiplier for plants sprouting within fertile agricultural patches. |
-| `winter_food_mult` | Float | `0.82` | Food growth and abundance multiplier during the winter season. |
+| `winter_food_mult` | Float | `0.82` *(Config: 0.50)* | Food growth and abundance multiplier during the winter season. |
 
 ### Ecosystem & Biodiversity
 | Law Parameter | Type | Default | Ecological Effect & Hint |
 |---|:---:|:---:|---|
 | `plant_variants_enabled` | Boolean | `true` | Enables botanical diversity across 6 distinct functional plant species. |
-| `plant_growth_rate` | Float | `0.065` | How fast sprouted plants mature into harvestable food; seasons and rain accelerate growth. |
-| `plant_spread_rate` | Float | `0.008` | Probability per tick that a mature plant drops seeds into adjacent fertile ground. |
+| `plant_growth_rate` | Float | `0.065` *(Config: 0.05)* | How fast sprouted plants mature into harvestable food; seasons and rain accelerate growth. |
+| `plant_spread_rate` | Float | `0.008` *(Config: 0.006)* | Probability per tick that a mature plant drops seeds into adjacent fertile ground. |
 | `nutrient_cycle_rate` | Float | `0.65` | Acceleration of plant growth near decomposing corpses (death nourishes new life). |
-| `poison_rate` | Float | `0.008` | Chance a new wild sprout is poisonous (-30 HP damage on ingestion). |
+| `poison_rate` | Float | `0.008` *(Config: 0.01)* | Chance a new wild sprout is poisonous (-30 HP damage on ingestion). |
 | `corpses_enabled` | Boolean | `true` | Fallen creatures leave decomposing organic remains that enrich surrounding soil. |
 | `corpse_energy` | Float | `25.0` | Caloric reserve contained in a freshly fallen creature corpse. |
 | `corpse_ttl` | Integer | `600` | Ticks before a deceased body fully decomposes into the ground. |
@@ -71,7 +75,7 @@ The God Panel is organized into two primary top-level sections:
 | Law Parameter | Type | Default | Ecological Effect & Hint |
 |---|:---:|:---:|---|
 | `lifespan_mult` | Float | `1.0` | Multiplier scaling all caste natural lifespans (Woman: 4,800t -> Priest: 9,000t). |
-| `adult_age` | Float | `600.0` | Ticks required for a juvenile to reach physical maturity and reproductive eligibility. |
+| `adult_age` | Float | `240.0` *(Config: 600.0)* | Ticks required for a juvenile to reach physical maturity and reproductive eligibility. |
 | `health_max` | String | `—` | Maximum physiological hit points of regular creatures. |
 | `euthanasia_threshold` | Float | `0.7` | Irregularity threshold at adulthood that triggers Spartan-style societal elimination. |
 | `sex_ratio` | Float | `0.5` | Probability a newborn offspring is female (Line caste). |
@@ -82,11 +86,11 @@ The God Panel is organized into two primary top-level sections:
 | Law Parameter | Type | Default | Ecological Effect & Hint |
 |---|:---:|:---:|---|
 | `birth_enabled` | Boolean | `true` | Master switch permitting mating and generational births. |
-| `birth_rate` | Float | `0.05` | Base mating probability per tick for mature, fertile couples within contact radius. |
-| `birth_energy_cost` | Float | `20.0` | Maternal energy investment expended upon delivering offspring. |
-| `reproduction_cooldown` | Integer | `600` | Ticks a female must rest after giving birth before becoming fertile again. |
+| `birth_rate` | Float | `0.080` *(Config: 0.05)* | Base mating probability per tick for mature, fertile couples within contact radius. |
+| `birth_energy_cost` | Float | `16.0` *(Config: 20.0)* | Maternal energy investment expended upon delivering offspring. |
+| `reproduction_cooldown` | Integer | `240` *(Config: 600)* | Ticks a female must rest after giving birth before becoming fertile again. |
 | `mate_radius` | Float | `10.0` | Spatial proximity required between two eligible partners to initiate courtship. |
-| `mate_energy_min` | Float | `30.0` | Minimum metabolic energy required for an adult to engage in mating. |
+| `mate_energy_min` | Float | `24.0` *(Config: 30.0)* | Minimum metabolic energy required for an adult to engage in mating. |
 | `mutation_rate` | Float | `0.05` | Probability a child deviates from classical Abbott caste inheritance (n+1). |
 | `mutation_sigma` | Float | `0.08` | Gaussian spread standard deviation for caste side mutations. |
 | `mutation_heritability` | Float | `0.35` | Heritability coefficient for personality archetypes and behavioral genes. |
@@ -96,7 +100,7 @@ The God Panel is organized into two primary top-level sections:
 ### Density Soft-Cap Damping & Boom
 | Law Parameter | Type | Default | Ecological Effect & Hint |
 |---|:---:|:---:|---|
-| `carrying_capacity` | Integer | `350` | Equilibrium population threshold K_cap where non-linear damping begins. |
+| `carrying_capacity` | Integer | `400` *(Config: 350)* | Equilibrium population threshold K_cap where non-linear damping begins. |
 | `max_population` | Integer | `500` | Absolute hard population ceiling; halts all births when reached. |
 | `soft_cap_enabled` | Boolean | `true` | Enables non-linear quadratic birth suppression and metabolic crowding penalty. |
 | `damping_steepness` | Float | `6.0` | Exponent scaling birth suppression strength under population overshoot. |
@@ -224,7 +228,7 @@ The God Panel is organized into two primary top-level sections:
 |---|:---:|:---:|---|
 | `territory_enabled` | Boolean | `true` | Settlements project territorial influence zones on the map. |
 | `territory_radius` | Float | `14.0` | Spatial radius of clan territorial influence projected from houses. |
-| `totems_enabled` | Boolean | `true` | Clans adopt symbolic ancestral totems (Wolf, Bear, Tree, Shield, Eye, Stag). |
+| `totems_enabled` | Boolean | `true` | Clans adopt Sacred Avatars of the Sphere (⭕ Radiant Circle, ⚡ Celestial Strike, 👁️ All-Seeing Vertex, 🛡️ Indomitable Monolith, 🌿 Sacred Spiral, ⚖️ Cosmic Scales, 🌀 Dimensional Rift, 🕯️ Eternal Hearth). |
 | `succession_enabled` | Boolean | `true` | Clans execute succession rituals upon the demise of their chieftain. |
 | `leader_decisions_enabled` | Boolean | `true` | Clan chieftains adjust macro task priorities (food security, defense, expansion). |
 | `resource_sharing_enabled` | Boolean | `true` | Sated foragers deposit surplus into settlement larders for hungry kin. |
