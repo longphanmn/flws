@@ -52,13 +52,14 @@ export default function MetricCard({
         flexDirection: 'column',
         gap: 6,
         position: 'relative',
+        minWidth: 0,
         ...style,
       }}
     >
       {/* Header with Title & Tooltip Trigger */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-          {icon && <span style={{ fontSize: 13 }}>{icon}</span>}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
+          {icon && <span style={{ fontSize: 13, flexShrink: 0 }}>{icon}</span>}
           <span
             style={{
               fontSize: 10,
@@ -69,13 +70,14 @@ export default function MetricCard({
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
+              minWidth: 0,
             }}
           >
             {title}
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
           {statusLabel && (
             <span
               style={{
@@ -86,6 +88,7 @@ export default function MetricCard({
                 padding: '1px 5px',
                 borderRadius: 4,
                 border: `1px solid ${theme.border}`,
+                whiteSpace: 'nowrap',
               }}
             >
               {statusLabel}
@@ -106,6 +109,7 @@ export default function MetricCard({
                 padding: 0,
                 fontSize: 11,
                 lineHeight: 1,
+                flexShrink: 0,
               }}
             >
               ⓘ
@@ -138,12 +142,26 @@ export default function MetricCard({
       )}
 
       {/* Value Row */}
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 4 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-          <span style={{ fontSize: 18, fontWeight: 700, color: '#f0f6fc' }}>{value}</span>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, minWidth: 0, flexShrink: 0 }}>
+          <span style={{ fontSize: 18, fontWeight: 700, color: '#f0f6fc', lineHeight: 1.1 }}>{value}</span>
           {unit && <span style={{ fontSize: 11, color: '#8b949e' }}>{unit}</span>}
         </div>
-        {subvalue && <span style={{ fontSize: 10, color: '#8b949e' }}>{subvalue}</span>}
+        {subvalue && (
+          <span
+            style={{
+              fontSize: 10,
+              color: '#8b949e',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              minWidth: 0,
+              textAlign: 'right',
+            }}
+          >
+            {subvalue}
+          </span>
+        )}
       </div>
 
       {/* Optional Embedded Sparkline */}

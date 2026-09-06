@@ -49,7 +49,7 @@ export default function SociologyTab({ data }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {/* Power Concentration & Wealth Inequality Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 8, minWidth: 0 }}>
         <MetricCard
           title={t('analytics.society.hhi_title')}
           value={hhi.toFixed(3)}
@@ -88,7 +88,7 @@ export default function SociologyTab({ data }: Props) {
       </div>
 
       {/* Trade & Commerce */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+      <div className="analytics-grid-2col">
         <MetricCard
           title={t('analytics.society.trade_markets_title')}
           value={marketCount}

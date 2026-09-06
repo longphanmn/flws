@@ -2035,6 +2035,17 @@ select {
 .world-end-panel{ width:min(640px,96vw); border-color:#f85149; }
 .world-end-panel h2{ color:#f85149; }
 
+/* ─────────────── Observatory & Analytics responsive layout ─────────────── */
+.analytics-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  min-width: 0;
+}
+.analytics-grid-2col > * {
+  min-width: 0;
+}
+
 /* ─────────────── phone: immersive fullscreen + thumb bar + sheet ─────────────── */
 @media (max-width: 768px) {
   :root { --thumb-h: 56px; }
@@ -2247,8 +2258,9 @@ select {
   .inspector[data-snap="half"]{ height:58dvh !important; max-height:58dvh; }
   .inspector[data-snap="full"]{ height:calc(100dvh - var(--thumb-h) - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important; max-height: none; }
   .inspector{ transition: height 0.25s cubic-bezier(0.16,1,0.3,1); }
-  /* narrow-phone stacking: 2-col inspector/clan grids collapse to 1 col */
+  /* narrow-phone stacking: 2-col inspector/clan/analytics grids collapse to 1 col */
   .insp-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; min-width: 0; }
+  .analytics-grid-2col { grid-template-columns: 1fr; }
   .world-end-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
   /* phone: roster scrolls with the inspector, not in a nested trap */
   .clan-roster-list { max-height: none !important; overflow: visible !important; }

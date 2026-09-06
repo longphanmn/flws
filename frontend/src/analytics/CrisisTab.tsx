@@ -109,7 +109,7 @@ export default function CrisisTab({ data }: Props) {
       </div>
 
       {/* Deep Dive Threat Panels */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+      <div className="analytics-grid-2col">
         {/* Famine Dynamics */}
         <div
           style={{
