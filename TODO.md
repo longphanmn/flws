@@ -182,6 +182,56 @@ Legend: [P0] foundational · [P1] core Flatland identity · [P2] flavor/observab
 
 ---
 
+## §BM Chronicle, World History & AI Story — Backlog
+
+> **Context**: The Chronicle Feed is a live event stream with category/search filtering. The World History Modal aggregates ticks into day records and offers an AI Story prompt exporter (4 styles: Saga / Chronicle / Mythos / Tragedy → copy/download `.md`/`.json`). This roadmap improves UX, analytics depth, AI integration, and shareability.
+
+### Phase 1: Quick-Win AI Story & Chronicle Enhancements [P1] — ⬜ Open
+
+- [ ] [P1] **BM-1 "Major Moments" jump chips in Chronicle Feed** — Compute top 5 most dramatic days (highest casualties + conquest + schism) server-side or in `useMemo`; render as clickable pill buttons (`⚔️ Day 14 War`, `🌋 Day 31 Disaster`) above the feed for one-click scroll.
+- [ ] [P1] **BM-2 Per-day mini-story button** — Add a "Tell me about Day X" button on each expanded day row in World History → generates a single-day focused LLM prompt (only that day's events) → copy to clipboard. Great for social posts.
+- [ ] [P1] **BM-3 Hero / Villain auto-callout in AI prompt** — Auto-detect the creature with highest kill count (Hero) and highest betrayal count (Villain) from chronicle events; inject their name, caste, clan, and stats at the top of the LLM prompt for automatic dramatic focus.
+- [ ] [P1] **BM-4 "This Week in Flatland" mini-prompt** — Last 7 simulated days (last 8400 ticks) formatted as a concise newsletter-style paragraph prompt — recurring engagement hook accessible from the AI Story tab.
+- [ ] [P2] **BM-5 Language selector for LLM prompt** — Add EN / VI / FR toggle in the AI Story tab; prepend the chosen language as a system instruction (`Respond in Vietnamese.`) so the generated story matches the user's locale. Already fully i18n'd.
+- [ ] [P2] **BM-6 "Jump to tick" input in Chronicle Feed** — Text input in the chronicle controls row; typing a tick number filters/scrolls the feed to the nearest event at or after that tick.
+- [ ] [P2] **BM-7 Pin / bookmark specific days with notes** — Per-day star icon in World History; pinned days + optional one-line note stored in `localStorage`. Pinned days floated to top or marked with a badge.
+
+### Phase 2: Timeline Visualization [P1] — ⬜ Open
+
+- [ ] [P1] **BM-8 Horizontal epoch bar** — Color-coded horizontal bar across the top of the World History modal showing World Age eras (Golden Era / Ice Age / Chaos Era / Plague Age) with day tick markers for temporal orientation.
+- [ ] [P1] **BM-9 Population sparkline overlay** — SVG or Canvas sparkline of alive population per day rendered behind the day list or as a dedicated chart row; immediately reveals demographic booms and crashes.
+- [ ] [P2] **BM-10 "Day Navigator" scrubber slider** — Horizontal range slider to jump directly to any day in World History; selected day auto-expands in the feed. Replaces manual scrolling through 100+ days.
+- [ ] [P2] **BM-11 War arc connectors** — Curved SVG connectors between clan name nodes on the timeline showing wars fought, line weight proportional to casualty count.
+
+### Phase 3: Clan Chronicle Cards & Analytics [P1] — ⬜ Open
+
+- [ ] [P1] **BM-12 Per-clan biography panel** — "View Clan History" link in the expanded clan details or World History → opens a focused view with birth day, peak population day, wars fought, gods worshipped, schisms spawned, and extinction cause (if applicable).
+- [ ] [P1] **BM-13 "Records & Legends" leaderboard** — Dedicate a tab or section in World History to all-time records: most battles won clan, longest-lived creature, most children, largest single-day massacre, longest dynasty, most temples raised. Computed from `dayRecords` and clan data.
+- [ ] [P2] **BM-14 Clan rivalry matrix** — Grid heatmap of all clan pairs colored by historical hostility score (battles + betrayals + conquests). Identifies ancient enemies and grudging allies at a glance.
+- [ ] [P2] **BM-15 Cause-of-death breakdown per era** — In World History stats area, show stacked percentages of `dead_by_cause` split into 10-day era buckets: starvation vs. predation vs. plague vs. combat vs. old age.
+- [ ] [P2] **BM-16 Faith index over time** — Track temple count, miracle count, and epiphany rate per day; render as a simple line chart revealing "Age of Faith" vs. secular eras.
+
+### Phase 4: In-App AI Generation [P0 big bet] — ⬜ Open
+
+- [ ] [P0] **BM-17 In-app AI generation with user API key** — Add an "✨ Generate Story" button in the AI Story tab; user enters their own Gemini / OpenAI / Claude API key (stored in `localStorage`, never sent to our server); `fetch()` directly to the AI API with the existing LLM prompt; stream the response as rendered Markdown inline. Eliminates copy-paste-to-ChatGPT workflow entirely.
+- [ ] [P1] **BM-18 Named creature arc story** — In the Creature Inspector, add a "📖 Story Arc" button → assembles birth event + rank promotions + war kills + death event for that creature ID → copy-to-clipboard focused single-creature narrative prompt.
+
+### Phase 5: Shareability & Deep Linking [P2] — ⬜ Open
+
+- [ ] [P2] **BM-19 Deep link to specific day** — `?history=42` query param opens the World History modal directly scrolled to Day 42. Enables sharing a specific pivotal moment.
+- [ ] [P2] **BM-20 Deep link to clan biography** — `?clan=7` query param opens the clan biography panel for clan #7 directly.
+- [ ] [P2] **BM-21 Shareable World Card image** — Canvas API renders a static 1200×630 summary card (World Seed, top stats, clan roster, total days) downloadable as PNG for social media posting.
+
+### Phase 6: Backend Improvements [P1] — ⬜ Open
+
+- [ ] [P1] **BM-22 Server-side day aggregation endpoint** — Add `/api/history/summary?granularity=day` that pre-aggregates the 2000 raw major events into day records server-side, replacing the heavy `useMemo` computation in the frontend. Necessary as worlds grow beyond 3 000 days.
+- [ ] [P1] **BM-23 Clan epitaph table in DB** — When a clan goes extinct, persist its final stats (peak population, peak day, total wars, avatar totem, laws enacted, founding day) into a `clan_epitaphs` SQLite table for permanent historical record, queryable even after world reload.
+- [ ] [P1] **BM-24 Named creature record on death** — Persist `personal_name`, `title`, `clan_id`, `generation`, `born_tick`, `died_tick`, `kill_count` in the existing `creatures` table on death. Enables character-level queries and "Records & Legends" leaderboard.
+- [ ] [P2] **BM-25 Full-text search over events** — Add SQLite FTS5 index on `payload` JSON column; expose `q=` parameter in `/api/history` for fast name/clan text search in large chronicles.
+- [ ] [P2] **BM-26 World "Annals" endpoint** — `/api/annals` returns structured lore highlights: World Age transitions, largest war day, worst plague day, first miracle, first extinction, first temple — pre-packaged as structured JSON ready to inject into LLM prompts.
+
+---
+
 ## Parked — decided, not pending (8 items; 9 before dedupe)
 
 These are documented decisions with rationale, not overdue work. The original 22 unchecked items included 9 such; 2 were the same task.
@@ -214,6 +264,6 @@ These are documented decisions with rationale, not overdue work. The original 22
 ---
 
 ## Archive index
-§F Infrastructure — Database · §A Life cycle · §B Reproduction · §C Irregularity & caste · §D Health & disease · §E Environment · §G God-law & observability · §H Food ecosystem · §I Society · §J Creature profile · §K Documentation · §L Shelter · Cross-system synergies · §W World generation · §N New frontiers · §O Ecosystem depth · §P Clan depth · §Q Creatures 2.0 · §R Weather as life · §S WorldBox inspirations · §T Sustainability & performance · §U Mobile UI/UX · §V Clan founding redesign · §X Fixes · §X2 Communication II · §Y UI polish · §Z Terminal frontend · §AA Performance round 2 · §AB Politics · §AC Desperation cannibalism · §AD OS-log persistence · §AE Food decay · §AF Performance & Massive Scale · §AG Autonomous Evolution · §AH Energy Dynamics · §AI TUI Feature Parity · §AJ Next-Gen Performance (3 phases) · §AK Clan Lifecycle · §AL Creature Cognitive Agency · §AM Food & Agriculture · §AN Communication, Language & Diplomatic · §AO Nocturnal Perils · §AP Unified Theology · §AQ 2D Physics · §AR Creature Senses · §AS Clan Leader Importance · §AT Four Immediate Issues · §AU Performance Optimizations · §AV Frontend & TUI Performance · §AW Emergency 1–2 TPS · §AX High-Density 20 TPS · §AY Multi-Core Engine · §AY2 World Simulation Presets · §AZ Backend Performance Audit · §BA Micro-Neural Network · §BC Geometric Physics & Morphological Evolution · §BD World Analytics & Telemetry Engine · §BE Creature Movement AI Overhaul · §BF Early Population Boom Limiter · §BG Mutational Shape & Visual Phenotypes · §BH Next-Gen Evolutionary Mutation Engine & Neuroevolution · §BI Simulation Engine Decomposition · §BJ Production Performance & Tick Budget Restoration · §BK Mutational Accents, Avatar Parity & Map Lenses · §BL Frontend High-Performance 60 FPS Engine
+§F Infrastructure — Database · §A Life cycle · §B Reproduction · §C Irregularity & caste · §D Health & disease · §E Environment · §G God-law & observability · §H Food ecosystem · §I Society · §J Creature profile · §K Documentation · §L Shelter · Cross-system synergies · §W World generation · §N New frontiers · §O Ecosystem depth · §P Clan depth · §Q Creatures 2.0 · §R Weather as life · §S WorldBox inspirations · §T Sustainability & performance · §U Mobile UI/UX · §V Clan founding redesign · §X Fixes · §X2 Communication II · §Y UI polish · §Z Terminal frontend · §AA Performance round 2 · §AB Politics · §AC Desperation cannibalism · §AD OS-log persistence · §AE Food decay · §AF Performance & Massive Scale · §AG Autonomous Evolution · §AH Energy Dynamics · §AI TUI Feature Parity · §AJ Next-Gen Performance (3 phases) · §AK Clan Lifecycle · §AL Creature Cognitive Agency · §AM Food & Agriculture · §AN Communication, Language & Diplomatic · §AO Nocturnal Perils · §AP Unified Theology · §AQ 2D Physics · §AR Creature Senses · §AS Clan Leader Importance · §AT Four Immediate Issues · §AU Performance Optimizations · §AV Frontend & TUI Performance · §AW Emergency 1–2 TPS · §AX High-Density 20 TPS · §AY Multi-Core Engine · §AY2 World Simulation Presets · §AZ Backend Performance Audit · §BA Micro-Neural Network · §BC Geometric Physics & Morphological Evolution · §BD World Analytics & Telemetry Engine · §BE Creature Movement AI Overhaul · §BF Early Population Boom Limiter · §BG Mutational Shape & Visual Phenotypes · §BH Next-Gen Evolutionary Mutation Engine & Neuroevolution · §BI Simulation Engine Decomposition · §BJ Production Performance & Tick Budget Restoration · §BK Mutational Accents, Avatar Parity & Map Lenses · §BL Frontend High-Performance 60 FPS Engine · §BM Chronicle, World History & AI Story
 
 Full completed content → [`docs/roadmap-archive.md`](docs/roadmap-archive.md)
