@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import type { StateMessage } from '../types'
+import type { LensMode, StateMessage } from '../types'
 import {
   Camera,
   CASTE_COLORS,
@@ -18,6 +18,7 @@ interface Props {
   selectedRef?: React.RefObject<number | null>
   selectedClanRef?: React.RefObject<number | null>
   onTapCreature?: (id: number | null) => void
+  lensMode?: LensMode
 }
 
 export default function CanvasRenderer({
@@ -25,10 +26,13 @@ export default function CanvasRenderer({
   selectedRef,
   selectedClanRef,
   onTapCreature,
+  lensMode = 'classic',
 }: Props) {
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const camRef = useRef<Camera>({ scale: 1, ox: 0, oy: 0, initialized: false })
+  const lensModeRef = useRef<LensMode>(lensMode)
+  lensModeRef.current = lensMode
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -361,10 +365,10 @@ export default function CanvasRenderer({
           const c2 = canvas.getContext('2d')
           if (c2) { ctx = c2 }
         }
-        if (ctx) renderWorldFrame(ctx, state, cw, ch, cam, sel, selClanId)
+        if (ctx) renderWorldFrame(ctx, state, cw, ch, cam, sel, selClanId, lensModeRef.current)
         return
       }
-      renderWorldFrame(ctx!, state, cw, ch, cam, sel, selClanId)
+      renderWorldFrame(ctx!, state, cw, ch, cam, sel, selClanId, lensModeRef.current)
     }
     raf = requestAnimationFrame(draw)
 

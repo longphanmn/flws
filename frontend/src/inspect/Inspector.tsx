@@ -384,6 +384,7 @@ export default function Inspector({ id, state, onClose, onNavigate, onSelectClan
   if (e?.infected) statusChips.push({ text: t('inspector.sick'), cls: 'st-sick' })
   if (e?.sleeping) statusChips.push({ text: t('inspector.asleep'), cls: 'st-asleep' })
   if ((e?.chill ?? 0) >= 12) statusChips.push({ text: t('inspector.chilled', { v: (e?.chill ?? 0).toFixed(1) }), cls: 'st-asleep' })
+  if ((e?.scars ?? 0) > 0) statusChips.push({ text: `⚔ Veteran (${e?.scars} ${(e?.scars === 1 ? 'scar' : 'scars')})`, cls: 'st-starving' })
 
   return (
     <aside className="inspector" data-snap={snap}>
@@ -442,6 +443,7 @@ export default function Inspector({ id, state, onClose, onNavigate, onSelectClan
               {e.personality && <span className="chip" style={{ fontSize: 11, background: '#21262d', border: '1px solid #30363d', padding: '2px 6px' }}>🎭 {e.personality}</span>}
               {e.equipped_item && <span className="chip" style={{ fontSize: 11, background: '#21262d', border: '1px solid #30363d', padding: '2px 6px' }}>{e.equipped_item === 'spear' ? '⚔ spear' : e.equipped_item === 'crown' ? '👑 crown' : e.equipped_item === 'basket' ? `🧺 ${e.food_basket ?? 0}` : e.equipped_item === 'herb_poultice' ? '🌿 poultice' : e.equipped_item}</span>}
               {typeof e.chill === 'number' && e.chill > 0.5 && <span className="chip" style={{ color: '#79c0ff', fontSize: 11 }}>❄ {e.chill.toFixed(1)}</span>}
+              {typeof e.scars === 'number' && e.scars > 0 && <span className="chip" style={{ color: '#ff7b72', background: '#21262d', border: '1px solid #da3633', fontSize: 11 }}>⚔ {e.scars} {e.scars === 1 ? 'scar' : 'scars'}</span>}
             </div>
           </div>
         </div>

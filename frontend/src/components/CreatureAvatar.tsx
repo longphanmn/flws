@@ -99,9 +99,20 @@ export function CreatureAvatar({
   const hasGlint = dmult > 0.18 && !isLine
   const hasNucleus = stage === 'elder' && generation >= 10 && !isLine
 
+  // BK-2 & BK-4 to BK-7 visual indicators
+  const hasHalo = generation >= 10
+  const hasDynasty = generation >= 25
+  const hasCorona = generation >= 50
+  const hasGenesis = generation <= 2
+  const hasAberrantAura = irregularity > 0.18
+  const hasCrystallinePatina = generation >= 15
+  const scarsCount: number = (e as any)?.scars ?? 0
+
   // Build main polygon points
   let pointsStr: string | null = null
   let womanPointsStr: string | null = null
+  let womanHaloPointsStr: string | null = null
+  let womanAuraPointsStr: string | null = null
   let glintPos: [number, number] | null = null
   let ptsArray: Array<[number, number]> = []
 
@@ -117,6 +128,14 @@ export function CreatureAvatar({
     const tx = cx + px * wMid, ty = cy + py * wMid
     const bx2 = cx - px * wMid, by2 = cy - py * wMid
     womanPointsStr = `${fx},${fy} ${tx},${ty} ${bx},${by} ${bx2},${by2}`
+    if (hasHalo) {
+      const hLen = len * 0.6, hMid = wMid * 0.6
+      womanHaloPointsStr = `${cx + ax * hLen},${cy + ay * hLen} ${cx + px * hMid},${cy + py * hMid} ${cx - ax * hLen * 0.9},${cy - ay * hLen * 0.9} ${cx - px * hMid},${cy - py * hMid}`
+    }
+    if (hasAberrantAura) {
+      const aLen = len * 1.15, aMid = wMid * 1.45
+      womanAuraPointsStr = `${cx + ax * aLen},${cy + ay * aLen} ${cx + px * aMid},${cy + py * aMid} ${cx - ax * aLen * 0.94},${cy - ay * aLen * 0.94} ${cx - px * aMid},${cy - py * aMid}`
+    }
   } else if (isPriest) {
     // circle handled separately
     if (irregularity > 0.08) {
@@ -147,7 +166,8 @@ export function CreatureAvatar({
     }
   } else if (isSoldierRazor) {
     const theta = Math.max(8, Math.min(59.8, isoAngle!)) * Math.PI / 180
-    const xr = r * 1.05, xb = r * 0.55
+    const needleMult = (typeof isoAngle === 'number' && isoAngle < 30) ? 1.0 + ((30 - isoAngle) / 30) * 0.45 : 1.0
+    const xr = r * 1.05 * needleMult, xb = r * 0.55
     const dx = xr + xb
     const yb = dx * Math.tan(theta / 2)
     const local: Array<[number, number]> = [
@@ -161,13 +181,16 @@ export function CreatureAvatar({
     pointsStr = pts.map(([x, y]) => `${x},${y}`).join(' ')
     if (hasGlint) glintPos = pts[0]
   } else {
-    // BG-2 mutated polygon & BG-4 topological aberration
+    // BG-2 mutated polygon & BG-4 topological aberration & BK-3 jagged spires
     const useMutated = irregularity > 0.02
     const pts: Array<[number, number]> = []
     if (useMutated) {
       for (let i = 0; i < sides; i++) {
         const aJ = (pseudoRand(idSeed, i * 2) - 0.5) * irregularity * 0.65
-        const rJ = 1 + (pseudoRand(idSeed, i * 2 + 1) - 0.5) * irregularity * 0.9
+        let rJ = 1 + (pseudoRand(idSeed, i * 2 + 1) - 0.5) * irregularity * 0.9
+        if (irregularity > 0.15 && (i % 2 === 0)) {
+          rJ += (pseudoRand(idSeed, i * 5 + 3) > 0.45 ? 1 : -0.25) * irregularity * 0.45
+        }
         const a = (i / sides) * Math.PI * 2 - Math.PI / 2 + angleJitter + aJ
         const rr = r * rJ
         pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr])
@@ -192,6 +215,57 @@ export function CreatureAvatar({
         if (av < best) { best = av; bx = pts[i][0]; by = pts[i][1] }
       }
       glintPos = [bx, by]
+    }
+  }
+
+  // Lineage halo inner points
+  let haloPointsStr: string | null = null
+  if (hasHalo && ptsArray.length) {
+    const innerH = 0.62
+    haloPointsStr = ptsArray.map(([x, y]) => {
+      const dx = x - cx, dy = y - cy
+      return `${cx + dx * innerH},${cy + dy * innerH}`
+    }).join(' ')
+  }
+
+  // Aberrant aura outer points
+  let aberrantAuraPointsStr: string | null = null
+  if (hasAberrantAura && ptsArray.length) {
+    const auraMult = 1.18
+    aberrantAuraPointsStr = ptsArray.map(([x, y]) => {
+      const dx = x - cx, dy = y - cy
+      return `${cx + dx * auraMult},${cy + dy * auraMult}`
+    }).join(' ')
+  }
+
+  // Celestial Corona 8 radiating rays
+  const coronaRays: Array<{ x1: number; y1: number; x2: number; y2: number }> = []
+  if (hasCorona) {
+    for (let k = 0; k < 8; k++) {
+      const a = angleJitter + (k / 8) * Math.PI * 2
+      const r1 = r * 1.08
+      const r2 = r * (k % 2 === 0 ? 1.45 : 1.25)
+      coronaRays.push({
+        x1: cx + Math.cos(a) * r1,
+        y1: cy + Math.sin(a) * r1,
+        x2: cx + Math.cos(a) * r2,
+        y2: cy + Math.sin(a) * r2,
+      })
+    }
+  }
+
+  // Veteran battle scars
+  const scarLines: Array<{ x1: number; y1: number; x2: number; y2: number }> = []
+  if (scarsCount > 0) {
+    const nScars = Math.min(4, scarsCount)
+    for (let k = 0; k < nScars; k++) {
+      const sAng = angleJitter + (k * 1.25) + 0.6
+      const sx = cx + Math.cos(sAng) * r * 0.65
+      const sy = cy + Math.sin(sAng) * r * 0.65
+      const pLen = 4.2
+      const px = -Math.sin(sAng) * pLen
+      const py = Math.cos(sAng) * pLen
+      scarLines.push({ x1: sx - px, y1: sy - py, x2: sx + px, y2: sy + py })
     }
   }
 
@@ -227,6 +301,16 @@ export function CreatureAvatar({
     nucleusPointsStr = cpts.map(([x, y]) => `${x},${y}`).join(' ')
   }
 
+  // Crystalline core patina polygon
+  let patinaPointsStr: string | null = null
+  if (hasCrystallinePatina && ptsArray.length) {
+    const inner = 0.42
+    patinaPointsStr = ptsArray.map(([x, y]) => {
+      const dx = x - cx, dy = y - cy
+      return `${cx + dx * inner},${cy + dy * inner}`
+    }).join(' ')
+  }
+
   return (
     <div style={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center' }}>
       <svg
@@ -240,19 +324,48 @@ export function CreatureAvatar({
         }}
       >
         {clanColor && <circle cx={cx} cy={cy} r={r + 6} fill="none" stroke={clanColor} strokeWidth={1.2} opacity={0.9} />}
+        {/* §BK-2 Celestial Corona 8 radiating rays for Gen 50+ */}
+        {coronaRays.map((ray, i) => (
+          <line key={i} x1={ray.x1} y1={ray.y1} x2={ray.x2} y2={ray.y2} stroke="#fde047" strokeWidth={0.9} opacity={0.85} strokeLinecap="round" />
+        ))}
         {isLine ? (
-          <polygon points={womanPointsStr!} fill={color} fillOpacity={0.22} stroke={color} strokeWidth={1.1} strokeLinejoin="round" />
+          <>
+            {womanAuraPointsStr && (
+              <polygon points={womanAuraPointsStr} fill="none" stroke={irregularity > 0.28 ? '#f43f5e' : '#a855f7'} strokeWidth={0.9} opacity={0.65} strokeLinejoin="round" />
+            )}
+            <polygon points={womanPointsStr!} fill={color} fillOpacity={0.22} stroke={color} strokeWidth={1.1} strokeLinejoin="round" />
+            {womanHaloPointsStr && (
+              <polygon points={womanHaloPointsStr} fill="none" stroke="#e2e8f0" strokeWidth={0.6} opacity={0.5} strokeLinejoin="round" />
+            )}
+          </>
         ) : isPriest ? (
           pointsStr ? (
             <>
+              {aberrantAuraPointsStr && (
+                <polygon points={aberrantAuraPointsStr} fill="none" stroke={irregularity > 0.28 ? '#f43f5e' : '#a855f7'} strokeWidth={1.0} opacity={0.65} strokeLinejoin="round" />
+              )}
               <polygon points={pointsStr} fill={color} fillOpacity={0.22} stroke={color} strokeWidth={1.2} strokeLinejoin="round" />
+              {haloPointsStr && (
+                <polygon points={haloPointsStr} fill="none" stroke="#e2e8f0" strokeWidth={0.7} opacity={0.5} strokeLinejoin="round" />
+              )}
               {hasArmor && <circle cx={cx} cy={cy} r={r * 0.78} fill={color} fillOpacity={0.10} stroke={color} strokeWidth={0.9} opacity={0.6} />}
             </>
           ) : (
-            <circle cx={cx} cy={cy} r={r} fill={color} fillOpacity={0.22} stroke={color} strokeWidth={1.2} />
+            <>
+              {hasAberrantAura && (
+                <circle cx={cx} cy={cy} r={r * 1.18} fill="none" stroke={irregularity > 0.28 ? '#f43f5e' : '#a855f7'} strokeWidth={1.0} opacity={0.65} />
+              )}
+              <circle cx={cx} cy={cy} r={r} fill={color} fillOpacity={0.22} stroke={color} strokeWidth={1.2} />
+              {hasHalo && (
+                <circle cx={cx} cy={cy} r={r * 0.62} fill="none" stroke="#e2e8f0" strokeWidth={0.7} opacity={0.5} />
+              )}
+            </>
           )
         ) : (
           <>
+            {aberrantAuraPointsStr && (
+              <polygon points={aberrantAuraPointsStr} fill="none" stroke={irregularity > 0.28 ? '#f43f5e' : '#a855f7'} strokeWidth={1.0} opacity={0.65} strokeLinejoin="round" />
+            )}
             {hasSpeciation && specPointsA && specPointsB && (
               <>
                 <polygon points={specPointsA} fill="none" stroke="#d2a8ff" strokeWidth={0.7} opacity={0.45 * Math.min(1, specIntensity)} strokeLinejoin="round" />
@@ -260,6 +373,9 @@ export function CreatureAvatar({
               </>
             )}
             <polygon points={pointsStr!} fill={color} fillOpacity={hasArmor ? 0.30 : 0.22} stroke={color} strokeWidth={hasArmor ? 1.6 : 1.2} strokeLinejoin="round" />
+            {haloPointsStr && (
+              <polygon points={haloPointsStr} fill="none" stroke="#e2e8f0" strokeWidth={0.7} opacity={0.5} strokeLinejoin="round" />
+            )}
             {armorPointsStr && (
               <polygon points={armorPointsStr} fill={color} fillOpacity={0.11} stroke={color} strokeWidth={0.9} opacity={0.55} strokeLinejoin="round" />
             )}
@@ -267,6 +383,13 @@ export function CreatureAvatar({
               <g>
                 <circle cx={glintPos[0]} cy={glintPos[1]} r={1.6 + dmult * 1.2} fill="#ffe08a" opacity={0.9} />
                 <circle cx={glintPos[0]} cy={glintPos[1]} r={0.55} fill="#ffffff" opacity={0.95} />
+              </g>
+            )}
+            {/* §BK-5 Razor needle piercing glint */}
+            {isSoldierRazor && typeof isoAngle === 'number' && isoAngle < 30 && ptsArray.length > 0 && (
+              <g>
+                <line x1={ptsArray[0][0] - Math.cos(angleJitter) * 2} y1={ptsArray[0][1] - Math.sin(angleJitter) * 2} x2={ptsArray[0][0] + Math.cos(angleJitter) * 1.5} y2={ptsArray[0][1] + Math.sin(angleJitter) * 1.5} stroke="#ef4444" strokeWidth={0.9} />
+                <circle cx={ptsArray[0][0]} cy={ptsArray[0][1]} r={1.1} fill="#ffffff" />
               </g>
             )}
             {nucleusPointsStr && (
@@ -280,6 +403,45 @@ export function CreatureAvatar({
               </g>
             )}
           </>
+        )}
+
+        {/* §BK-4 Ancestral Crystalline Core Patina */}
+        {hasCrystallinePatina && (
+          patinaPointsStr ? (
+            <polygon points={patinaPointsStr} fill={generation >= 50 ? 'rgba(254, 240, 138, 0.40)' : generation >= 25 ? 'rgba(245, 158, 11, 0.32)' : 'rgba(148, 163, 184, 0.25)'} stroke={generation >= 50 ? '#fde047' : generation >= 25 ? '#fbbf24' : '#cbd5e1'} strokeWidth={0.6} strokeLinejoin="round" />
+          ) : (
+            <circle cx={cx} cy={cy} r={Math.max(3.5, r * 0.4)} fill={generation >= 50 ? 'rgba(254, 240, 138, 0.40)' : generation >= 25 ? 'rgba(245, 158, 11, 0.32)' : 'rgba(148, 163, 184, 0.25)'} stroke={generation >= 50 ? '#fde047' : generation >= 25 ? '#fbbf24' : '#cbd5e1'} strokeWidth={0.6} />
+          )
+        )}
+
+        {/* §BK-2 Double Concentric Dynasty Ring (Gen 25+) */}
+        {hasDynasty && (
+          <circle cx={cx} cy={cy} r={Math.max(4, r * 0.36)} fill="none" stroke="#facc15" strokeWidth={0.8} opacity={0.7} />
+        )}
+
+        {/* §BK-1 Genesis Spark for Primordials (Gen 0–2) */}
+        {hasGenesis && (
+          <g>
+            <circle cx={cx} cy={cy} r={5.5} fill={generation === 0 ? 'rgba(56, 189, 248, 0.35)' : 'rgba(56, 189, 248, 0.22)'} />
+            <path
+              d={`M ${cx} ${cy - 4.2} L ${cx + 1.2} ${cy - 1.2} L ${cx + 4.2} ${cy} L ${cx + 1.2} ${cy + 1.2} L ${cx} ${cy + 4.2} L ${cx - 1.2} ${cy + 1.2} L ${cx - 4.2} ${cy} L ${cx - 1.2} ${cy - 1.2} Z`}
+              fill={generation === 0 ? '#ffffff' : '#e0f2fe'}
+              stroke="#38bdf8"
+              strokeWidth={0.6}
+            />
+          </g>
+        )}
+
+        {/* §BK-6 Battle Veteran Wound Scars */}
+        {scarLines.map((line, i) => (
+          <g key={i}>
+            <line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke="#0f172a" strokeWidth={1.2} strokeLinecap="round" />
+            <line x1={line.x1 * 0.95 + cx * 0.05} y1={line.y1 * 0.95 + cy * 0.05} x2={line.x2 * 0.95 + cx * 0.05} y2={line.y2 * 0.95 + cy * 0.05} stroke="#991b1b" strokeWidth={0.6} strokeLinecap="round" />
+          </g>
+        ))}
+
+        {scarsCount > 0 && size >= 60 && (
+          <text x={cx - 24} y={cy + 24} fontSize={6.5} fill="#ff7b72" fontWeight={700}>⚔{scarsCount}</text>
         )}
         {/* always show glyph centered for line & priest too, but nucleus already handles */}
         {glyph && !hasNucleus && (

@@ -12,7 +12,7 @@ import WorldEndSummary from './summary/WorldEndSummary'
 import WorldHistoryModal from './history/WorldHistoryModal'
 import Inspector from './inspect/Inspector'
 import { WorldSocket, type ConnStatus } from './websocket'
-import type { HelloMessage, HistoryEvent, StateMessage, WorldSummary } from './types'
+import type { HelloMessage, HistoryEvent, LensMode, StateMessage, WorldSummary } from './types'
 import { useI18n } from './i18n'
 import ConfirmModal from './components/ConfirmModal'
 
@@ -83,6 +83,7 @@ export default function App() {
   const [selectedRunId, setSelectedRunId] = useState<number | null>(null)
   const [loadingOlder, setLoadingOlder] = useState(false)
   const [noMoreHistory, setNoMoreHistory] = useState(false)
+  const [lensMode, setLensMode] = useState<LensMode>('classic')
 
   /** §Y clan display name from live state, falling back to bare #id. */
   const clanLabel = (id?: number | null): string => {
@@ -433,6 +434,22 @@ export default function App() {
         case 'KeyF':
           window.dispatchEvent(new Event('flatworld-fit'))
           break
+        case 'Digit1':
+        case 'Numpad1':
+          setLensMode('classic')
+          break
+        case 'Digit2':
+        case 'Numpad2':
+          setLensMode('mutants')
+          break
+        case 'Digit3':
+        case 'Numpad3':
+          setLensMode('generations')
+          break
+        case 'Digit4':
+        case 'Numpad4':
+          setLensMode('dynasty')
+          break
         case 'Equal':
         case 'NumpadAdd':
           window.dispatchEvent(new CustomEvent('flatworld-zoom', { detail: { factor: 1.25 } }))
@@ -744,7 +761,55 @@ export default function App() {
           selectedRef={selectedRef}
           selectedClanRef={selectedClanRef}
           onTapCreature={selectCreature}
+          lensMode={lensMode}
         />
+
+        {/* §BK-8 Canvas HUD Lens Switcher Toolbar */}
+        <div
+          className="lens-switcher-toolbar"
+          role="toolbar"
+          aria-label="Map Lenses"
+          style={{
+            left: !isMobile && (selectedId !== null || selectedClanId !== null) ? 'calc(50% + 195px)' : '50%',
+          }}
+        >
+          <button
+            type="button"
+            className={`lens-btn ${lensMode === 'classic' ? 'active' : ''}`}
+            onClick={() => setLensMode('classic')}
+            title="Classic Caste Lens (1)"
+          >
+            <span className="lens-num">1</span>
+            <span className="lens-label">Classic</span>
+          </button>
+          <button
+            type="button"
+            className={`lens-btn ${lensMode === 'mutants' ? 'active' : ''}`}
+            onClick={() => setLensMode('mutants')}
+            title="Mutant & Aberration Heatmap (2)"
+          >
+            <span className="lens-num">2</span>
+            <span className="lens-label">Mutants</span>
+          </button>
+          <button
+            type="button"
+            className={`lens-btn ${lensMode === 'generations' ? 'active' : ''}`}
+            onClick={() => setLensMode('generations')}
+            title="Generational Epochs Lens (3)"
+          >
+            <span className="lens-num">3</span>
+            <span className="lens-label">Epochs</span>
+          </button>
+          <button
+            type="button"
+            className={`lens-btn ${lensMode === 'dynasty' ? 'active' : ''}`}
+            onClick={() => setLensMode('dynasty')}
+            title="Clan Dynasty Lens (4)"
+          >
+            <span className="lens-num">4</span>
+            <span className="lens-label">Dynasty</span>
+          </button>
+        </div>
 
         {(isSafeguardActive || isSoftcapActive) && (
           <div

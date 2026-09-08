@@ -3,6 +3,7 @@
 export type EntityKind = 'creature' | 'food' | 'house' | 'corpse'
 export type EntityShape = 'polygon' | 'line'
 export type HungerStatus = '' | 'hungry' | 'starving'
+export type LensMode = 'classic' | 'mutants' | 'generations' | 'dynasty'
 
 export interface EntityState {
   id: number
@@ -23,6 +24,7 @@ export interface EntityState {
   irregularity?: number
   health?: number
   infected?: boolean
+  scars?: number
   meals?: number
   clan_id?: number
   clan_color?: string

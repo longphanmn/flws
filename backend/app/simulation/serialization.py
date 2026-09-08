@@ -71,6 +71,7 @@ class SerializationMixin:
                 getattr(e, "equipped_item", None),
                 getattr(e, "food_basket", 0),
                 getattr(e, "title", None),
+                getattr(e, "scars", 0),
                 self._is_torpid(e),
             )
         if isinstance(e, Food):
@@ -124,6 +125,9 @@ class SerializationMixin:
             title = getattr(e, "title", None)
             if title is not None:
                 d["title"] = title
+            scars = getattr(e, "scars", 0)
+            if scars:
+                d["scars"] = scars
             return d
         if isinstance(e, Food):
             is_withering = False
@@ -438,6 +442,7 @@ class SerializationMixin:
                 "irregularity": e.irregularity,
                 "health": round(e.health, 1),
                 "infected": e.infected,
+                "scars": getattr(e, "scars", 0) or None,
                 "sex": e.sex,
                 "mother_id": e.mother_id or None,
                 "father_id": e.father_id or None,

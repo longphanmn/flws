@@ -200,6 +200,86 @@ body {
   50% { opacity: 0.5; transform: scale(0.85); }
 }
 
+/* ---- §BK-8 Map Lens Switcher Toolbar (Top-Center HUD) ---- */
+.lens-switcher-toolbar {
+  position: absolute;
+  top: 14px;
+  transform: translateX(-50%);
+  z-index: 24;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  background: rgba(13, 17, 23, 0.88);
+  border: 1px solid rgba(48, 54, 61, 0.8);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  transition: left 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.lens-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  color: #8b949e;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.lens-btn:hover {
+  color: #e6edf3;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.lens-btn .lens-num {
+  font-size: 9px;
+  font-family: ui-monospace, monospace;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #8b949e;
+}
+
+.lens-btn.active {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+}
+
+.lens-btn.active .lens-num {
+  background: #38bdf8;
+  color: #0b0f14;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .lens-switcher-toolbar {
+    top: 52px;
+    left: 50% !important;
+    transform: translateX(-50%);
+    padding: 3px 4px;
+    gap: 2px;
+  }
+  .lens-btn {
+    padding: 4px 7px;
+    font-size: 10px;
+  }
+  .lens-btn .lens-num {
+    display: none;
+  }
+}
+
 .chip.alive b {
   color: #3fb950;
 }

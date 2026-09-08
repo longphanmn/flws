@@ -49,6 +49,7 @@ class EntityState(BaseModel):
     irregularity: Optional[float] = None
     health: Optional[float] = None
     infected: Optional[bool] = None
+    scars: Optional[int] = None
     meals: Optional[int] = None
     sex: Optional[Literal["male", "female"]] = None
     mother_id: Optional[int] = None

@@ -1,4 +1,4 @@
-import type { EntityState, StateMessage } from '../types'
+import type { EntityState, LensMode, StateMessage } from '../types'
 import { houseWallSegments } from '../types'
 import { TOTEMS } from '../totems'
 
@@ -43,10 +43,11 @@ export function bgMutatedPoints(
   }
   return pts
 }
-// §BG: true isosceles soldier razor apex points (apex forward along heading)
-function bgSoldierRazor(cx: number, cy: number, radius: number, heading: number, isoAngleDeg: number): Array<[number, number]> {
+// §BG & §BK-5: true isosceles soldier razor apex points (extended needle apex when θ < 30°)
+export function bgSoldierRazor(cx: number, cy: number, radius: number, heading: number, isoAngleDeg: number): Array<[number, number]> {
   const theta = Math.max(8, Math.min(59.8, isoAngleDeg)) * Math.PI / 180
-  const xr = radius * 1.05
+  const needleMult = isoAngleDeg < 30 ? 1.0 + ((30 - isoAngleDeg) / 30) * 0.45 : 1.0
+  const xr = radius * 1.05 * needleMult
   const xb = radius * 0.55
   const dx = xr + xb
   const yb = dx * Math.tan(theta / 2)
@@ -58,6 +59,54 @@ function bgSoldierRazor(cx: number, cy: number, radius: number, heading: number,
   ]
   const ca = Math.cos(heading), sa = Math.sin(heading)
   return local.map(([lx, ly]) => [cx + lx * ca - ly * sa, cy + lx * sa + ly * ca])
+}
+
+// §BK-9 Map Lenses & Shaders styling helper
+export function getCreatureLensStyle(
+  c: EntityState,
+  lensMode: LensMode = 'classic',
+): { color: string; fillAlpha: number; strokeAlpha: number } {
+  if (lensMode === 'mutants') {
+    const irr = (c as any).irregularity ?? 0
+    if (irr < 0.04) {
+      return { color: '#64748b', fillAlpha: 0.08, strokeAlpha: 0.35 }
+    }
+    if (irr < 0.12) {
+      return { color: '#06b6d4', fillAlpha: 0.32, strokeAlpha: 0.95 }
+    }
+    if (irr < 0.22) {
+      return { color: '#a855f7', fillAlpha: 0.40, strokeAlpha: 1.0 }
+    }
+    return { color: '#f43f5e', fillAlpha: 0.50, strokeAlpha: 1.0 }
+  }
+
+  if (lensMode === 'generations') {
+    const gen = (c as any).generation ?? 0
+    if (gen <= 2) {
+      return { color: '#38bdf8', fillAlpha: 0.40, strokeAlpha: 1.0 }
+    }
+    if (gen < 10) {
+      return { color: '#10b981', fillAlpha: 0.30, strokeAlpha: 0.95 }
+    }
+    if (gen < 25) {
+      return { color: '#c084fc', fillAlpha: 0.35, strokeAlpha: 0.95 }
+    }
+    if (gen < 50) {
+      return { color: '#f59e0b', fillAlpha: 0.40, strokeAlpha: 1.0 }
+    }
+    return { color: '#fef08a', fillAlpha: 0.52, strokeAlpha: 1.0 }
+  }
+
+  if (lensMode === 'dynasty') {
+    if (c.clan_color) {
+      return { color: c.clan_color, fillAlpha: 0.45, strokeAlpha: 1.0 }
+    }
+    return { color: '#475569', fillAlpha: 0.08, strokeAlpha: 0.30 }
+  }
+
+  // Classic
+  const color = (c.shape === 'line' ? CASTE_COLORS.Woman : CASTE_COLORS[c.caste || '']) || '#8b949e'
+  return { color, fillAlpha: c.shape === 'line' ? 0.20 : 0.22, strokeAlpha: c.shape === 'line' ? 0.95 : 1.0 }
 }
 
 export function clusterEntities<T extends { x: number; y: number }>(entities: T[], maxDist: number = 38.0): T[][] {
@@ -183,6 +232,7 @@ export function drawBatchedEntities(
   camScale: number,
   selectedId: number | null,
   tick = 0,
+  lensMode: LensMode = 'classic',
 ): EntityState[] {
   const isZoomedOut = camScale < 4.0
   const isVeryZoomedOut = camScale < 2.2
@@ -396,7 +446,7 @@ export function drawBatchedEntities(
 
   // Draw Corpses
   if (corpses.length > 0) {
-    ctx.strokeStyle = '#6e7681'
+    ctx.strokeStyle = '#5a6572'
     ctx.globalAlpha = 0.8
     ctx.lineWidth = 0.3
     ctx.beginPath()
@@ -412,54 +462,77 @@ export function drawBatchedEntities(
     ctx.globalAlpha = 1
   }
 
-  // §BG & §BK Draw Women (Lines) — variable thickness & taper (BG-3) + BK-3 dynamic twitch
+  // §BG & §BK Draw Women (Lines) — variable thickness & taper (BG-3) + BK-3 dynamic twitch + BK-9 lens
   if (women.length > 0) {
-    const color = CASTE_COLORS.Woman || '#ff9bce'
-    ctx.fillStyle = color
-    ctx.strokeStyle = color
-    ctx.lineWidth = 0.35
-    ctx.globalAlpha = 0.92
-    ctx.beginPath()
+    const womenGroups = new Map<string, { list: EntityState[]; fillAlpha: number; strokeAlpha: number }>()
     for (const w of women) {
-      const stage = w.stage ?? 'adult'
-      const sizeF = stage === 'infant' ? 0.55 : stage === 'juvenile' ? 0.8 : 1.0
-      const r = (w.radius ?? 0.9) * sizeF * (w.scale_jitter ?? 1)
-      const len = Math.max(1.8, r * 2.4)
-      const ang = w.angle + (w.angle_jitter ?? 0)
-      const irr = (w as any).irregularity ?? 0
-      const mt = (w as any).morph_traits as number[] | undefined
-      const perimFactor = mt && mt[1] ? Math.max(0.7, Math.min(1.9, mt[1] / 5.657)) : 1
-      let wMid = Math.max(0.16, r * 0.30 * perimFactor * (0.85 + irr * 0.9))
-      // BK-3 Dynamic chaotic twitch for irregular women
-      if (irr > 0.04 && tick > 0) {
-        wMid *= (1 + Math.sin(tick * 0.28 + (w.id % 13)) * irr * 0.22)
+      const style = getCreatureLensStyle(w, lensMode)
+      let g = womenGroups.get(style.color)
+      if (!g) {
+        g = { list: [], fillAlpha: style.fillAlpha, strokeAlpha: style.strokeAlpha }
+        womenGroups.set(style.color, g)
       }
-      // needle diamond: front tip, midTop, back tip, midBottom
-      const ca = Math.cos(ang), sa = Math.sin(ang)
-      const paX = -sa, paY = ca // perp
-      const frontX = w.x + ca * len, frontY = w.y + sa * len
-      const backX = w.x - ca * len * 0.92, backY = w.y - sa * len * 0.92
-      const midTopX = w.x + paX * wMid, midTopY = w.y + paY * wMid
-      const midBotX = w.x - paX * wMid, midBotY = w.y - paY * wMid
-      ctx.moveTo(frontX, frontY)
-      ctx.lineTo(midTopX, midTopY)
-      ctx.lineTo(backX, backY)
-      ctx.lineTo(midBotX, midBotY)
-      ctx.closePath()
+      g.list.push(w)
     }
-    ctx.globalAlpha = 0.20
-    ctx.fill()
-    ctx.globalAlpha = 0.95
-    ctx.stroke()
-    ctx.globalAlpha = 1
+
+    for (const [color, group] of womenGroups.entries()) {
+      ctx.fillStyle = color
+      ctx.strokeStyle = color
+      ctx.lineWidth = 0.35
+      ctx.beginPath()
+      for (const w of group.list) {
+        const stage = w.stage ?? 'adult'
+        const sizeF = stage === 'infant' ? 0.55 : stage === 'juvenile' ? 0.8 : 1.0
+        const r = (w.radius ?? 0.9) * sizeF * (w.scale_jitter ?? 1)
+        const len = Math.max(1.8, r * 2.4)
+        const ang = w.angle + (w.angle_jitter ?? 0)
+        const irr = (w as any).irregularity ?? 0
+        const mt = (w as any).morph_traits as number[] | undefined
+        const perimFactor = mt && mt[1] ? Math.max(0.7, Math.min(1.9, mt[1] / 5.657)) : 1
+        let wMid = Math.max(0.16, r * 0.30 * perimFactor * (0.85 + irr * 0.9))
+        // BK-3 Dynamic chaotic twitch for irregular women
+        if (irr > 0.04 && tick > 0) {
+          wMid *= (1 + Math.sin(tick * 0.28 + (w.id % 13)) * irr * 0.22)
+        }
+        // needle diamond: front tip, midTop, back tip, midBottom
+        const ca = Math.cos(ang), sa = Math.sin(ang)
+        const paX = -sa, paY = ca // perp
+        const frontX = w.x + ca * len, frontY = w.y + sa * len
+        const backX = w.x - ca * len * 0.92, backY = w.y - sa * len * 0.92
+        const midTopX = w.x + paX * wMid, midTopY = w.y + paY * wMid
+        const midBotX = w.x - paX * wMid, midBotY = w.y - paY * wMid
+        ctx.moveTo(frontX, frontY)
+        ctx.lineTo(midTopX, midTopY)
+        ctx.lineTo(backX, backY)
+        ctx.lineTo(midBotX, midBotY)
+        ctx.closePath()
+      }
+      ctx.globalAlpha = group.fillAlpha
+      ctx.fill()
+      ctx.globalAlpha = group.strokeAlpha
+      ctx.stroke()
+      ctx.globalAlpha = 1
+    }
   }
 
-  // §BG Draw Polygons — mutated geometry (BG-1, BG-2, BG-4)
+  // §BG & §BK Draw Polygons — mutated geometry (BG-1, BG-2, BG-4) + BK-9 lens
   const useCircleLOD = isVeryZoomedOut || (isZoomedOut && isDense)
-  for (const [caste, list] of polygonsByCaste.entries()) {
-    const color = CASTE_COLORS[caste] || '#8b949e'
-    ctx.beginPath()
+  const polyGroups = new Map<string, { list: EntityState[]; fillAlpha: number; strokeAlpha: number }>()
+  for (const list of polygonsByCaste.values()) {
     for (const c of list) {
+      const style = getCreatureLensStyle(c, lensMode)
+      let g = polyGroups.get(style.color)
+      if (!g) {
+        g = { list: [], fillAlpha: style.fillAlpha, strokeAlpha: style.strokeAlpha }
+        polyGroups.set(style.color, g)
+      }
+      g.list.push(c)
+    }
+  }
+
+  for (const [color, group] of polyGroups.entries()) {
+    ctx.beginPath()
+    for (const c of group.list) {
       const stage = c.stage ?? 'adult'
       const sizeF = stage === 'infant' ? 0.55 : stage === 'juvenile' ? 0.8 : 1.0
       const r = (c.radius ?? 1.2) * sizeF * (c.scale_jitter ?? 1)
@@ -477,7 +550,6 @@ export function drawBatchedEntities(
         continue
       }
       if (useCircleLOD || sides >= PRIEST_SIDES) {
-        // Priest circle — add subtle jitter when irregular
         if (irr > 0.08 && sides >= PRIEST_SIDES) {
           const pts = bgMutatedPoints(c.x, c.y, sides, r, ang, Math.min(0.3, irr), c.id, tick)
           ctx.moveTo(pts[0][0], pts[0][1])
@@ -488,7 +560,6 @@ export function drawBatchedEntities(
           ctx.arc(c.x, c.y, r, 0, TAU)
         }
       } else {
-        // BG-2 irregular mutated polygon & BG-4 topological aberration (K∈[3,24])
         if (irr > 0.02) {
           const pts = bgMutatedPoints(c.x, c.y, sides, r, ang, irr, c.id, tick)
           ctx.moveTo(pts[0][0], pts[0][1])
@@ -507,13 +578,14 @@ export function drawBatchedEntities(
         }
       }
     }
-    ctx.globalAlpha = 0.22
+    ctx.globalAlpha = group.fillAlpha
     ctx.fillStyle = color
     ctx.fill()
-    ctx.globalAlpha = 1.0
+    ctx.globalAlpha = group.strokeAlpha
     ctx.strokeStyle = color
     ctx.lineWidth = 0.3
     ctx.stroke()
+    ctx.globalAlpha = 1.0
   }
   // §BG & §BK Visual phenotypes overlays — BG-5 Blade Glint, BG-6 Armor, BG-7 Speciation, BG-8 Elder nucleus, BK-1 Genesis Spark, BK-2 Lineage Halos & Corona, BK-3 Aberrant Aura
   for (const c of visibleCreatures) {
@@ -806,6 +878,73 @@ export function drawBatchedEntities(
       }
       ctx.globalAlpha = 1
     }
+
+    // §BK-4 Ancestral Crystalline Core Patina (gen >= 15)
+    if (gen >= 15 && !isVeryZoomedOut) {
+      const coreR = Math.max(0.4, r * 0.42)
+      ctx.beginPath()
+      if (sides >= PRIEST_SIDES || isLine) {
+        ctx.arc(c.x, c.y, coreR, 0, TAU)
+      } else {
+        const sa = ang - Math.PI / 2
+        for (let i = 0; i < sides; i++) {
+          const a = sa + (i / sides) * TAU
+          const px = c.x + Math.cos(a) * coreR, py = c.y + Math.sin(a) * coreR
+          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py)
+        }
+        ctx.closePath()
+      }
+      ctx.fillStyle = gen >= 50 ? 'rgba(254, 240, 138, 0.40)' : gen >= 25 ? 'rgba(245, 158, 11, 0.30)' : 'rgba(148, 163, 184, 0.22)'
+      ctx.fill()
+      ctx.strokeStyle = gen >= 50 ? '#fde047' : gen >= 25 ? '#fbbf24' : '#94a3b8'
+      ctx.lineWidth = 0.22
+      ctx.stroke()
+    }
+
+    // §BK-5 Soldier Razor Piercing Glint & Metallic Apex Accent (θ < 30°)
+    if (c.caste === 'Soldier' && sides === 3 && typeof (c as any).iso_angle === 'number' && (c as any).iso_angle < 30) {
+      const pts = bgSoldierRazor(c.x, c.y, r, ang, (c as any).iso_angle)
+      const tipX = pts[0][0], tipY = pts[0][1]
+      const ca = Math.cos(ang), sa = Math.sin(ang)
+      ctx.beginPath()
+      ctx.moveTo(tipX - ca * 0.7, tipY - sa * 0.7)
+      ctx.lineTo(tipX + ca * 0.5, tipY + sa * 0.5)
+      ctx.strokeStyle = '#ef4444'
+      ctx.lineWidth = 0.35
+      ctx.stroke()
+      ctx.beginPath()
+      ctx.arc(tipX, tipY, 0.42, 0, TAU)
+      ctx.fillStyle = '#ffffff'
+      ctx.fill()
+    }
+
+    // §BK-6 Battle Veteran Wound Scars (scars > 0)
+    const scarsCount = (c as any).scars as number | undefined
+    if (scarsCount && scarsCount > 0 && !isVeryZoomedOut) {
+      const nScars = Math.min(4, scarsCount)
+      ctx.lineWidth = 0.3
+      for (let k = 0; k < nScars; k++) {
+        const sAng = ang + (k * 1.25) + 0.6
+        const sx = c.x + Math.cos(sAng) * r * 0.65
+        const sy = c.y + Math.sin(sAng) * r * 0.65
+        const pLen = 0.55
+        const px = -Math.sin(sAng) * pLen
+        const py = Math.cos(sAng) * pLen
+        // Dark slash mark
+        ctx.beginPath()
+        ctx.moveTo(sx - px, sy - py)
+        ctx.lineTo(sx + px, sy + py)
+        ctx.strokeStyle = '#0f172a'
+        ctx.stroke()
+        // Dried blood red undertone
+        ctx.beginPath()
+        ctx.moveTo(sx - px * 0.6, sy - py * 0.6)
+        ctx.lineTo(sx + px * 0.6, sy + py * 0.6)
+        ctx.strokeStyle = '#991b1b'
+        ctx.stroke()
+      }
+    }
+
     // BH-9 archetype mini-icon above creature when zoomed (nocturnal etc)
     const arch = (c as any).archetype as string | undefined
     if (arch && camScale >= 3.0) {
@@ -1040,6 +1179,7 @@ export function renderWorldFrame(
   cam: Camera,
   selectedId: number | null,
   selectedClanId: number | null,
+  lensMode: LensMode = 'classic',
 ): void {
   ctx.setTransform(1, 0, 0, 1, 0, 0)
   ctx.fillStyle = '#0b0f14'
@@ -1410,7 +1550,7 @@ export function renderWorldFrame(
     }
   }
 
-  const visibleHouses = drawBatchedEntities(ctx, state.entities, visible, cam.scale, selectedId, state.tick)
+  const visibleHouses = drawBatchedEntities(ctx, state.entities, visible, cam.scale, selectedId, state.tick, lensMode)
 
   // Totem Poles + §AP Shrines & Temples of the Sphere
   const drawnShrines = new Set<string>()
