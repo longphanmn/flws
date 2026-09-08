@@ -763,13 +763,14 @@ export default function App() {
           lensMode={lensMode}
         />
 
-        {/* §BK-8 Canvas HUD Lens Switcher Toolbar */}
+        {/* §BK-8 Canvas HUD Lens Switcher Toolbar (Bottom-Left) */}
         <div
           className="lens-switcher-toolbar"
           role="toolbar"
           aria-label="Map Lenses"
           style={{
-            left: !isMobile && (selectedId !== null || selectedClanId !== null) ? 'calc(50% + 195px)' : '50%',
+            left: !isMobile && (selectedId !== null || selectedClanId !== null) ? 406 : 14,
+            bottom: isMobile ? 'calc(var(--thumb-h, 50px) + 8px)' : 12,
           }}
         >
           <button
@@ -815,7 +816,7 @@ export default function App() {
             className="regulation-status-container"
             style={{
               left: !isMobile && (selectedId !== null || selectedClanId !== null) ? 406 : 14,
-              bottom: isMobile ? 'calc(var(--thumb-h, 50px) + 12px)' : 14,
+              bottom: isMobile ? 'calc(var(--thumb-h, 50px) + 38px)' : 42,
             }}
           >
             {isSafeguardActive && (
