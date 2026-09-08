@@ -39,7 +39,7 @@ UI_I18N = {
         "openapi": "OpenAPI",
         "guide": "Guide",
         "json_api": "JSON",
-        "live_world": "← Live world",
+        "live_world": "← Demo",
         "presets_label": "Presets:",
         "dev_by": "Developed by",
         "dev_name": "Long Phan",
@@ -49,7 +49,7 @@ UI_I18N = {
         "badge_presets": "{presets} presets",
         "sphere_motto": "The Sphere sets laws, never a life",
         "guide_link": "Guide",
-        "footer": "Generated from live code — <code>Config</code> defaults + <code>GodLaws</code> + <code>app.routes</code>. Official living documentation & encyclopedia for Flatland. · Developed by <strong>Long Phan</strong> — <a href=\"mailto:long@minhnhan.in\">long@minhnhan.in</a> · <a href=\"https://minhnhan.in\">minhnhan.in</a> · <a href=\"https://github.com/longphanmn/flatland\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a> · Built with OpenCode & Antigravity",
+        "footer": "Generated from live code — <code>Config</code> defaults + <code>GodLaws</code> + <code>app.routes</code>. Official living documentation & encyclopedia for Flatland. · Developed by <strong>Long Phan</strong> — <a href=\"mailto:long@minhnhan.in\">long@minhnhan.in</a> · Demo: <a href=\"https://world.minhnhan.in\">world.minhnhan.in</a> · <a href=\"https://github.com/longphanmn/flatland\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a> · Built with OpenCode & Antigravity",
         "preset_col_name": "Preset",
         "preset_col_laws": "Key laws",
         "preset_col_apply": "Apply",
@@ -74,7 +74,7 @@ UI_I18N = {
         "nav_group_core": "Core Knowledge",
         "nav_group_systems": "Systems & Balance",
         "nav_group_reference": "Rules & Reference",
-        "live_pulse": "Live World",
+        "live_pulse": "Demo",
     },
     "vi": {
         "title": "Flatland — Bách khoa toàn thư & Wiki — Mô phỏng Thế giới bởi Long Phan",
@@ -87,7 +87,7 @@ UI_I18N = {
         "openapi": "OpenAPI",
         "guide": "Cẩm nang",
         "json_api": "Dữ liệu JSON",
-        "live_world": "← Thế giới trực tiếp",
+        "live_world": "← Bản demo",
         "presets_label": "Thiết lập mẫu:",
         "dev_by": "Phát triển bởi",
         "dev_name": "Long Phan",
@@ -97,7 +97,7 @@ UI_I18N = {
         "badge_presets": "{presets} mẫu",
         "sphere_motto": "Khối Cầu định đoạt thiên luật, không can thiệp số mệnh",
         "guide_link": "Cẩm nang",
-        "footer": "Trích xuất trực tiếp từ mã nguồn — <code>Config</code> + <code>GodLaws</code> + <code>app.routes</code>. Bách khoa toàn thư sống chính thức của Flatland. · Phát triển bởi <strong>Long Phan</strong> — <a href=\"mailto:long@minhnhan.in\">long@minhnhan.in</a> · <a href=\"https://minhnhan.in\">minhnhan.in</a> · <a href=\"https://github.com/longphanmn/flatland\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a> · Xây dựng với OpenCode & Antigravity",
+        "footer": "Trích xuất trực tiếp từ mã nguồn — <code>Config</code> + <code>GodLaws</code> + <code>app.routes</code>. Bách khoa toàn thư sống chính thức của Flatland. · Phát triển bởi <strong>Long Phan</strong> — <a href=\"mailto:long@minhnhan.in\">long@minhnhan.in</a> · Bản demo: <a href=\"https://world.minhnhan.in\">world.minhnhan.in</a> · <a href=\"https://github.com/longphanmn/flatland\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a> · Xây dựng với OpenCode & Antigravity",
         "preset_col_name": "Thiết lập mẫu",
         "preset_col_laws": "Quy luật trọng tâm",
         "preset_col_apply": "Áp dụng",
@@ -122,7 +122,7 @@ UI_I18N = {
         "nav_group_core": "Tri thức Cốt lõi",
         "nav_group_systems": "Hệ thống & Cân bằng",
         "nav_group_reference": "Thiên luật & Tham chiếu",
-        "live_pulse": "Thế giới Trực tiếp",
+        "live_pulse": "Bản demo",
     },
     "fr": {
         "title": "Flatland — Wiki Vivant & Encyclopédie — Simulation de Monde par Long Phan",
@@ -135,7 +135,7 @@ UI_I18N = {
         "openapi": "OpenAPI",
         "guide": "Guide",
         "json_api": "JSON",
-        "live_world": "← Monde en direct",
+        "live_world": "← Démo",
         "presets_label": "Préréglages :",
         "dev_by": "Développé par",
         "dev_name": "Long Phan",
@@ -145,7 +145,7 @@ UI_I18N = {
         "badge_presets": "{presets} préréglages",
         "sphere_motto": "La Sphère dicte les lois, jamais une vie",
         "guide_link": "Guide",
-        "footer": "Généré à partir du code source en temps réel — Valeurs <code>Config</code> + <code>GodLaws</code> + <code>app.routes</code>. Documentation vivante officielle et encyclopédie de Flatland. · Développé par <strong>Long Phan</strong> — <a href=\"mailto:long@minhnhan.in\">long@minhnhan.in</a> · <a href=\"https://minhnhan.in\">minhnhan.in</a> · <a href=\"https://github.com/longphanmn/flatland\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a> · Conçu avec OpenCode & Antigravity",
+        "footer": "Généré à partir du code source en temps réel — Valeurs <code>Config</code> + <code>GodLaws</code> + <code>app.routes</code>. Documentation vivante officielle et encyclopédie de Flatland. · Développé par <strong>Long Phan</strong> — <a href=\"mailto:long@minhnhan.in\">long@minhnhan.in</a> · Démo : <a href=\"https://world.minhnhan.in\">world.minhnhan.in</a> · <a href=\"https://github.com/longphanmn/flatland\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a> · Conçu avec OpenCode & Antigravity",
         "preset_col_name": "Préréglage",
         "preset_col_laws": "Lois fondamentales",
         "preset_col_apply": "Appliquer",
@@ -170,7 +170,7 @@ UI_I18N = {
         "nav_group_core": "Connaissances de Base",
         "nav_group_systems": "Systèmes & Équilibre",
         "nav_group_reference": "Lois & Référence",
-        "live_pulse": "Monde en Direct",
+        "live_pulse": "Démo",
     },
 }
 
@@ -207,7 +207,7 @@ WIKI_OVERVIEW_MD_I18N = {
 # Flatland Wiki & Encyclopedia
 
 > **Source Code**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)  
-> **Developed by [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · [minhnhan.in](https://minhnhan.in) · [world.minhnhan.in](https://world.minhnhan.in))  
+> **Developed by [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · Demo: [world.minhnhan.in](https://world.minhnhan.in))  
 > Built and refined using **OpenCode** and **Antigravity** · Developed from the core ideas of **Edwin A. Abbott's *Flatland: A Romance of Many Dimensions*** (1884).
 
 Flatland is an autonomous 2D artificial life and world simulation developed from the foundational mathematical and spatial ideas of Edwin A. Abbott's 1884 classic *Flatland*. 
@@ -230,7 +230,7 @@ This project is **developed from the Flatland idea rather than mimicking the boo
 # Bách khoa toàn thư & Wiki Flatland
 
 > **Mã nguồn**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)  
-> **Phát triển bởi [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · [minhnhan.in](https://minhnhan.in) · [world.minhnhan.in](https://world.minhnhan.in))  
+> **Phát triển bởi [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · Bản demo: [world.minhnhan.in](https://world.minhnhan.in))  
 > Xây dựng và hoàn thiện bằng **OpenCode** & **Antigravity** · Phát triển từ ý niệm nền tảng trong danh tác ***Flatland: A Romance of Many Dimensions*** (1884) của **Edwin A. Abbott**.
 
 Flatland là một thế giới mô phỏng sự sống nhân tạo 2D tự hành, vận dụng sáng tạo các tiền đề toán học và không gian từ tác phẩm kinh điển *Flatland* (Xứ Phẳng) xuất bản năm 1884 của Edwin A. Abbott.
@@ -253,7 +253,7 @@ Dự án được **phát triển từ ý niệm cốt lõi của Xứ Phẳng c
 # Encyclopédie & Wiki Flatland
 
 > **Code Source**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)  
-> **Développé par [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · [minhnhan.in](https://minhnhan.in) · [world.minhnhan.in](https://world.minhnhan.in))  
+> **Développé par [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · Démo : [world.minhnhan.in](https://world.minhnhan.in))  
 > Conçu et perfectionné avec **OpenCode** & **Antigravity** · Développé à partir des concepts fondamentaux de l'œuvre classique d'**Edwin A. Abbott, *Flatland: A Romance of Many Dimensions*** (1884).
 
 Flatland est une simulation autonome de vie artificielle et d'écosystème en 2D, conçue d'après les idées mathématiques et spatiales d'Edwin A. Abbott.

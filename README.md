@@ -10,7 +10,7 @@
 **Flatland** is an autonomous 2D artificial life and ecosystem simulation developed from the foundational ideas of **Edwin A. Abbott's 1884 classic *Flatland: A Romance of Many Dimensions***. Rather than rigidly mimicking or reenacting the 19th-century novella, this project takes Flatland's core geometric premises — 2D spatial existence, vertex-based caste hierarchy, atmospheric perception, and higher-dimensional observation — and transforms them into a **living, autonomous evolutionary world that dynamically changes and expands over time**.
 
 > **Source Code**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)  
-> **Developed by [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · [minhnhan.in](https://minhnhan.in) · [world.minhnhan.in](https://world.minhnhan.in))  
+> **Developed by [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · Demo: [world.minhnhan.in](https://world.minhnhan.in))  
 > Built and refined using **OpenCode** and **Antigravity**.  
 > Developed from the core mathematical and spatial ideas of **Edwin A. Abbott** (1884).
 
@@ -282,8 +282,7 @@ ws/
 - **Repository**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)
 - **Developed by**: **[Long Phan](mailto:long@minhnhan.in)**  
   Email: [long@minhnhan.in](mailto:long@minhnhan.in)  
-  Website: [https://minhnhan.in](https://minhnhan.in)  
-  Live World: [https://world.minhnhan.in](https://world.minhnhan.in)
+  Demo: [https://world.minhnhan.in](https://world.minhnhan.in)
 - **AI Tooling & Development**: Built and engineered with **OpenCode** and **Antigravity**.
 - **Literary Source**: Based on the mathematical concept and social commentary of ***Flatland: A Romance of Many Dimensions*** by **Edwin A. Abbott** (1884).
 

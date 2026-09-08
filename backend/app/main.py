@@ -869,7 +869,7 @@ app = FastAPI(
     title="Flatland World Simulation",
     version="0.1.6",
     description="Flatland — 2D world simulation by Long Phan <long@minhnhan.in>",
-    contact={"name": "Long Phan", "email": "long@minhnhan.in", "url": "https://minhnhan.in"},
+    contact={"name": "Long Phan", "email": "long@minhnhan.in"},
     lifespan=lifespan,
 )
 AUTH = PasskeyAuth(DB)

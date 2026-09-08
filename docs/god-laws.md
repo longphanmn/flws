@@ -3,7 +3,7 @@
 [![GitHub Repo](https://img.shields.io/badge/GitHub-longphanmn%2Fflatland-181717.svg?logo=github)](https://github.com/longphanmn/flatland)
 
 > **Source Code**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)  
-> **Developed by [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · [minhnhan.in](https://minhnhan.in) · [world.minhnhan.in](https://world.minhnhan.in))  
+> **Developed by [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · Demo: [world.minhnhan.in](https://world.minhnhan.in))  
 > Built and refined using **OpenCode** and **Antigravity** · Developed from the core concepts of **Edwin A. Abbott's *Flatland***.
 
 In Flatland, God (The Sphere) sets **universal laws of nature**, never intervening in individual lives. Every law has a specified range, default value, and ecological effect. Laws can be adjusted live via the in-app **⚖ The Sphere (God Panel)** or programmatically via `POST /api/laws` and `POST /api/presets/{name}`.
