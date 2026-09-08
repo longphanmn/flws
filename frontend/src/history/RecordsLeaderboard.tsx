@@ -115,7 +115,7 @@ export default function RecordsLeaderboard({
       title: t('history.records.greatestRealm'),
       metric: `${records.topPopClan?.population ?? 0} ${t('history.records.living')}`,
       holder: records.topPopClan?.name ?? t('history.records.none'),
-      sub: records.topPopClan?.totem ? `Totem: ${totemEmoji(records.topPopClan.totem)} ${records.topPopClan.totem}` : '',
+      sub: records.topPopClan?.totem ? `${t('history.totem')}: ${totemEmoji(records.topPopClan.totem)} ${records.topPopClan.totem}` : '',
       color: '#79c0ff',
       onClick: records.topPopClan ? () => onSelectClan?.(records.topPopClan.id) : undefined,
     },

@@ -48,7 +48,7 @@ export default function HistoryAnalytics({ dayRecords: _dayRecords, clans, rawEv
     return matrix
   }, [clanList, rawEvents])
 
-  // BM-15: Cause of death breakdown per 10-day era buckets
+  // Cause of death breakdown per 10-day era buckets
   const mortalityBuckets = useMemo(() => {
     const buckets: Record<number, { era: string; combat: number; disease: number; predation: number; hunger: number; other: number; total: number }> = {}
 
@@ -58,7 +58,7 @@ export default function HistoryAnalytics({ dayRecords: _dayRecords, clans, rawEv
         const bucketId = Math.floor(d / 10)
         if (!buckets[bucketId]) {
           buckets[bucketId] = {
-            era: `Days ${bucketId * 10}–${(bucketId + 1) * 10 - 1}`,
+            era: t('history.dayRange', { start: bucketId * 10, end: (bucketId + 1) * 10 - 1 }),
             combat: 0,
             disease: 0,
             predation: 0,
@@ -81,9 +81,9 @@ export default function HistoryAnalytics({ dayRecords: _dayRecords, clans, rawEv
     return Object.entries(buckets)
       .map(([k, v]) => ({ bucketId: Number(k), ...v }))
       .sort((a, b) => a.bucketId - b.bucketId)
-  }, [rawEvents])
+  }, [rawEvents, t])
 
-  // BM-16: Faith index over time (temples, miracles, epiphanies per 5 days)
+  // Faith index over time (temples, miracles, epiphanies per 5 days)
   const faithBuckets = useMemo(() => {
     const buckets: Record<number, { era: string; temples: number; miracles: number; epiphanies: number; score: number }> = {}
 
@@ -92,7 +92,7 @@ export default function HistoryAnalytics({ dayRecords: _dayRecords, clans, rawEv
       const bId = Math.floor(d / 5)
       if (!buckets[bId]) {
         buckets[bId] = {
-          era: `Days ${bId * 5}–${(bId + 1) * 5 - 1}`,
+          era: t('history.dayRange', { start: bId * 5, end: (bId + 1) * 5 - 1 }),
           temples: 0,
           miracles: 0,
           epiphanies: 0,
@@ -115,7 +115,7 @@ export default function HistoryAnalytics({ dayRecords: _dayRecords, clans, rawEv
     return Object.entries(buckets)
       .map(([k, v]) => ({ bucketId: Number(k), ...v }))
       .sort((a, b) => a.bucketId - b.bucketId)
-  }, [rawEvents])
+  }, [rawEvents, t])
 
   const maxRivalry = useMemo(() => {
     let m = 1

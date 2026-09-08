@@ -619,7 +619,7 @@ export default function WorldHistoryModal({
       } else if (ev.type === 'extinction') {
         dRec.categories.add('disaster')
         dRec.disasters.push({
-          kind: 'World Extinction',
+          kind: t('history.details.worldExtinction') || 'World Extinction',
           rawKind: 'extinction',
           count: 1,
         })
@@ -1025,7 +1025,7 @@ ${langInstruction}
               <button
                 className="history-close-btn"
                 onClick={onClose}
-                aria-label="Close"
+                aria-label={t('history.close') || 'Close'}
               >
                 ✕
               </button>
@@ -1093,7 +1093,7 @@ ${langInstruction}
                   type="button"
                   className="history-close-btn"
                   onClick={onClose}
-                  aria-label="Close"
+                  aria-label={t('history.close') || 'Close'}
                 >
                   ✕
                 </button>
@@ -1104,31 +1104,31 @@ ${langInstruction}
 
         {/* Major Stats Ticker */}
         <div className="history-stats-ticker">
-          <span className="history-stat-item" title="Major battles fought">
+          <span className="history-stat-item" title={t('history.statsTooltips.battles')}>
             ⚔️ <b>{totalStats.wars}</b> {t('history.stats.battles')} ({totalStats.lethalWars} {t('history.stats.fallen')})
           </span>
           <span className="history-stat-dot">·</span>
-          <span className="history-stat-item" title="Plague outbreaks">
+          <span className="history-stat-item" title={t('history.statsTooltips.plagues')}>
             ☣️ <b>{totalStats.outbreaks}</b> {t('history.stats.plagues')}
           </span>
           <span className="history-stat-dot">·</span>
-          <span className="history-stat-item" title="Internal rebellions">
+          <span className="history-stat-item" title={t('history.statsTooltips.schisms')}>
             ⚡ <b>{totalStats.schisms}</b> {t('history.stats.schisms')}
           </span>
           <span className="history-stat-dot">·</span>
-          <span className="history-stat-item" title="Ruler successions">
+          <span className="history-stat-item" title={t('history.statsTooltips.successions')}>
             👑 <b>{totalStats.successions}</b> {t('history.stats.successions')}
           </span>
           <span className="history-stat-dot">·</span>
-          <span className="history-stat-item" title="Temples of the Sphere">
+          <span className="history-stat-item" title={t('history.statsTooltips.temples')}>
             🏛️ <b>{totalStats.temples}</b> {t('history.stats.temples')}
           </span>
           <span className="history-stat-dot">·</span>
-          <span className="history-stat-item" title="Avatar seasonal miracles">
+          <span className="history-stat-item" title={t('history.statsTooltips.miracles')}>
             🌸 <b>{totalStats.miracles}</b> {t('history.stats.miracles')}
           </span>
           <span className="history-stat-dot">·</span>
-          <span className="history-stat-item" title="Natural cataclysms">
+          <span className="history-stat-item" title={t('history.statsTooltips.cataclysms')}>
             🌋 <b>{totalStats.disasters}</b> {t('history.stats.cataclysms')}
           </span>
         </div>
@@ -1272,7 +1272,7 @@ ${langInstruction}
                                 lineHeight: 1,
                                 flexShrink: 0,
                               }}
-                              title={isPinned ? 'Unpin day' : 'Pin/bookmark day'}
+                              title={isPinned ? t('history.actions.unpinDay') : t('history.actions.pinDay')}
                             >
                               {isPinned ? '⭐' : '☆'}
                             </button>
@@ -1328,16 +1328,16 @@ ${langInstruction}
                               {t('history.dossier', { start: d.startTick, end: d.endTick })}
                             </div>
 
-                            {/* BM-7: Note editor if pinned */}
+                            {/* Note editor if pinned */}
                             {isPinned && (
                               <div
                                 style={{ display: 'flex', gap: 6, alignItems: 'center', background: '#0d1117', padding: '4px 8px', borderRadius: 6, border: '1px solid #30363d' }}
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <span style={{ fontSize: 11, color: '#e3b341', fontWeight: 600 }}>📌 Note:</span>
+                                <span style={{ fontSize: 11, color: '#e3b341', fontWeight: 600 }}>📌 {t('history.actions.note')}</span>
                                 <input
                                   type="text"
-                                  placeholder="Write a custom note for this day..."
+                                  placeholder={t('history.actions.notePlaceholder')}
                                   value={pinnedDays[d.day] || ''}
                                   onChange={(e) => setDayNote(d.day, e.target.value)}
                                   style={{ flex: 1, background: 'transparent', border: 'none', color: '#e6edf3', fontSize: 11, outline: 'none' }}
@@ -1420,7 +1420,6 @@ ${langInstruction}
                               </div>
                             )}
 
-                            {/* BM-2: Per-day mini-story button & BM-19: Share Day link */}
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
                               <button
                                 type="button"
@@ -1440,9 +1439,9 @@ ${langInstruction}
                                   padding: '4px 10px',
                                   fontWeight: 600,
                                 }}
-                                title="Copy shareable link to this day"
+                                title={t('history.actions.shareDayTooltip')}
                               >
-                                {copiedDayUrl === d.day ? '✓ Link Copied!' : `🔗 Share Day ${d.day}`}
+                                {copiedDayUrl === d.day ? t('history.actions.linkCopied') : t('history.actions.shareDay', { day: d.day })}
                               </button>
                               <button
                                 type="button"
@@ -1457,9 +1456,9 @@ ${langInstruction}
                                   padding: '4px 10px',
                                   fontWeight: 600,
                                 }}
-                                title="Generate focused 1-day LLM story prompt and copy to clipboard"
+                                title={t('history.actions.miniStoryTooltip')}
                               >
-                                {miniStoryCopiedDay === d.day ? '✓ Prompt Copied!' : `📖 Tell me about Day ${d.day}`}
+                                {miniStoryCopiedDay === d.day ? t('history.actions.promptCopied') : t('history.actions.miniStory', { day: d.day })}
                               </button>
                             </div>
                           </div>
@@ -1506,7 +1505,7 @@ ${langInstruction}
                     {/* Controls Row: Language, Weekly Digest, Style Badge */}
                     <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ fontSize: 10.5, color: '#8b949e', fontWeight: 600 }}>Lang:</span>
+                        <span style={{ fontSize: 10.5, color: '#8b949e', fontWeight: 600 }}>{t('history.aiLang')}:</span>
                         {(['en', 'vi', 'fr'] as const).map((lang) => (
                           <button
                             key={lang}
@@ -1536,7 +1535,7 @@ ${langInstruction}
                           onChange={(e) => setIsWeeklyDigest(e.target.checked)}
                           style={{ cursor: 'pointer' }}
                         />
-                        <span>📰 {promptLang === 'vi' ? 'Tuần qua (7 ngày gần nhất)' : promptLang === 'fr' ? '7 derniers jours' : 'This week (last 7 days)'}</span>
+                        <span>📰 {t('history.aiWeeklyDigest')}</span>
                       </label>
 
                       <span
@@ -1550,7 +1549,7 @@ ${langInstruction}
                           color: '#79c0ff',
                         }}
                       >
-                        {STYLE_LABELS[storyStyle]}
+                        {t(`history.styles.${storyStyle}`) || STYLE_LABELS[storyStyle]}
                       </span>
                     </div>
                   </div>
@@ -1580,7 +1579,7 @@ ${langInstruction}
                       }}
                     >
                       {(Object.keys(STYLE_LABELS) as StoryStyle[]).map((k) => (
-                        <option key={k} value={k}>{STYLE_LABELS[k]}</option>
+                        <option key={k} value={k}>{t(`history.styles.${k}`) || STYLE_LABELS[k]}</option>
                       ))}
                     </select>
 
@@ -1620,7 +1619,7 @@ ${langInstruction}
                           touchAction: 'manipulation',
                           WebkitTapHighlightColor: 'transparent' as any,
                         }}
-                        title={t('history.downloadMd') || 'Download Markdown'}
+                        title={t('history.downloadMdTooltip') || 'Download Markdown'}
                       >
                         {t('history.downloadMd') || '⬇️ .md'}
                       </button>
@@ -1638,7 +1637,7 @@ ${langInstruction}
                           touchAction: 'manipulation',
                           WebkitTapHighlightColor: 'transparent' as any,
                         }}
-                        title={t('history.downloadJson') || 'Download JSON'}
+                        title={t('history.downloadJsonTooltip') || 'Download JSON'}
                       >
                         {t('history.downloadJson') || '⬇️ JSON'}
                       </button>

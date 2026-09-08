@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { DayRecord } from './WorldHistoryModal'
+import { useI18n } from '../i18n'
 
 interface Props {
   dayRecords: DayRecord[]
@@ -14,6 +15,7 @@ export default function PopulationSparkline({
   onSelectDay,
   currentPopulation,
 }: Props) {
+  const { t } = useI18n()
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
 
   if (dayRecords.length === 0) return null
@@ -59,14 +61,19 @@ export default function PopulationSparkline({
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: '#8b949e', marginBottom: 2 }}>
         <span style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          📈 Conflict & Crisis Intensity Sparkline
+          {t('history.sparkline.title')}
         </span>
         {activeDay ? (
           <span style={{ color: '#58a6ff' }}>
-            Day {activeDay.day}: <b>{activeDay.totalCasualties}</b> dead · <b>{activeDay.wars.length}</b> wars · <b>{activeDay.outbreaks.length}</b> plagues
+            {t('history.sparkline.stats', {
+              day: activeDay.day,
+              dead: activeDay.totalCasualties,
+              wars: activeDay.wars.length,
+              plagues: activeDay.outbreaks.length,
+            })}
           </span>
         ) : (
-          <span>{currentPopulation !== undefined ? `${currentPopulation} alive currently` : 'Hover point for stats'}</span>
+          <span>{currentPopulation !== undefined ? t('history.sparkline.aliveCurrently', { count: currentPopulation }) : t('history.sparkline.hoverHint')}</span>
         )}
       </div>
 

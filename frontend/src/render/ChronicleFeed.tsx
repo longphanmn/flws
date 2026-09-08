@@ -311,7 +311,7 @@ function ChronicleFeed({
               type="button"
               onClick={() => setSearch('')}
               className="chronicle-search-clear"
-              title="Clear search"
+              title={t('chronicle.clearSearch') || 'Clear search'}
             >
               ✕
             </button>
@@ -365,7 +365,7 @@ function ChronicleFeed({
                   type="button"
                   className="chronicle-moment-chip"
                   onClick={() => handleJumpToTick(m.startTick)}
-                  title={`Jump to Day ${m.day} (tick ${m.startTick})`}
+                  title={t('chronicle.jumpTo', { day: m.day, tick: m.startTick }) || `Jump to Day ${m.day} (tick ${m.startTick})`}
                 >
                   {m.label}
                 </button>
@@ -386,7 +386,7 @@ function ChronicleFeed({
           }}
         >
           <span>
-            {t('chronicleEvents.showing', { displayed: displayed.length, filtered: filtered.length, unit: filtered.length === 1 ? t('chronicleEvents.event') : t('chronicleEvents.events'), total: events.length })}{filtered.length !== events.length ? '' : ` (${events.length} total)`}
+            {t('chronicleEvents.showing', { displayed: displayed.length, filtered: filtered.length, unit: filtered.length === 1 ? t('chronicleEvents.event') : t('chronicleEvents.events'), total: events.length })}{filtered.length !== events.length ? '' : (t('chronicle.total', { count: events.length }) || ` (${events.length} total)`)}
           </span>
           {(category !== 'all' || search) && (
             <button
@@ -447,7 +447,7 @@ function ChronicleFeed({
               const gl = p.glyph ? ` ${p.glyph}` : ''
               return (
                 <li key={key} data-tick={ev.tick} className={"ev-birth " + accentCls}>
-                  <button className="chronicle-name" onClick={() => onSelectCreature(ev.entity_id)} title="show profile">
+                  <button className="chronicle-name" onClick={() => onSelectCreature(ev.entity_id)} title={t('chronicle.showProfile') || 'show profile'}>
                     <b>{nm}{gl}</b> #{ev.entity_id}
                   </button>{' '}
                   {t('chronicleEvents.bornTo', { mother: p.mother ?? '?', father: p.father ?? '?', gen: p.generation ?? 0, tick: ev.tick })}
@@ -459,7 +459,7 @@ function ChronicleFeed({
               const nm = p.personal_name ? `${p.personal_name} ` : ''
               return (
                 <li key={key} data-tick={ev.tick} className={"ev-promo " + accentCls}>
-                  <button className="chronicle-name" onClick={() => onSelectCreature(ev.entity_id)} title="show profile">
+                  <button className="chronicle-name" onClick={() => onSelectCreature(ev.entity_id)} title={t('chronicle.showProfile') || 'show profile'}>
                     <b>{nm}#{ev.entity_id}</b>
                   </button>{' '}
                   {t('chronicleEvents.roseTo', { from: String(p.from ?? 'Soldier'), to: String(p.to ?? ev.caste), tick: ev.tick })}
@@ -472,7 +472,7 @@ function ChronicleFeed({
               const gl = p.glyph ? ` ${p.glyph}` : ''
               return (
                 <li key={key} data-tick={ev.tick} className={"ev-demote " + accentCls}>
-                  <button className="chronicle-name" onClick={() => onSelectCreature(ev.entity_id)} title="show profile">
+                  <button className="chronicle-name" onClick={() => onSelectCreature(ev.entity_id)} title={t('chronicle.showProfile') || 'show profile'}>
                     <b>{nm}{gl}</b> #{ev.entity_id}
                   </button>{' '}
                   {t('chronicleEvents.demotedToWoman', { tick: ev.tick })}
@@ -485,7 +485,7 @@ function ChronicleFeed({
               const gl = p.glyph ? ` ${p.glyph}` : ''
               return (
                 <li key={key} data-tick={ev.tick} className={"ev-predation " + accentCls}>
-                  <button className="chronicle-name" onClick={() => onSelectCreature(ev.entity_id)} title="show predator">
+                  <button className="chronicle-name" onClick={() => onSelectCreature(ev.entity_id)} title={t('chronicle.showPredator') || 'show predator'}>
                     <b>{nm}{gl}</b> #{ev.entity_id}
                   </button>{' '}
                   {t('chronicleEvents.predatedPrey', { preyCaste: p.prey_caste ?? 'Creature', prey: p.prey ?? '?', tick: ev.tick })}
@@ -498,7 +498,7 @@ function ChronicleFeed({
               const gl = p.glyph ? ` ${p.glyph}` : ''
               return (
                 <li key={key} data-tick={ev.tick} className={"ev-war " + accentCls}>
-                  <button className="chronicle-name" onClick={() => onSelectCreature(ev.entity_id)} title="show fallen">
+                  <button className="chronicle-name" onClick={() => onSelectCreature(ev.entity_id)} title={t('chronicle.showFallen') || 'show fallen'}>
                     <b>{nm}{gl}</b> #{ev.entity_id}
                   </button>{' '}
                   {t('chronicleEvents.fellInWar', { winner: p.winner ?? '?', tick: ev.tick })}
@@ -675,7 +675,7 @@ function ChronicleFeed({
             if (ev.type === 'bloom' || ev.type === 'wither') {
               return (
                 <li key={key} data-tick={ev.tick} className={(ev.type === 'bloom' ? 'ev-bloom' : 'ev-wither') + ' ' + accentCls} style={{ color: ev.type === 'bloom' ? '#3fb950' : '#8b949e' }}>
-                  {ev.type} at ({Math.round(ev.x)}, {Math.round(ev.y)}) tick {ev.tick}
+                  {t('chronicleEvents.bloomWither', { type: ev.type, x: Math.round(ev.x), y: Math.round(ev.y), tick: ev.tick })}
                 </li>
               )
             }
@@ -685,10 +685,10 @@ function ChronicleFeed({
               const gl = p.glyph ? ` ${p.glyph}` : ''
               return (
                 <li key={key} data-tick={ev.tick} className={(ev.type === 'outbreak' ? 'ev-outbreak' : 'ev-recovery') + ' ' + accentCls}>
-                  <button className="chronicle-name" onClick={() => onSelectCreature(ev.entity_id)} title="show creature">
+                  <button className="chronicle-name" onClick={() => onSelectCreature(ev.entity_id)} title={t('chronicle.showCreature') || 'show creature'}>
                     <b>{nm}{gl}</b> #{ev.entity_id}
                   </button>{' '}
-                  {ev.type} at tick {ev.tick}
+                  {t('chronicleEvents.outbreakAction', { action: ev.type, tick: ev.tick })}
                 </li>
               )
             }

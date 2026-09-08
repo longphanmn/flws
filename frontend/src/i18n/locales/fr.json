@@ -384,7 +384,18 @@
       "shareCard": "Partager",
       "shareCardTooltip": "Télécharger la carte de partage 1200x630 PNG",
       "showChart": "📈 Graphique",
-      "hideChart": "📉 Masquer"
+      "hideChart": "📉 Masquer",
+      "toggleChart": "Afficher/masquer graphiques d'époques & intensité",
+      "unpinDay": "Désépingler ce jour",
+      "pinDay": "Épingler / marquer ce jour",
+      "note": "Note :",
+      "notePlaceholder": "Écrire une note personnalisée pour ce jour...",
+      "shareDay": "🔗 Partager Jour {{day}}",
+      "linkCopied": "✓ Lien copié !",
+      "miniStory": "📖 Raconter le Jour {{day}}",
+      "promptCopied": "✓ Prompt copié !",
+      "shareDayTooltip": "Copier le lien partageable vers ce jour",
+      "miniStoryTooltip": "Générer un prompt d'histoire pour ce jour et copier"
     },
     "stats": {
       "battles": "batailles",
@@ -396,6 +407,68 @@
       "miracles": "miracles",
       "cataclysms": "cataclysmes"
     },
+    "statsTooltips": {
+      "battles": "Batailles majeures livrées",
+      "plagues": "Épidémies déclarées",
+      "schisms": "Rébellions internes",
+      "successions": "Successions de souverains",
+      "temples": "Temples de la Sphère construits",
+      "miracles": "Miracles saisonniers des Avatars",
+      "cataclysms": "Cataclysmes naturels"
+    },
+    "dayRange": "Jours {{start}}–{{end}}",
+    "epoch": {
+      "title": "⏳ Époques historiques (Jours {{start}}–{{end}})",
+      "current": "Actuel : Jour {{day}}",
+      "selected": "Sélectionné : Jour {{day}}",
+      "dayRange": "Jours {{start}}–{{end}}",
+      "scrubTo": "Aller au Jour {{day}}",
+      "latest": "Dernier",
+      "eras": {
+        "genesis": "Ère de la Genèse",
+        "expansion": "Expansion & Foi",
+        "strife": "Ère des Conflits",
+        "plague": "Ère de la Peste",
+        "ice": "Âge de Glace",
+        "renaissance": "Renaissance"
+      }
+    },
+    "sparkline": {
+      "title": "📈 Intensité des conflits & crises",
+      "stats": "Jour {{day}} : {{dead}} morts · {{wars}} guerres · {{plagues}} épidémies",
+      "aliveCurrently": "{{count}} vivants actuellement",
+      "hoverHint": "Survolez un point pour les détails"
+    },
+    "warArc": {
+      "title": "⚔️ Liens dynamiques des arcs de guerre"
+    },
+    "totem": "Totem",
+    "aiGenerator": {
+      "storyLang": "Langue du récit :",
+      "weeklyDigest": "7 derniers jours (Résumé hebdo)",
+      "fullChronicle": "Chronique complète du monde",
+      "weeklyDigestTooltip": "Concentrer le prompt sur les 7 derniers jours simulés sous forme de bulletin",
+      "keySettings": "Paramètres des clés",
+      "keySettingsTooltip": "Configurer le fournisseur d'IA et la clé",
+      "provider": "Fournisseur :",
+      "geminiModel": "✨ Google Gemini (1.5 Flash)",
+      "openaiModel": "🤖 OpenAI (GPT-4o Mini)",
+      "geminiPlaceholder": "Entrez la clé API Google Gemini (AIzaSy...)",
+      "openaiPlaceholder": "Entrez la clé API OpenAI (sk-...)",
+      "clear": "Effacer",
+      "clientOnlyNote": "🔒 Côté client uniquement : Votre clé est stockée exclusivement dans le localStorage de votre navigateur et appelle directement l'API. Elle n'est JAMAIS envoyée à notre serveur.",
+      "composing": "⏳ Rédaction du récit de la chronique...",
+      "generateBtn": "✨ Générer l'histoire avec l'IA",
+      "apiKeyRequired": "Veuillez d'abord fournir votre clé API.",
+      "narrativeTitle": "📖 Récit généré par l'IA ({{model}})",
+      "copyStory": "📋 Copier l'histoire",
+      "copied": "✓ Copié !",
+      "downloadMd": "💾 Télécharger .md"
+    },
+    "aiWeeklyDigest": "7 derniers jours",
+    "aiLang": "Langue",
+    "downloadMdTooltip": "Télécharger en Markdown",
+    "downloadJsonTooltip": "Télécharger en JSON",
     "analyzing": "Analyse de la chronique quotidienne en cours...",
     "empty": "Aucun jour correspondant au filtre.",
     "recordsTitle": "Records & Légendes de Flatland",
@@ -482,6 +555,7 @@
       "flashFlood": "Crue éclair",
       "meteor": "Impact de météore",
       "earthquake": "Séisme",
+      "worldExtinction": "Extinction du monde",
       "successionTitle": "Succession de chefferie chez {{clan}}",
       "successionDetail": "Le nouveau dirigeant #{{leader}} est monté sur le siège de {{clan}}",
       "coalitionTitle": "Ligue défensive : {{name}}",
@@ -637,6 +711,13 @@
     "jumpPlaceholder": "Tick #",
     "jumpBtn": "Aller",
     "momentsTitle": "Moments clés",
+    "clearSearch": "Effacer la recherche",
+    "jumpTo": "Aller au Jour {{day}} (tick {{tick}})",
+    "total": " ({{count}} au total)",
+    "showProfile": "Afficher le profil",
+    "showPredator": "Afficher le prédateur",
+    "showFallen": "Afficher le défunt",
+    "showCreature": "Afficher la créature",
     "moments": {
       "day": "Jour {{day}}",
       "war": "Guerre",
@@ -970,6 +1051,7 @@
     "fireEvent": "🔥 incendie : {{kind}} s'est déclaré à ({{x}}, {{y}}) au tick {{tick}}",
     "ruinEvent": "🏚️ ruine : la maison #{{id}} s'est effondrée à ({{x}}, {{y}}) au tick {{tick}}",
     "anomalyEvent": "🌀 anomalie : une faille étrange s'est ouverte à ({{x}}, {{y}}) au tick {{tick}}",
+    "outbreakAction": "{{action}} au tick {{tick}}",
     "deathEvent": "{{name}} #{{id}} est mort de {{cause}} au tick {{tick}} à ({{x}}, {{y}})"
   },
   "totems": {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useI18n } from '../i18n'
 
 interface Props {
   prompt: string
@@ -17,6 +18,7 @@ export default function InAppAIGenerator({
   isWeeklyDigest,
   onToggleWeeklyDigest,
 }: Props) {
+  const { t } = useI18n()
   const [provider, setProvider] = useState<Provider>(() => {
     return (localStorage.getItem('flatland_ai_provider') as Provider) || 'gemini'
   })
@@ -46,7 +48,7 @@ export default function InAppAIGenerator({
     const trimmedKey = apiKey.trim()
     if (!trimmedKey) {
       setShowKeyConfig(true)
-      setError('Please provide your API key first.')
+      setError(t('history.aiGenerator.apiKeyRequired') || 'Please provide your API key first.')
       return
     }
 
@@ -161,7 +163,7 @@ export default function InAppAIGenerator({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           {/* Language Selector (BM-5) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 11, color: '#8b949e', fontWeight: 600 }}>🌐 Story Language:</span>
+            <span style={{ fontSize: 11, color: '#8b949e', fontWeight: 600 }}>🌐 {t('history.aiGenerator.storyLang') || 'Story Language:'}</span>
             {(['en', 'vi', 'fr'] as const).map((lang) => (
               <button
                 key={lang}
@@ -196,9 +198,9 @@ export default function InAppAIGenerator({
                 cursor: 'pointer',
                 fontWeight: isWeeklyDigest ? 700 : 500,
               }}
-              title="Focus prompt on the last 7 simulated days as a weekly newsletter"
+              title={t('history.aiGenerator.weeklyDigestTooltip') || 'Focus prompt on the last 7 simulated days as a weekly newsletter'}
             >
-              📰 {isWeeklyDigest ? 'Past 7 Days (Weekly Digest)' : 'Full World Chronicle'}
+              📰 {isWeeklyDigest ? (t('history.aiGenerator.weeklyDigest') || 'Past 7 Days (Weekly Digest)') : (t('history.aiGenerator.fullChronicle') || 'Full World Chronicle')}
             </button>
 
             <button
@@ -210,9 +212,9 @@ export default function InAppAIGenerator({
                 color: '#8b949e',
                 cursor: 'pointer',
               }}
-              title="Configure AI Provider & Key"
+              title={t('history.aiGenerator.keySettingsTooltip') || 'Configure AI Provider & Key'}
             >
-              ⚙️ Key Settings
+              ⚙️ {t('history.aiGenerator.keySettings') || 'Key Settings'}
             </button>
           </div>
         </div>
@@ -232,7 +234,7 @@ export default function InAppAIGenerator({
             }}
           >
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 11, color: '#8b949e' }}>Provider:</span>
+              <span style={{ fontSize: 11, color: '#8b949e' }}>{t('history.aiGenerator.provider') || 'Provider:'}</span>
               <button
                 type="button"
                 className="chip"
@@ -245,7 +247,7 @@ export default function InAppAIGenerator({
                   fontWeight: provider === 'gemini' ? 700 : 400,
                 }}
               >
-                ✨ Google Gemini (1.5 Flash)
+                {t('history.aiGenerator.geminiModel') || '✨ Google Gemini (1.5 Flash)'}
               </button>
               <button
                 type="button"
@@ -259,14 +261,14 @@ export default function InAppAIGenerator({
                   fontWeight: provider === 'openai' ? 700 : 400,
                 }}
               >
-                🤖 OpenAI (GPT-4o Mini)
+                {t('history.aiGenerator.openaiModel') || '🤖 OpenAI (GPT-4o Mini)'}
               </button>
             </div>
 
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <input
                 type="password"
-                placeholder={provider === 'gemini' ? 'Enter Google Gemini API key (AIzaSy...)' : 'Enter OpenAI API key (sk-...)'}
+                placeholder={provider === 'gemini' ? (t('history.aiGenerator.geminiPlaceholder') || 'Enter Google Gemini API key (AIzaSy...)') : (t('history.aiGenerator.openaiPlaceholder') || 'Enter OpenAI API key (sk-...)')}
                 value={apiKey}
                 onChange={(e) => saveApiKey(e.target.value)}
                 style={{
@@ -286,13 +288,13 @@ export default function InAppAIGenerator({
                   className="chip"
                   style={{ cursor: 'pointer', color: '#f85149' }}
                 >
-                  Clear
+                  {t('history.aiGenerator.clear') || 'Clear'}
                 </button>
               )}
             </div>
 
             <span style={{ fontSize: 10.5, color: '#6e7681' }}>
-              🔒 <b>Client-side only:</b> Your key is stored exclusively in your browser's <code>localStorage</code> and calls the API directly. It is NEVER sent to our server.
+              {t('history.aiGenerator.clientOnlyNote') || "🔒 Client-side only: Your key is stored exclusively in your browser's localStorage and calls the API directly. It is NEVER sent to our server."}
             </span>
           </div>
         )}
@@ -319,7 +321,7 @@ export default function InAppAIGenerator({
               gap: 8,
             }}
           >
-            {loading ? '⏳ Composing Chronicle Narrative...' : '✨ Generate Story with AI'}
+            {loading ? (t('history.aiGenerator.composing') || '⏳ Composing Chronicle Narrative...') : (t('history.aiGenerator.generateBtn') || '✨ Generate Story with AI')}
           </button>
         </div>
 
@@ -345,7 +347,7 @@ export default function InAppAIGenerator({
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #21262d', paddingBottom: 8 }}>
             <span style={{ fontWeight: 700, color: '#e6edf3', fontSize: 13 }}>
-              📖 AI Generated Narrative ({provider === 'gemini' ? 'Gemini 1.5 Flash' : 'GPT-4o Mini'})
+              {t('history.aiGenerator.narrativeTitle', { model: provider === 'gemini' ? 'Gemini 1.5 Flash' : 'GPT-4o Mini' }) || `📖 AI Generated Narrative (${provider === 'gemini' ? 'Gemini 1.5 Flash' : 'GPT-4o Mini'})`}
             </span>
             <div style={{ display: 'flex', gap: 6 }}>
               <button
@@ -354,7 +356,7 @@ export default function InAppAIGenerator({
                 onClick={copyStory}
                 style={{ cursor: 'pointer', background: copied ? '#238636' : '#21262d', color: copied ? '#fff' : '#c9d1d9' }}
               >
-                {copied ? '✓ Copied!' : '📋 Copy Story'}
+                {copied ? (t('history.aiGenerator.copied') || '✓ Copied!') : (t('history.aiGenerator.copyStory') || '📋 Copy Story')}
               </button>
               <button
                 type="button"
@@ -362,7 +364,7 @@ export default function InAppAIGenerator({
                 onClick={downloadStory}
                 style={{ cursor: 'pointer' }}
               >
-                💾 Download .md
+                {t('history.aiGenerator.downloadMd') || '💾 Download .md'}
               </button>
             </div>
           </div>

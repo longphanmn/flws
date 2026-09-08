@@ -384,7 +384,18 @@
       "shareCard": "Chia sẻ thẻ",
       "shareCardTooltip": "Tải ảnh thẻ chia sẻ 1200x630 PNG",
       "showChart": "📈 Biểu đồ",
-      "hideChart": "📉 Ẩn biểu đồ"
+      "hideChart": "📉 Ẩn biểu đồ",
+      "toggleChart": "Bật/tắt biểu đồ Kỷ nguyên & Biến động",
+      "unpinDay": "Bỏ ghim ngày này",
+      "pinDay": "Ghim / đánh dấu ngày này",
+      "note": "Ghi chú:",
+      "notePlaceholder": "Viết ghi chú tùy chỉnh cho ngày này...",
+      "shareDay": "🔗 Chia sẻ Ngày {{day}}",
+      "linkCopied": "✓ Đã sao chép liên kết!",
+      "miniStory": "📖 Kể chuyện Ngày {{day}}",
+      "promptCopied": "✓ Đã sao chép prompt!",
+      "shareDayTooltip": "Sao chép liên kết trực tiếp tới ngày này",
+      "miniStoryTooltip": "Tạo prompt cốt truyện 1 ngày cho AI và sao chép"
     },
     "stats": {
       "battles": "trận đánh",
@@ -396,6 +407,68 @@
       "miracles": "thần tích",
       "cataclysms": "đại thảm họa"
     },
+    "statsTooltips": {
+      "battles": "Các trận chiến lớn đã xảy ra",
+      "plagues": "Các đợt bùng phát đại dịch",
+      "schisms": "Các cuộc phân liệt, ly khai nội bộ",
+      "successions": "Số lần truyền ngôi, kế vị",
+      "temples": "Đại điện thờ Thánh Cầu đã dựng",
+      "miracles": "Phép màu mùa vụ từ Hóa thân",
+      "cataclysms": "Thảm họa thiên nhiên giáng xuống"
+    },
+    "dayRange": "Ngày {{start}}–{{end}}",
+    "epoch": {
+      "title": "⏳ Kỷ nguyên lịch sử (Ngày {{start}}–{{end}})",
+      "current": "Hiện tại: Ngày {{day}}",
+      "selected": "Đã chọn: Ngày {{day}}",
+      "dayRange": "Ngày {{start}}–{{end}}",
+      "scrubTo": "Chuyển tới Ngày {{day}}",
+      "latest": "Mới nhất",
+      "eras": {
+        "genesis": "Khai Thiên Lập Địa",
+        "expansion": "Mở rộng & Đức tin",
+        "strife": "Thời kỳ Loạn lạc",
+        "plague": "Đại dịch Hoành hành",
+        "ice": "Kỷ Băng Hà",
+        "renaissance": "Thời kỳ Phục Hưng"
+      }
+    },
+    "sparkline": {
+      "title": "📈 Biểu đồ biến động xung đột & khủng hoảng",
+      "stats": "Ngày {{day}}: {{dead}} tử vong · {{wars}} cuộc chiến · {{plagues}} dịch bệnh",
+      "aliveCurrently": "{{count}} cá thể đang sống",
+      "hoverHint": "Rê chuột vào điểm để xem chi tiết"
+    },
+    "warArc": {
+      "title": "⚔️ Sơ đồ liên kết giao chiến động"
+    },
+    "totem": "Tổ phụ",
+    "aiGenerator": {
+      "storyLang": "Ngôn ngữ câu chuyện:",
+      "weeklyDigest": "7 ngày qua (Tóm tắt tuần)",
+      "fullChronicle": "Toàn bộ biên niên sử",
+      "weeklyDigestTooltip": "Tập trung prompt vào 7 ngày mô phỏng gần nhất dạng bản tin tuần",
+      "keySettings": "Cài đặt khóa",
+      "keySettingsTooltip": "Cấu hình nhà cung cấp AI & Khóa API",
+      "provider": "Nhà cung cấp:",
+      "geminiModel": "✨ Google Gemini (1.5 Flash)",
+      "openaiModel": "🤖 OpenAI (GPT-4o Mini)",
+      "geminiPlaceholder": "Nhập khóa API Google Gemini (AIzaSy...)",
+      "openaiPlaceholder": "Nhập khóa API OpenAI (sk-...)",
+      "clear": "Xóa",
+      "clientOnlyNote": "🔒 Chỉ lưu trên máy khách: Khóa của bạn chỉ lưu trong localStorage của trình duyệt và gọi API trực tiếp. KHÔNG BAO GIỜ gửi về máy chủ của chúng tôi.",
+      "composing": "⏳ Đang sáng tác câu chuyện sử thi...",
+      "generateBtn": "✨ Tạo truyện bằng AI",
+      "apiKeyRequired": "Vui lòng nhập khóa API trước.",
+      "narrativeTitle": "📖 Câu chuyện do AI tạo ra ({{model}})",
+      "copyStory": "📋 Sao chép truyện",
+      "copied": "✓ Đã chép!",
+      "downloadMd": "💾 Tải .md"
+    },
+    "aiWeeklyDigest": "Tuần qua (7 ngày gần nhất)",
+    "aiLang": "Ngôn ngữ",
+    "downloadMdTooltip": "Tải tập tin Markdown",
+    "downloadJsonTooltip": "Tải tập tin JSON",
     "analyzing": "Đang giải mã biên niên sử…",
     "empty": "Không có sự kiện nào khớp bộ lọc.",
     "recordsTitle": "Kỷ Lục & Huyền Thoại Flatland",
@@ -482,6 +555,7 @@
       "flashFlood": "Lũ quét dữ dội",
       "meteor": "Thiên thạch rơi",
       "earthquake": "Động đất",
+      "worldExtinction": "Tuyệt chủng thế giới",
       "successionTitle": "Truyền thừa ngôi vị tại {{clan}}",
       "successionDetail": "Tân thủ lĩnh #{{leader}} bước lên ngai vị của {{clan}}",
       "coalitionTitle": "Khối đồng minh phòng thủ: {{name}}",
@@ -637,6 +711,13 @@
     "jumpPlaceholder": "Số tick",
     "jumpBtn": "Đi",
     "momentsTitle": "Thời khắc",
+    "clearSearch": "Xóa tìm kiếm",
+    "jumpTo": "Nhảy tới Ngày {{day}} (tick {{tick}})",
+    "total": " (tổng cộng {{count}})",
+    "showProfile": "Xem hồ sơ",
+    "showPredator": "Xem kẻ săn mồi",
+    "showFallen": "Xem tử sĩ",
+    "showCreature": "Xem sinh vật",
     "moments": {
       "day": "Ngày {{day}}",
       "war": "Chiến tranh",
@@ -970,6 +1051,7 @@
     "fireEvent": "🔥 hỏa hoạn: {{kind}} bốc cháy ngùn ngụt tại ({{x}}, {{y}}) nhịp {{tick}}",
     "ruinEvent": "🏚️ hoang phế: căn nhà #{{id}} đã sụp đổ tan hoang tại ({{x}}, {{y}}) nhịp {{tick}}",
     "anomalyEvent": "🌀 dị tượng: khe nứt không gian kỳ dị mở ra tại ({{x}}, {{y}}) nhịp {{tick}}",
+    "outbreakAction": "{{action}} tại nhịp {{tick}}",
     "deathEvent": "{{name}} #{{id}} đã chết do {{cause}} tại nhịp {{tick}} ({{x}}, {{y}})"
   },
   "totems": {

@@ -384,7 +384,18 @@
       "shareCard": "Share Card",
       "shareCardTooltip": "Download 1200x630 share card PNG",
       "showChart": "📈 Chart",
-      "hideChart": "📉 Hide Chart"
+      "hideChart": "📉 Hide Chart",
+      "toggleChart": "Toggle Epoch & Sparkline chart",
+      "unpinDay": "Unpin day",
+      "pinDay": "Pin/bookmark day",
+      "note": "Note:",
+      "notePlaceholder": "Write a custom note for this day...",
+      "shareDay": "🔗 Share Day {{day}}",
+      "linkCopied": "✓ Link Copied!",
+      "miniStory": "📖 Tell me about Day {{day}}",
+      "promptCopied": "✓ Prompt Copied!",
+      "shareDayTooltip": "Copy shareable link to this day",
+      "miniStoryTooltip": "Generate focused 1-day LLM story prompt and copy to clipboard"
     },
     "stats": {
       "battles": "battles",
@@ -396,6 +407,68 @@
       "miracles": "miracles",
       "cataclysms": "cataclysms"
     },
+    "statsTooltips": {
+      "battles": "Major battles fought",
+      "plagues": "Plague outbreaks",
+      "schisms": "Internal rebellions",
+      "successions": "Ruler successions",
+      "temples": "Temples of the Sphere",
+      "miracles": "Avatar seasonal miracles",
+      "cataclysms": "Natural cataclysms"
+    },
+    "dayRange": "Days {{start}}–{{end}}",
+    "epoch": {
+      "title": "⏳ Epochs of History (Days {{start}}–{{end}})",
+      "current": "Current: Day {{day}}",
+      "selected": "Selected: Day {{day}}",
+      "dayRange": "Days {{start}}–{{end}}",
+      "scrubTo": "Scrub to Day {{day}}",
+      "latest": "Latest",
+      "eras": {
+        "genesis": "Genesis Era",
+        "expansion": "Expansion & Faith",
+        "strife": "Age of Strife",
+        "plague": "Plague Era",
+        "ice": "Ice Age",
+        "renaissance": "Renaissance"
+      }
+    },
+    "sparkline": {
+      "title": "📈 Conflict & Crisis Intensity Sparkline",
+      "stats": "Day {{day}}: {{dead}} dead · {{wars}} wars · {{plagues}} plagues",
+      "aliveCurrently": "{{count}} alive currently",
+      "hoverHint": "Hover point for stats"
+    },
+    "warArc": {
+      "title": "⚔️ War Arc Dynamic Linkage"
+    },
+    "totem": "Totem",
+    "aiGenerator": {
+      "storyLang": "Story Language:",
+      "weeklyDigest": "Past 7 Days (Weekly Digest)",
+      "fullChronicle": "Full World Chronicle",
+      "weeklyDigestTooltip": "Focus prompt on the last 7 simulated days as a weekly newsletter",
+      "keySettings": "Key Settings",
+      "keySettingsTooltip": "Configure AI Provider & Key",
+      "provider": "Provider:",
+      "geminiModel": "✨ Google Gemini (1.5 Flash)",
+      "openaiModel": "🤖 OpenAI (GPT-4o Mini)",
+      "geminiPlaceholder": "Enter Google Gemini API key (AIzaSy...)",
+      "openaiPlaceholder": "Enter OpenAI API key (sk-...)",
+      "clear": "Clear",
+      "clientOnlyNote": "🔒 Client-side only: Your key is stored exclusively in your browser's localStorage and calls the API directly. It is NEVER sent to our server.",
+      "composing": "⏳ Composing Chronicle Narrative...",
+      "generateBtn": "✨ Generate Story with AI",
+      "apiKeyRequired": "Please provide your API key first.",
+      "narrativeTitle": "📖 AI Generated Narrative ({{model}})",
+      "copyStory": "📋 Copy Story",
+      "copied": "✓ Copied!",
+      "downloadMd": "💾 Download .md"
+    },
+    "aiWeeklyDigest": "This week (last 7 days)",
+    "aiLang": "Lang",
+    "downloadMdTooltip": "Download Markdown",
+    "downloadJsonTooltip": "Download JSON",
     "analyzing": "Analyzing daily chronicle...",
     "empty": "No days found matching filter.",
     "recordsTitle": "Records & Legends of Flatland",
@@ -482,6 +555,7 @@
       "flashFlood": "Flash Flood",
       "meteor": "Meteor Strike",
       "earthquake": "Earthquake",
+      "worldExtinction": "World Extinction",
       "successionTitle": "Chieftain Succession in {{clan}}",
       "successionDetail": "New ruler #{{leader}} ascended the seat of {{clan}}",
       "coalitionTitle": "Defensive League: {{name}}",
@@ -637,6 +711,13 @@
     "jumpPlaceholder": "Tick #",
     "jumpBtn": "Go",
     "momentsTitle": "Moments",
+    "clearSearch": "Clear search",
+    "jumpTo": "Jump to Day {{day}} (tick {{tick}})",
+    "total": " ({{count}} total)",
+    "showProfile": "show profile",
+    "showPredator": "show predator",
+    "showFallen": "show fallen",
+    "showCreature": "show creature",
     "moments": {
       "day": "Day {{day}}",
       "war": "War",
@@ -970,6 +1051,7 @@
     "fireEvent": "🔥 fire: {{kind}} ignited at ({{x}}, {{y}}) tick {{tick}}",
     "ruinEvent": "🏚️ ruin: house #{{id}} collapsed at ({{x}}, {{y}}) tick {{tick}}",
     "anomalyEvent": "🌀 anomaly: strange rift opened at ({{x}}, {{y}}) tick {{tick}}",
+    "outbreakAction": "{{action}} at tick {{tick}}",
     "deathEvent": "{{name}} #{{id}} died of {{cause}} at tick {{tick}} ({{x}}, {{y}})"
   },
   "totems": {

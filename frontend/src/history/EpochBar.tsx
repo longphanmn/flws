@@ -1,4 +1,6 @@
 
+import { useI18n } from '../i18n'
+
 export interface EpochDef {
   name: string
   icon: string
@@ -15,26 +17,32 @@ interface Props {
   compact?: boolean
 }
 
-export function computeEpochs(maxDay: number): EpochDef[] {
+export function computeEpochs(maxDay: number, t?: (key: string, vars?: any) => string): EpochDef[] {
+  const tr = (k: string, def: string) => {
+    if (!t) return def
+    const res = t(k)
+    return res && res !== k ? res : def
+  }
+
   const epochs: EpochDef[] = []
   if (maxDay < 10) {
-    epochs.push({ name: 'Genesis Era', icon: '🌱', color: '#2ea043', startDay: 0, endDay: maxDay })
+    epochs.push({ name: tr('history.epoch.eras.genesis', 'Genesis Era'), icon: '🌱', color: '#2ea043', startDay: 0, endDay: maxDay })
     return epochs
   }
 
   const milestones = [
-    { name: 'Genesis Era', icon: '🌱', color: '#2ea043', start: 0, end: 9 },
-    { name: 'Expansion & Faith', icon: '🏛️', color: '#1f6feb', start: 10, end: 24 },
-    { name: 'Age of Strife', icon: '⚔️', color: '#f85149', start: 25, end: 44 },
-    { name: 'Plague Era', icon: '☣️', color: '#a371f7', start: 45, end: 64 },
-    { name: 'Ice Age', icon: '❄️', color: '#58a6ff', start: 65, end: 89 },
-    { name: 'Renaissance', icon: '🌟', color: '#d29922', start: 90, end: Infinity },
+    { key: 'genesis', defaultName: 'Genesis Era', icon: '🌱', color: '#2ea043', start: 0, end: 9 },
+    { key: 'expansion', defaultName: 'Expansion & Faith', icon: '🏛️', color: '#1f6feb', start: 10, end: 24 },
+    { key: 'strife', defaultName: 'Age of Strife', icon: '⚔️', color: '#f85149', start: 25, end: 44 },
+    { key: 'plague', defaultName: 'Plague Era', icon: '☣️', color: '#a371f7', start: 45, end: 64 },
+    { key: 'ice', defaultName: 'Ice Age', icon: '❄️', color: '#58a6ff', start: 65, end: 89 },
+    { key: 'renaissance', defaultName: 'Renaissance', icon: '🌟', color: '#d29922', start: 90, end: Infinity },
   ]
 
   for (const m of milestones) {
     if (m.start <= maxDay) {
       epochs.push({
-        name: m.name,
+        name: tr(`history.epoch.eras.${m.key}`, m.defaultName),
         icon: m.icon,
         color: m.color,
         startDay: m.start,
@@ -52,8 +60,9 @@ export default function EpochBar({
   onSelectDay,
   compact = false,
 }: Props) {
+  const { t } = useI18n()
   const maxDay = Math.max(1, totalDays)
-  const epochs = computeEpochs(maxDay)
+  const epochs = computeEpochs(maxDay, t)
 
   return (
     <div
@@ -69,13 +78,12 @@ export default function EpochBar({
         marginBottom: 10,
       }}
     >
-      {/* BM-8: Horizontal Epoch Bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: '#8b949e' }}>
         <span style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          ⏳ Epochs of History (Days 0–{maxDay})
+          {t('history.epoch.title', { start: 0, end: maxDay })}
         </span>
         <span>
-          Current: <b>Day {currentDay}</b> {selectedDay !== null && `· Selected: Day ${selectedDay}`}
+          {t('history.epoch.current', { day: currentDay })}{selectedDay !== null && ` · ${t('history.epoch.selected', { day: selectedDay })}`}
         </span>
       </div>
 
@@ -101,7 +109,7 @@ export default function EpochBar({
               key={ep.name}
               type="button"
               onClick={() => onSelectDay(ep.startDay)}
-              title={`${ep.name} (Days ${ep.startDay}–${ep.endDay === Infinity ? '+' : ep.endDay})`}
+              title={`${ep.name} (${t('history.epoch.dayRange', { start: ep.startDay, end: ep.endDay === Infinity ? '+' : ep.endDay })})`}
               style={{
                 width: `${pct}%`,
                 background: ep.color,
@@ -129,9 +137,8 @@ export default function EpochBar({
         })}
       </div>
 
-      {/* BM-10: Day Navigator Scrubber Slider */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 2 }}>
-        <span style={{ fontSize: 11, color: '#8b949e', flex: 'none' }}>Day 0</span>
+        <span style={{ fontSize: 11, color: '#8b949e', flex: 'none' }}>{t('history.dayNumber', { day: 0 })}</span>
         <input
           type="range"
           min={0}
@@ -144,9 +151,9 @@ export default function EpochBar({
             cursor: 'pointer',
             height: 6,
           }}
-          title={`Scrub to Day ${selectedDay ?? currentDay}`}
+          title={t('history.epoch.scrubTo', { day: selectedDay ?? currentDay })}
         />
-        <span style={{ fontSize: 11, color: '#8b949e', flex: 'none' }}>Day {maxDay}</span>
+        <span style={{ fontSize: 11, color: '#8b949e', flex: 'none' }}>{t('history.dayNumber', { day: maxDay })}</span>
         <button
           type="button"
           className="chip"
@@ -161,7 +168,7 @@ export default function EpochBar({
             flex: 'none',
           }}
         >
-          Latest
+          {t('history.epoch.latest')}
         </button>
       </div>
     </div>

@@ -1,4 +1,6 @@
 
+import { useI18n } from '../i18n'
+
 interface WarDetail {
   aName: string
   bName: string
@@ -11,6 +13,7 @@ interface Props {
 }
 
 export default function WarArcGraph({ wars }: Props) {
+  const { t } = useI18n()
   if (wars.length === 0) return null
 
   // Extract unique clans
@@ -44,7 +47,7 @@ export default function WarArcGraph({ wars }: Props) {
       }}
     >
       <div style={{ fontSize: 10.5, color: '#8b949e', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
-        ⚔️ War Arc Dynamic Linkage
+        {t('history.warArc.title')}
       </div>
 
       <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 90, overflow: 'visible' }}>
