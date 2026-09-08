@@ -131,13 +131,18 @@ body {
 /* ---- regulation status indicator (bottom-left of screen) ---- */
 .regulation-status-container {
   position: absolute;
-  bottom: 12px;
+  top: auto;
+  bottom: 42px;
   left: 14px;
+  right: auto;
   z-index: 25;
   pointer-events: none;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  width: fit-content;
+  max-width: calc(100% - 28px);
+  transform: none;
   transition: left 0.2s ease, opacity 0.2s ease;
 }
 
@@ -203,10 +208,14 @@ body {
 /* ---- §BK-8 Map Lens Switcher Toolbar (Bottom-Left HUD) ---- */
 .lens-switcher-toolbar {
   position: absolute;
+  top: auto;
   bottom: 12px;
   left: 14px;
+  right: auto;
   z-index: 24;
   display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 2px;
   padding: 2px 4px;
@@ -218,11 +227,18 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   transition: left 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
+  width: fit-content;
+  max-width: calc(100% - 28px);
+  height: auto;
+  min-height: 0;
+  max-height: 28px;
+  transform: none;
 }
 
 .lens-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 3px;
   padding: 2px 6px;
   background: transparent;
@@ -234,6 +250,11 @@ body {
   cursor: pointer;
   transition: all 0.15s ease;
   line-height: 1;
+  height: 22px;
+  min-height: 0 !important;
+  max-height: 22px;
+  white-space: nowrap;
+  flex: none;
 }
 
 .lens-btn:hover {
@@ -266,18 +287,45 @@ body {
 
 @media (max-width: 768px) {
   .lens-switcher-toolbar {
-    bottom: calc(var(--thumb-h, 50px) + 8px);
+    position: absolute !important;
+    top: auto !important;
+    bottom: 8px !important;
     left: 8px !important;
-    transform: none;
-    padding: 2px 3px;
-    gap: 2px;
+    right: auto !important;
+    transform: none !important;
+    padding: 2px 3px !important;
+    gap: 2px !important;
+    width: fit-content !important;
+    max-width: calc(100vw - 16px) !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: 26px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
   }
   .lens-btn {
-    padding: 2px 5px;
-    font-size: 9.5px;
+    padding: 2px 5px !important;
+    font-size: 9.5px !important;
+    height: 20px !important;
+    min-height: 0 !important;
+    max-height: 20px !important;
+    flex: none !important;
+    white-space: nowrap !important;
+    line-height: 1 !important;
   }
   .lens-btn .lens-num {
-    display: none;
+    display: none !important;
+  }
+  .regulation-status-container {
+    top: auto !important;
+    bottom: 38px !important;
+    left: 8px !important;
+    right: auto !important;
+    width: fit-content !important;
+    transform: none !important;
   }
 }
 
@@ -2404,7 +2452,7 @@ select {
   select{ min-height: 34px; }
   .chronicle-controls-pill-row button,
   .mobile-sheet-tabs button,
-  .god-hint-btn, .god-pill-step, .god-switch-btn,
+  .god-hint-btn, .god-pill-step, .god-switch-btn, .lens-btn,
   .mobile-sheet-close, .god-close { min-height: 0 !important; }
   .hide-mobile{ display:none !important; }
   .inspector[data-snap="peek"]{ height:30dvh !important; max-height:30dvh; }

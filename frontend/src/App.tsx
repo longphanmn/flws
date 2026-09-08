@@ -769,8 +769,19 @@ export default function App() {
           role="toolbar"
           aria-label="Map Lenses"
           style={{
-            left: !isMobile && (selectedId !== null || selectedClanId !== null) ? 406 : 14,
-            bottom: isMobile ? 'calc(var(--thumb-h, 50px) + 8px)' : 12,
+            position: 'absolute',
+            top: 'auto',
+            right: 'auto',
+            left: !isMobile && (selectedId !== null || selectedClanId !== null) ? 406 : (isMobile ? 8 : 14),
+            bottom: isMobile ? 8 : 12,
+            transform: 'none',
+            width: 'fit-content',
+            height: 'auto',
+            maxHeight: 28,
+            display: 'flex',
+            flexDirection: 'row',
+            flexWrap: 'nowrap',
+            alignItems: 'center',
           }}
         >
           <button
@@ -815,8 +826,13 @@ export default function App() {
           <div
             className="regulation-status-container"
             style={{
-              left: !isMobile && (selectedId !== null || selectedClanId !== null) ? 406 : 14,
-              bottom: isMobile ? 'calc(var(--thumb-h, 50px) + 38px)' : 42,
+              position: 'absolute',
+              top: 'auto',
+              right: 'auto',
+              left: !isMobile && (selectedId !== null || selectedClanId !== null) ? 406 : (isMobile ? 8 : 14),
+              bottom: isMobile ? 38 : 42,
+              width: 'fit-content',
+              transform: 'none',
             }}
           >
             {isSafeguardActive && (
