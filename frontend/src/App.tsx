@@ -142,8 +142,8 @@ export default function App() {
   useEffect(() => {
     fetch('/api/version')
       .then((r) => r.json())
-      .then((d) => setVersionInfo({ version: d.version ?? '0.1.5', revision: d.revision ?? '' }))
-      .catch(() => setVersionInfo({ version: '0.1.5', revision: '' }))
+      .then((d) => setVersionInfo({ version: d.version ?? '0.1.6', revision: d.revision ?? '' }))
+      .catch(() => setVersionInfo({ version: '0.1.6', revision: '' }))
   }, [])
 
   useEffect(() => {
@@ -1157,7 +1157,7 @@ export default function App() {
       )}
       {!isMobile && (
         <div className="version-bar" title={versionInfo ? `v${versionInfo.version} · ${versionInfo.revision} · Developed by Long Phan <long@minhnhan.in> · Built with OpenCode & Antigravity` : 'Flatland · Developed by Long Phan <long@minhnhan.in>'}>
-          {versionInfo ? `v${versionInfo.version} · ${versionInfo.revision}` : 'v0.1.5'} · <span style={{ opacity: 0.85 }}>Developed by Long Phan · <a href="mailto:long@minhnhan.in" style={{ color: 'inherit', textDecoration: 'underline' }}>long@minhnhan.in</a></span>
+          {versionInfo ? `v${versionInfo.version} · ${versionInfo.revision}` : 'v0.1.6'} · <span style={{ opacity: 0.85 }}>Developed by Long Phan · <a href="mailto:long@minhnhan.in" style={{ color: 'inherit', textDecoration: 'underline' }}>long@minhnhan.in</a></span>
         </div>
       )}
       <AuthModal />

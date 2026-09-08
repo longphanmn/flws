@@ -1,6 +1,6 @@
 [project]
 name = "flatworld-backend"
-version = "0.1.5"
+version = "0.1.6"
 description = "Flatland 2D world simulation backend (FastAPI + WebSocket)"
 authors = [{ name = "Long Phan", email = "long@minhnhan.in" }]
 maintainers = [{ name = "Long Phan", email = "long@minhnhan.in" }]

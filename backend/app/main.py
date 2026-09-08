@@ -867,7 +867,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="Flatland World Simulation",
-    version="0.1.5",
+    version="0.1.6",
     description="Flatland — 2D world simulation by Long Phan <long@minhnhan.in>",
     contact={"name": "Long Phan", "email": "long@minhnhan.in", "url": "https://minhnhan.in"},
     lifespan=lifespan,
@@ -2905,7 +2905,7 @@ async def get_version() -> dict:
     if _VERSION_CACHE is not None:
         return _VERSION_CACHE
     import subprocess
-    version = "0.1.5"
+    version = "0.1.6"
     revision = ""
     try:
         import tomllib

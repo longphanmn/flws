@@ -772,7 +772,7 @@ tr:hover td {{ background: rgba(56, 139, 253, 0.05); }}
       <h2>📖 {wiki_heading}</h2>
       <div style="font-size:10.5px;color:var(--text-muted);margin-top:2px">Flatland Guide &amp; Living Encyclopedia</div>
     </div>
-    <span class="version-tag">v0.1.5</span>
+    <span class="version-tag">v0.1.6</span>
   </div>
 
   <div class="lang-switcher">
