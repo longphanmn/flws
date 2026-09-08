@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { DayRecord } from './WorldHistoryModal'
+import { useI18n } from '../i18n'
 
 interface Props {
   dayRecords: DayRecord[]
@@ -8,9 +9,10 @@ interface Props {
 }
 
 export default function HistoryAnalytics({ dayRecords: _dayRecords, clans, rawEvents }: Props) {
+  const { t } = useI18n()
   const [activeTab, setActiveTab] = useState<'rivalry' | 'mortality' | 'faith'>('rivalry')
 
-  // BM-14: Clan Rivalry Matrix
+  // Clan Rivalry Matrix
   const clanList = useMemo(() => {
     return Object.values(clans).filter((c: any) => c.name).slice(0, 12)
   }, [clans])
@@ -134,63 +136,72 @@ export default function HistoryAnalytics({ dayRecords: _dayRecords, clans, rawEv
           className="chip"
           onClick={() => setActiveTab('rivalry')}
           style={{
-            background: activeTab === 'rivalry' ? '#388bfd' : '#21262d',
-            color: activeTab === 'rivalry' ? '#fff' : '#c9d1d9',
-            borderColor: activeTab === 'rivalry' ? '#58a6ff' : '#30363d',
-            fontWeight: 600,
+            background: activeTab === 'rivalry' ? 'rgba(56,139,253,0.15)' : '#161b22',
+            color: activeTab === 'rivalry' ? '#58a6ff' : '#8b949e',
+            borderColor: activeTab === 'rivalry' ? 'rgba(88,166,255,0.4)' : '#30363d',
+            fontWeight: activeTab === 'rivalry' ? 700 : 500,
             cursor: 'pointer',
+            padding: '5px 12px',
+            borderRadius: 6,
+            fontSize: 12,
           }}
         >
-          ⚔️ Clan Rivalry Matrix (BM-14)
+          {t('history.analytics.rivalryTab')}
         </button>
         <button
           type="button"
           className="chip"
           onClick={() => setActiveTab('mortality')}
           style={{
-            background: activeTab === 'mortality' ? '#388bfd' : '#21262d',
-            color: activeTab === 'mortality' ? '#fff' : '#c9d1d9',
-            borderColor: activeTab === 'mortality' ? '#58a6ff' : '#30363d',
-            fontWeight: 600,
+            background: activeTab === 'mortality' ? 'rgba(56,139,253,0.15)' : '#161b22',
+            color: activeTab === 'mortality' ? '#58a6ff' : '#8b949e',
+            borderColor: activeTab === 'mortality' ? 'rgba(88,166,255,0.4)' : '#30363d',
+            fontWeight: activeTab === 'mortality' ? 700 : 500,
             cursor: 'pointer',
+            padding: '5px 12px',
+            borderRadius: 6,
+            fontSize: 12,
           }}
         >
-          💀 Mortality Breakdown per Era (BM-15)
+          {t('history.analytics.mortalityTab')}
         </button>
         <button
           type="button"
           className="chip"
           onClick={() => setActiveTab('faith')}
           style={{
-            background: activeTab === 'faith' ? '#388bfd' : '#21262d',
-            color: activeTab === 'faith' ? '#fff' : '#c9d1d9',
-            borderColor: activeTab === 'faith' ? '#58a6ff' : '#30363d',
-            fontWeight: 600,
+            background: activeTab === 'faith' ? 'rgba(56,139,253,0.15)' : '#161b22',
+            color: activeTab === 'faith' ? '#58a6ff' : '#8b949e',
+            borderColor: activeTab === 'faith' ? 'rgba(88,166,255,0.4)' : '#30363d',
+            fontWeight: activeTab === 'faith' ? 700 : 500,
             cursor: 'pointer',
+            padding: '5px 12px',
+            borderRadius: 6,
+            fontSize: 12,
           }}
         >
-          🏛️ Faith Index Over Time (BM-16)
+          {t('history.analytics.faithTab')}
         </button>
       </div>
 
-      {/* BM-14: Rivalry Matrix */}
+      {/* Rivalry Matrix */}
       {activeTab === 'rivalry' && (
         <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '12px' }}>
           <div style={{ marginBottom: 10 }}>
-            <h4 style={{ margin: 0, fontSize: 13, color: '#e6edf3' }}>Pairwise Clan Hostility Heatmap</h4>
+            <h4 style={{ margin: 0, fontSize: 13, color: '#e6edf3' }}>{t('history.analytics.rivalryTitle')}</h4>
             <span style={{ fontSize: 11, color: '#8b949e' }}>
-              Hostility points from wars, conquests, and diplomatic betrayals. Darker red indicates ancient blood feuds.
+              {t('history.analytics.rivalryDesc')}
             </span>
           </div>
 
           {clanList.length === 0 ? (
-            <div style={{ color: '#8b949e', fontSize: 12 }}>No formal clans recorded yet.</div>
+            <div style={{ color: '#8b949e', fontSize: 12 }}>{t('history.analytics.noClans')}</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ borderCollapse: 'collapse', fontSize: 11, width: '100%' }}>
                 <thead>
                   <tr>
-                    <th style={{ padding: '6px 8px', textAlign: 'left', color: '#8b949e' }}>Clan</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'left', color: '#8b949e' }}>{t('history.analytics.clanCol')}</th>
                     {clanList.map((c) => (
                       <th
                         key={c.id}
@@ -225,7 +236,7 @@ export default function HistoryAnalytics({ dayRecords: _dayRecords, clans, rawEv
                               fontWeight: score > 0 ? 700 : 400,
                               borderRadius: 2,
                             }}
-                            title={isSelf ? 'Self' : `${c1.name} vs ${c2.name}: ${score} hostility score`}
+                            title={isSelf ? t('history.analytics.self') : `${c1.name} vs ${c2.name}: ${score}`}
                           >
                             {isSelf ? '—' : score > 0 ? score : '0'}
                           </td>
@@ -240,26 +251,26 @@ export default function HistoryAnalytics({ dayRecords: _dayRecords, clans, rawEv
         </div>
       )}
 
-      {/* BM-15: Cause of Death Stacked Bars */}
+      {/* Cause of Death Stacked Bars */}
       {activeTab === 'mortality' && (
         <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '12px' }}>
           <div style={{ marginBottom: 10 }}>
-            <h4 style={{ margin: 0, fontSize: 13, color: '#e6edf3' }}>Mortality Breakdown Across 10-Day Epochs</h4>
+            <h4 style={{ margin: 0, fontSize: 13, color: '#e6edf3' }}>{t('history.analytics.mortalityTitle')}</h4>
             <span style={{ fontSize: 11, color: '#8b949e' }}>
-              Shift in demographic fatality causes as civilization scales from early famine into imperial warfare and plagues.
+              {t('history.analytics.mortalityDesc')}
             </span>
           </div>
 
           <div style={{ display: 'flex', gap: 12, marginBottom: 10, fontSize: 11, color: '#8b949e', flexWrap: 'wrap' }}>
-            <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#f85149', marginRight: 4, borderRadius: 2 }} /> Combat</span>
-            <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#a371f7', marginRight: 4, borderRadius: 2 }} /> Plague / Disease</span>
-            <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#e3b341', marginRight: 4, borderRadius: 2 }} /> Predation</span>
-            <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#f0883e', marginRight: 4, borderRadius: 2 }} /> Starvation</span>
-            <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#8b949e', marginRight: 4, borderRadius: 2 }} /> Natural / Other</span>
+            <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#f85149', marginRight: 4, borderRadius: 2 }} /> {t('history.analytics.combat')}</span>
+            <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#a371f7', marginRight: 4, borderRadius: 2 }} /> {t('history.analytics.disease')}</span>
+            <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#e3b341', marginRight: 4, borderRadius: 2 }} /> {t('history.analytics.predation')}</span>
+            <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#f0883e', marginRight: 4, borderRadius: 2 }} /> {t('history.analytics.hunger')}</span>
+            <span><span style={{ display: 'inline-block', width: 10, height: 10, background: '#8b949e', marginRight: 4, borderRadius: 2 }} /> {t('history.analytics.other')}</span>
           </div>
 
           {mortalityBuckets.length === 0 ? (
-            <div style={{ color: '#8b949e', fontSize: 12 }}>No casualty data recorded.</div>
+            <div style={{ color: '#8b949e', fontSize: 12 }}>{t('history.analytics.noCasualties')}</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {mortalityBuckets.map((b) => {
@@ -274,14 +285,14 @@ export default function HistoryAnalytics({ dayRecords: _dayRecords, clans, rawEv
                   <div key={b.era} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
                       <span style={{ color: '#e6edf3', fontWeight: 600 }}>{b.era}</span>
-                      <span style={{ color: '#8b949e' }}>{b.total} casualties</span>
+                      <span style={{ color: '#8b949e' }}>{t('history.analytics.casualtiesCount', { count: b.total })}</span>
                     </div>
                     <div style={{ display: 'flex', height: 14, borderRadius: 4, overflow: 'hidden', background: '#0d1117' }}>
-                      {pCombat > 0 && <div style={{ width: `${pCombat}%`, background: '#f85149' }} title={`Combat: ${b.combat} (${pCombat.toFixed(0)}%)`} />}
-                      {pDisease > 0 && <div style={{ width: `${pDisease}%`, background: '#a371f7' }} title={`Plague: ${b.disease} (${pDisease.toFixed(0)}%)`} />}
-                      {pPred > 0 && <div style={{ width: `${pPred}%`, background: '#e3b341' }} title={`Predation: ${b.predation} (${pPred.toFixed(0)}%)`} />}
-                      {pHunger > 0 && <div style={{ width: `${pHunger}%`, background: '#f0883e' }} title={`Starvation: ${b.hunger} (${pHunger.toFixed(0)}%)`} />}
-                      {pOther > 0 && <div style={{ width: `${pOther}%`, background: '#8b949e' }} title={`Other: ${b.other} (${pOther.toFixed(0)}%)`} />}
+                      {pCombat > 0 && <div style={{ width: `${pCombat}%`, background: '#f85149' }} title={`${t('history.analytics.combat')}: ${b.combat} (${pCombat.toFixed(0)}%)`} />}
+                      {pDisease > 0 && <div style={{ width: `${pDisease}%`, background: '#a371f7' }} title={`${t('history.analytics.disease')}: ${b.disease} (${pDisease.toFixed(0)}%)`} />}
+                      {pPred > 0 && <div style={{ width: `${pPred}%`, background: '#e3b341' }} title={`${t('history.analytics.predation')}: ${b.predation} (${pPred.toFixed(0)}%)`} />}
+                      {pHunger > 0 && <div style={{ width: `${pHunger}%`, background: '#f0883e' }} title={`${t('history.analytics.hunger')}: ${b.hunger} (${pHunger.toFixed(0)}%)`} />}
+                      {pOther > 0 && <div style={{ width: `${pOther}%`, background: '#8b949e' }} title={`${t('history.analytics.other')}: ${b.other} (${pOther.toFixed(0)}%)`} />}
                     </div>
                   </div>
                 )
@@ -291,18 +302,18 @@ export default function HistoryAnalytics({ dayRecords: _dayRecords, clans, rawEv
         </div>
       )}
 
-      {/* BM-16: Faith Index Over Time */}
+      {/* Faith Index Over Time */}
       {activeTab === 'faith' && (
         <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '12px' }}>
           <div style={{ marginBottom: 10 }}>
-            <h4 style={{ margin: 0, fontSize: 13, color: '#e6edf3' }}>Theological & Miraculous Activity</h4>
+            <h4 style={{ margin: 0, fontSize: 13, color: '#e6edf3' }}>{t('history.analytics.faithTitle')}</h4>
             <span style={{ fontSize: 11, color: '#8b949e' }}>
-              Tracking consecrated temples, celestial avatar miracles, and cosmic epiphanies across epochs.
+              {t('history.analytics.faithDesc')}
             </span>
           </div>
 
           {faithBuckets.length === 0 ? (
-            <div style={{ color: '#8b949e', fontSize: 12 }}>No spiritual manifestations recorded.</div>
+            <div style={{ color: '#8b949e', fontSize: 12 }}>{t('history.analytics.noFaith')}</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {faithBuckets.map((b) => (
@@ -321,10 +332,10 @@ export default function HistoryAnalytics({ dayRecords: _dayRecords, clans, rawEv
                 >
                   <span style={{ fontWeight: 600, color: '#e6edf3' }}>{b.era}</span>
                   <div style={{ display: 'flex', gap: 10, color: '#8b949e' }}>
-                    <span>🏛️ <b>{b.temples}</b> Temples</span>
-                    <span>🌸 <b>{b.miracles}</b> Miracles</span>
-                    <span>🔮 <b>{b.epiphanies}</b> Epiphanies</span>
-                    <span style={{ color: '#e3b341', fontWeight: 700 }}>Score: {b.score}</span>
+                    <span>🏛️ <b>{b.temples}</b> {t('history.analytics.temples')}</span>
+                    <span>🌸 <b>{b.miracles}</b> {t('history.analytics.miracles')}</span>
+                    <span>🔮 <b>{b.epiphanies}</b> {t('history.analytics.epiphanies')}</span>
+                    <span style={{ color: '#e3b341', fontWeight: 700 }}>{t('history.analytics.faithScore')}: {b.score}</span>
                   </div>
                 </div>
               ))}

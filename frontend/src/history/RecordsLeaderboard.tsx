@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import type { DayRecord } from './WorldHistoryModal'
 import { totemEmoji } from '../totems'
+import { useI18n } from '../i18n'
 
 interface Props {
   dayRecords: DayRecord[]
@@ -17,6 +18,7 @@ export default function RecordsLeaderboard({
   onSelectClan,
   onSelectCreature,
 }: Props) {
+  const { t } = useI18n()
   const records = useMemo(() => {
     // 1. Clan by war wins
     const clanList = Object.values(clans)
@@ -95,57 +97,57 @@ export default function RecordsLeaderboard({
 
   const items = [
     {
-      title: '⚔️ Sovereign of War',
-      metric: `${records.topWarClan?.war_wins ?? 0} Victories`,
-      holder: records.topWarClan?.name ?? 'None',
-      sub: `${records.topWarClan?.war_losses ?? 0} defeats recorded`,
+      title: t('history.records.sovereignOfWar'),
+      metric: `${records.topWarClan?.war_wins ?? 0} ${t('history.records.victories')}`,
+      holder: records.topWarClan?.name ?? t('history.records.none'),
+      sub: t('history.records.defeatsRecorded', { count: records.topWarClan?.war_losses ?? 0 }),
       color: '#ff7b72',
       onClick: records.topWarClan ? () => onSelectClan?.(records.topWarClan.id) : undefined,
     },
     {
-      title: '💀 Deadliest Single Day',
-      metric: `${records.deadliestDay?.totalCasualties ?? 0} Fallen`,
-      holder: records.deadliestDay ? `Day ${records.deadliestDay.day}` : 'None',
+      title: t('history.records.deadliestDay'),
+      metric: `${records.deadliestDay?.totalCasualties ?? 0} ${t('history.records.fallen')}`,
+      holder: records.deadliestDay ? t('history.dayNumber', { day: records.deadliestDay.day }) : t('history.records.none'),
       sub: records.deadliestDay?.summaryLine ?? '',
       color: '#f85149',
     },
     {
-      title: '👑 Greatest Realm (Population)',
-      metric: `${records.topPopClan?.population ?? 0} Living`,
-      holder: records.topPopClan?.name ?? 'None',
-      sub: `Totem: ${records.topPopClan?.totem ? `${totemEmoji(records.topPopClan.totem)} ${records.topPopClan.totem}` : 'Unknown'}`,
+      title: t('history.records.greatestRealm'),
+      metric: `${records.topPopClan?.population ?? 0} ${t('history.records.living')}`,
+      holder: records.topPopClan?.name ?? t('history.records.none'),
+      sub: records.topPopClan?.totem ? `Totem: ${totemEmoji(records.topPopClan.totem)} ${records.topPopClan.totem}` : '',
       color: '#79c0ff',
       onClick: records.topPopClan ? () => onSelectClan?.(records.topPopClan.id) : undefined,
     },
     {
-      title: '🏛️ Divine Architects',
-      metric: `${records.topTempleClan?.count ?? 0} Temples Raised`,
-      holder: records.topTempleClan?.name ?? 'None',
-      sub: 'Sanctuaries consecrated to the Sphere',
+      title: t('history.records.divineArchitects'),
+      metric: `${records.topTempleClan?.count ?? 0} ${t('history.records.templesRaised')}`,
+      holder: records.topTempleClan?.name ?? t('history.records.none'),
+      sub: t('history.records.sanctuaries'),
       color: '#e3b341',
       onClick: records.topTempleClan ? () => onSelectClan?.(records.topTempleClan.id) : undefined,
     },
     {
-      title: '🗡️ Deadliest Champion (Hero)',
-      metric: `${records.topHero?.count ?? 0} Kills`,
-      holder: records.topHero ? `${records.topHero.name ?? ''} #${records.topHero.id}` : 'None',
-      sub: `${records.topHero?.caste ?? 'Warrior'} · Vanquisher in single combat`,
+      title: t('history.records.deadliestChampion'),
+      metric: `${records.topHero?.count ?? 0} ${t('history.records.kills')}`,
+      holder: records.topHero ? `${records.topHero.name ?? ''} #${records.topHero.id}` : t('history.records.none'),
+      sub: `${records.topHero?.caste ?? 'Warrior'} · ${t('history.records.vanquisher')}`,
       color: '#3fb950',
       onClick: records.topHero ? () => onSelectCreature?.(records.topHero.id) : undefined,
     },
     {
-      title: '🐍 Infamous Traitor (Villain)',
-      metric: `${records.topVillain?.count ?? 0} Treasons`,
-      holder: records.topVillain ? `${records.topVillain.name ?? ''} #${records.topVillain.id}` : 'None',
-      sub: 'Instigator of regicide and factional betrayal',
+      title: t('history.records.infamousTraitor'),
+      metric: `${records.topVillain?.count ?? 0} ${t('history.records.treasons')}`,
+      holder: records.topVillain ? `${records.topVillain.name ?? ''} #${records.topVillain.id}` : t('history.records.none'),
+      sub: t('history.records.instigator'),
       color: '#d2a8ff',
       onClick: records.topVillain ? () => onSelectCreature?.(records.topVillain.id) : undefined,
     },
     {
-      title: '⚡ Greatest Tribal Schism',
-      metric: `${records.largestSchism?.count ?? 0} Rebels`,
-      holder: records.largestSchism ? `${records.largestSchism.child}` : 'None',
-      sub: records.largestSchism ? `Seceded from ${records.largestSchism.parent} on Day ${records.largestSchism.day}` : '',
+      title: t('history.records.greatestSchism'),
+      metric: `${records.largestSchism?.count ?? 0} ${t('history.records.rebels')}`,
+      holder: records.largestSchism ? `${records.largestSchism.child}` : t('history.records.none'),
+      sub: records.largestSchism ? t('history.records.seceded', { parent: records.largestSchism.parent, day: records.largestSchism.day }) : '',
       color: '#f0883e',
     },
   ]
@@ -155,10 +157,10 @@ export default function RecordsLeaderboard({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h3 style={{ margin: 0, fontSize: 15, color: '#e6edf3', fontWeight: 700 }}>
-            🏆 Records & Legends of Flatland (BM-13)
+            {t('history.recordsTitle')}
           </h3>
           <span style={{ fontSize: 11, color: '#8b949e' }}>
-            All-time world records, conquerors, martyrs, and epochal landmarks.
+            {t('history.recordsSubtitle')}
           </span>
         </div>
       </div>

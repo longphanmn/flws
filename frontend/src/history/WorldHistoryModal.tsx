@@ -175,6 +175,13 @@ export default function WorldHistoryModal({
     } catch { /* ignore */ }
     return 'saga'
   })
+  const [showTimelineChart, setShowTimelineChart] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('history-show-chart') === 'true'
+    } catch {
+      return false
+    }
+  })
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768)
 
   useEffect(() => {
@@ -890,268 +897,218 @@ ${langInstruction}
           overflow: 'hidden',
         }}
       >
-        {/* Header — sticky on phone so topbar never scrolls under notch */}
-        <header
-          style={{
-            padding: isMobile ? 'max(10px, env(safe-area-inset-top)) 12px 8px' : '14px 18px',
-            borderBottom: '1px solid #21262d',
-            background: '#161b22',
-            display: 'flex',
-            flexDirection: isMobile ? 'column' : 'row',
-            justifyContent: 'space-between',
-            alignItems: isMobile ? 'stretch' : 'center',
-            gap: isMobile ? 8 : 12,
-            position: isMobile ? ('sticky' as const) : undefined,
-            top: isMobile ? 0 : undefined,
-            zIndex: isMobile ? 5 : undefined,
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: isMobile ? '100%' : 'auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 10 }}>
-              <span style={{ fontSize: isMobile ? 20 : 24 }}>📜</span>
-              <div>
-                <h2 style={{ fontSize: isMobile ? 14 : 16, margin: 0, color: '#e6edf3', fontWeight: 700 }}>
-                  {t('history.title')}
-                </h2>
-                <div style={{ fontSize: 10.5, color: '#8b949e', marginTop: 1, wordBreak: 'break-word', overflowWrap: 'anywhere' as any }}>
-                  {t('history.subtitle', { seed: state?.seed ?? 42, days: dayRecords.length, alive: state?.creatures_alive ?? 0 })}
-                </div>
+        {/* Header */}
+        <header className="history-modal-head">
+          <div className="history-head-title-wrap">
+            <span className="history-head-icon">📜</span>
+            <div>
+              <h2 className="history-head-title">
+                {t('history.title')}
+              </h2>
+              <div className="history-head-subtitle">
+                {t('history.subtitle', { seed: state?.seed ?? 42, days: dayRecords.length, alive: state?.creatures_alive ?? 0 })}
               </div>
             </div>
             {isMobile && (
               <button
-                className="god-close"
+                className="history-close-btn"
                 onClick={onClose}
-                style={{ fontSize: 22, cursor: 'pointer', color: '#8b949e', background: 'transparent', border: 'none', padding: '0 6px', minHeight: 28 }}
+                aria-label="Close"
               >
-                ×
+                ✕
               </button>
             )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: isMobile ? '100%' : 'auto', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => setActiveTab('timeline')}
-              className="chip"
-              style={{
-                flex: isMobile ? 1 : 'none',
-                justifyContent: 'center',
-                background: activeTab === 'timeline' ? '#238636' : '#21262d',
-                color: activeTab === 'timeline' ? '#fff' : '#c9d1d9',
-                borderColor: activeTab === 'timeline' ? '#2ea043' : '#30363d',
-                padding: isMobile ? '6px 8px' : '6px 10px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: isMobile ? 11 : 12,
-              }}
-            >
-              📅 {t('history.tabs.timeline', { count: filteredDays.length })}
-            </button>
-            <button
-              onClick={() => setActiveTab('records')}
-              className="chip"
-              style={{
-                flex: isMobile ? 1 : 'none',
-                justifyContent: 'center',
-                background: activeTab === 'records' ? '#d29922' : '#21262d',
-                color: activeTab === 'records' ? '#fff' : '#c9d1d9',
-                borderColor: activeTab === 'records' ? '#e3b341' : '#30363d',
-                padding: isMobile ? '6px 8px' : '6px 10px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: isMobile ? 11 : 12,
-              }}
-            >
-              🏆 Records
-            </button>
-            <button
-              onClick={() => setActiveTab('analytics')}
-              className="chip"
-              style={{
-                flex: isMobile ? 1 : 'none',
-                justifyContent: 'center',
-                background: activeTab === 'analytics' ? '#8957e5' : '#21262d',
-                color: activeTab === 'analytics' ? '#fff' : '#c9d1d9',
-                borderColor: activeTab === 'analytics' ? '#a371f7' : '#30363d',
-                padding: isMobile ? '6px 8px' : '6px 10px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: isMobile ? 11 : 12,
-              }}
-            >
-              📊 Analytics
-            </button>
-            <button
-              onClick={() => setActiveTab('llm')}
-              className="chip"
-              style={{
-                flex: isMobile ? 1 : 'none',
-                justifyContent: 'center',
-                background: activeTab === 'llm' ? '#1f6feb' : '#21262d',
-                color: activeTab === 'llm' ? '#fff' : '#c9d1d9',
-                borderColor: activeTab === 'llm' ? '#388bfd' : '#30363d',
-                padding: isMobile ? '6px 8px' : '6px 10px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: isMobile ? 11 : 12,
-              }}
-            >
-              ✨ {t('history.tabs.ai')}
-            </button>
-
-            {/* BM-21: Share World Card Button */}
-            <button
-              type="button"
-              className="chip"
-              onClick={handleShareCard}
-              style={{
-                background: 'rgba(56, 139, 253, 0.15)',
-                borderColor: 'rgba(56, 139, 253, 0.4)',
-                color: '#58a6ff',
-                cursor: 'pointer',
-                padding: isMobile ? '6px 8px' : '6px 10px',
-                fontSize: isMobile ? 11 : 12,
-                fontWeight: 600,
-              }}
-              title="Generate and download 1200x630 share card PNG (BM-21)"
-            >
-              📸 Share Card
-            </button>
-
-            {!isMobile && (
+          <div className="history-head-controls">
+            <div className="history-segmented-nav" role="tablist">
               <button
-                className="god-close"
-                onClick={onClose}
-                style={{ fontSize: 20, cursor: 'pointer', color: '#8b949e', marginLeft: 4 }}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 'timeline'}
+                className={`history-nav-item ${activeTab === 'timeline' ? 'active' : ''}`}
+                onClick={() => setActiveTab('timeline')}
               >
-                ×
+                <span className="history-nav-icon">📅</span>
+                <span className="history-nav-text">{t('history.tabs.timelineTab') || 'Timeline'}</span>
+                <span className="history-nav-badge">{filteredDays.length}</span>
               </button>
-            )}
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 'records'}
+                className={`history-nav-item ${activeTab === 'records' ? 'active' : ''}`}
+                onClick={() => setActiveTab('records')}
+              >
+                <span className="history-nav-icon">🏆</span>
+                <span className="history-nav-text">{t('history.tabs.recordsTab') || 'Records'}</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 'analytics'}
+                className={`history-nav-item ${activeTab === 'analytics' ? 'active' : ''}`}
+                onClick={() => setActiveTab('analytics')}
+              >
+                <span className="history-nav-icon">📊</span>
+                <span className="history-nav-text">{t('history.tabs.analyticsTab') || 'Analytics'}</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 'llm'}
+                className={`history-nav-item ${activeTab === 'llm' ? 'active' : ''}`}
+                onClick={() => setActiveTab('llm')}
+              >
+                <span className="history-nav-icon">✨</span>
+                <span className="history-nav-text">{t('history.tabs.aiTab') || 'AI Story'}</span>
+              </button>
+            </div>
+
+            <div className="history-head-actions">
+              <button
+                type="button"
+                className="history-tool-btn"
+                onClick={handleShareCard}
+                title={t('history.actions.shareCardTooltip') || 'Download 1200x630 share card PNG'}
+              >
+                <span>📸</span>
+                <span className="history-tool-label">{t('history.actions.shareCard') || 'Share'}</span>
+              </button>
+
+              {!isMobile && (
+                <button
+                  type="button"
+                  className="history-close-btn"
+                  onClick={onClose}
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
         </header>
 
         {/* Major Stats Ticker */}
-        <div
-          style={{
-            display: 'flex',
-            overflowX: 'auto',
-            gap: 6,
-            padding: isMobile ? '6px 10px' : '8px 16px',
-            background: 'rgba(110,118,129,0.06)',
-            borderBottom: '1px solid #21262d',
-            fontSize: isMobile ? 10.5 : 11,
-            scrollbarWidth: 'none',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <div className="chip" style={{ flexShrink: 0 }} title="Major battles fought">
+        <div className="history-stats-ticker">
+          <span className="history-stat-item" title="Major battles fought">
             ⚔️ <b>{totalStats.wars}</b> {t('history.stats.battles')} ({totalStats.lethalWars} {t('history.stats.fallen')})
-          </div>
-          <div className="chip" style={{ flexShrink: 0 }} title="Plague outbreaks">
+          </span>
+          <span className="history-stat-dot">·</span>
+          <span className="history-stat-item" title="Plague outbreaks">
             ☣️ <b>{totalStats.outbreaks}</b> {t('history.stats.plagues')}
-          </div>
-          <div className="chip" style={{ flexShrink: 0 }} title="Internal rebellions">
+          </span>
+          <span className="history-stat-dot">·</span>
+          <span className="history-stat-item" title="Internal rebellions">
             ⚡ <b>{totalStats.schisms}</b> {t('history.stats.schisms')}
-          </div>
-          <div className="chip" style={{ flexShrink: 0 }} title="Ruler successions">
+          </span>
+          <span className="history-stat-dot">·</span>
+          <span className="history-stat-item" title="Ruler successions">
             👑 <b>{totalStats.successions}</b> {t('history.stats.successions')}
-          </div>
-          <div className="chip" style={{ flexShrink: 0 }} title="Temples of the Sphere">
+          </span>
+          <span className="history-stat-dot">·</span>
+          <span className="history-stat-item" title="Temples of the Sphere">
             🏛️ <b>{totalStats.temples}</b> {t('history.stats.temples')}
-          </div>
-          <div className="chip" style={{ flexShrink: 0 }} title="Avatar seasonal miracles">
+          </span>
+          <span className="history-stat-dot">·</span>
+          <span className="history-stat-item" title="Avatar seasonal miracles">
             🌸 <b>{totalStats.miracles}</b> {t('history.stats.miracles')}
-          </div>
-          <div className="chip" style={{ flexShrink: 0 }} title="Natural cataclysms">
+          </span>
+          <span className="history-stat-dot">·</span>
+          <span className="history-stat-item" title="Natural cataclysms">
             🌋 <b>{totalStats.disasters}</b> {t('history.stats.cataclysms')}
-          </div>
+          </span>
         </div>
 
         {/* Main Body */}
         <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '10px 12px' : '16px 20px' }}>
           {activeTab === 'timeline' ? (
             <div>
-              {/* BM-8 & BM-10: Horizontal Epoch Bar & Scrubber Slider */}
-              <EpochBar
-                totalDays={dayRecords.length}
-                currentDay={Math.floor((state?.tick ?? 0) / 1200)}
-                selectedDay={expandedDay}
-                onSelectDay={(d) => {
-                  setExpandedDay(d)
-                  setTimeout(() => {
-                    const el = document.getElementById(`history-day-${d}`)
-                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                  }, 60)
-                }}
-                compact={isMobile}
-              />
-
-              {/* BM-9: Population & Conflict Sparkline Overlay */}
-              <PopulationSparkline
-                dayRecords={dayRecords}
-                selectedDay={expandedDay}
-                onSelectDay={(d) => {
-                  setExpandedDay(d)
-                  setTimeout(() => {
-                    const el = document.getElementById(`history-day-${d}`)
-                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                  }, 60)
-                }}
-                currentPopulation={state?.creatures_alive}
-              />
-
-              {/* Category Pills & Search */}
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: isMobile ? 'column' : 'row',
-                  justifyContent: 'space-between',
-                  alignItems: isMobile ? 'stretch' : 'center',
-                  gap: 8,
-                  marginBottom: 12,
-                }}
-              >
-                <div style={{ display: 'flex', overflowX: 'auto', gap: 4, paddingBottom: isMobile ? 4 : 0, scrollbarWidth: 'none' }}>
+              {/* Category Pills, Search & Chart Toggle */}
+              <div className="history-filter-bar">
+                <div className="history-category-pills">
                   {CATEGORY_TABS.map((tab) => (
                     <button
                       key={tab.key}
+                      type="button"
                       onClick={() => setCategory(tab.key)}
-                      style={{
-                        padding: isMobile ? '3px 8px' : '4px 10px',
-                        fontSize: isMobile ? 10.5 : 11,
-                        borderRadius: 20,
-                        border: '1px solid',
-                        background: category === tab.key ? '#388bfd' : '#21262d',
-                        borderColor: category === tab.key ? '#58a6ff' : '#30363d',
-                        color: category === tab.key ? '#fff' : '#8b949e',
-                        cursor: 'pointer',
-                        fontWeight: category === tab.key ? 700 : 500,
-                        whiteSpace: 'nowrap',
-                        flexShrink: 0,
-                      }}
+                      className={`history-cat-pill ${category === tab.key ? 'active' : ''}`}
                     >
-                      {tab.icon} {t(`history.tabs.${tab.key}`)}
+                      <span>{tab.icon}</span>
+                      <span>{t(`history.tabs.${tab.key}`)}</span>
                     </button>
                   ))}
                 </div>
 
-                <input
-                  type="text"
-                  placeholder={t('history.searchPlaceholder')}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  style={{
-                    background: '#161b22',
-                    border: '1px solid #30363d',
-                    color: '#c9d1d9',
-                    padding: '6px 10px',
-                    borderRadius: 6,
-                    fontSize: 12,
-                    width: isMobile ? '100%' : 220,
-                  }}
-                />
+                <div className="history-search-row">
+                  <div className="history-search-wrap">
+                    <span className="history-search-icon">🔍</span>
+                    <input
+                      type="text"
+                      placeholder={t('history.searchPlaceholder')}
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="history-search-input"
+                    />
+                    {search && (
+                      <button
+                        type="button"
+                        className="history-search-clear"
+                        onClick={() => setSearch('')}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    className={`history-chart-toggle-btn ${showTimelineChart ? 'active' : ''}`}
+                    onClick={() => {
+                      setShowTimelineChart((v) => {
+                        const next = !v
+                        try { sessionStorage.setItem('history-show-chart', String(next)) } catch {}
+                        return next
+                      })
+                    }}
+                    title={t('history.actions.toggleChart') || 'Toggle Epoch & Sparkline chart'}
+                  >
+                    {showTimelineChart ? (t('history.actions.hideChart') || '📉 Hide Chart') : (t('history.actions.showChart') || '📈 Chart')}
+                  </button>
+                </div>
               </div>
+
+              {/* Collapsible Timeline Charts (BM-8 & BM-9 & BM-10) */}
+              {showTimelineChart && (
+                <div style={{ marginBottom: 12 }}>
+                  <EpochBar
+                    totalDays={dayRecords.length}
+                    currentDay={Math.floor((state?.tick ?? 0) / 1200)}
+                    selectedDay={expandedDay}
+                    onSelectDay={(d) => {
+                      setExpandedDay(d)
+                      setTimeout(() => {
+                        const el = document.getElementById(`history-day-${d}`)
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      }, 60)
+                    }}
+                    compact={isMobile}
+                  />
+                  <PopulationSparkline
+                    dayRecords={dayRecords}
+                    selectedDay={expandedDay}
+                    onSelectDay={(d) => {
+                      setExpandedDay(d)
+                      setTimeout(() => {
+                        const el = document.getElementById(`history-day-${d}`)
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      }, 60)
+                    }}
+                    currentPopulation={state?.creatures_alive}
+                  />
+                </div>
+              )}
 
               {/* Day Feed */}
               {loading ? (

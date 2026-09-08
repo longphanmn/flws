@@ -151,7 +151,6 @@ function ChronicleFeed({
   const [category, setCategory] = useState<EventCategory>('all')
   const [search, setSearch] = useState('')
   const [visibleLimit, setVisibleLimit] = useState(maxDisplay)
-  const [jumpTickInput, setJumpTickInput] = useState('')
   const listRef = useRef<HTMLUListElement>(null)
 
   // BM-1: Compute top 5 dramatic moments across events (day buckets)
@@ -200,31 +199,35 @@ function ChronicleFeed({
 
     return sorted.map((m) => {
       let icon = '⚡'
-      let typeLabel = 'Strife'
+      let typeKey = 'strife'
       if (m.extinctions > 0) {
         icon = '💀'
-        typeLabel = 'Extinction'
+        typeKey = 'extinction'
       } else if (m.disasters > 0) {
         icon = '🌋'
-        typeLabel = 'Disaster'
+        typeKey = 'disaster'
       } else if (m.wars > 0 || m.casualties > 0) {
         icon = '⚔️'
-        typeLabel = m.wars > 1 ? `${m.wars} Wars` : 'War'
+        typeKey = m.wars > 1 ? 'wars' : 'war'
       } else if (m.outbreaks > 0) {
         icon = '☣️'
-        typeLabel = 'Plague'
+        typeKey = 'plague'
       } else if (m.schisms > 0) {
         icon = '👑'
-        typeLabel = 'Schism'
+        typeKey = 'schism'
       }
+      const dayLabel = t('chronicle.moments.day', { day: m.day }) || `Day ${m.day}`
+      const typeLabel = typeKey === 'wars'
+        ? (t('chronicle.moments.wars', { count: m.wars }) || `${m.wars} Wars`)
+        : (t(`chronicle.moments.${typeKey}`) || typeKey)
       return {
         day: m.day,
         startTick: m.startTick,
-        label: `${icon} Day ${m.day} ${typeLabel}`,
+        label: `${icon} ${dayLabel} ${typeLabel}`,
         score: m.score,
       }
     })
-  }, [events])
+  }, [events, t])
 
   const handleJumpToTick = (targetTick: number) => {
     if (isNaN(targetTick) || events.length === 0) return
@@ -271,49 +274,7 @@ function ChronicleFeed({
         </p>
       )}
 
-      {/* BM-1: Major Moments Jump Chips */}
-      {majorMoments.length > 0 && (
-        <div
-          className="chronicle-major-moments"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            overflowX: 'auto',
-            padding: '2px 4px',
-            scrollbarWidth: 'none',
-            flexShrink: 0,
-          }}
-        >
-          <span style={{ fontSize: 10, color: '#8b949e', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 700, flex: 'none' }}>
-            ⚡ {t('chronicle.moments') || 'Moments'}:
-          </span>
-          {majorMoments.map((m) => (
-            <button
-              key={m.day}
-              type="button"
-              className="chip"
-              onClick={() => handleJumpToTick(m.startTick)}
-              style={{
-                fontSize: 10.5,
-                padding: '2px 7px',
-                borderRadius: 10,
-                background: 'rgba(56, 139, 253, 0.12)',
-                border: '1px solid rgba(56, 139, 253, 0.35)',
-                color: '#58a6ff',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                flex: 'none',
-              }}
-              title={`Jump to Day ${m.day} (tick ${m.startTick})`}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Filter Controls Bar */}
+      {/* Streamlined Filter Controls Bar */}
       <div
         className="chronicle-controls"
         style={{
@@ -326,70 +287,38 @@ function ChronicleFeed({
           padding: '6px 8px',
         }}
       >
-        {/* compact inline search + BM-6 Jump to Tick */}
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', minWidth: 0 }}>
-          <span style={{ fontSize: 12, color: '#8b949e', flex: 'none' }}>🔍</span>
+        {/* Full-width clean search bar with smart Enter-to-jump */}
+        <div className="chronicle-search-bar">
+          <span className="chronicle-search-icon">🔍</span>
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('chronicleEvents.searchPlaceholder')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                const trimmed = search.trim()
+                const num = parseInt(trimmed.replace(/^#/, ''), 10)
+                if (!isNaN(num)) {
+                  handleJumpToTick(num)
+                }
+              }
+            }}
+            placeholder={t('chronicle.searchPlaceholder') || t('chronicleEvents.searchPlaceholder') || 'Search or #tick…'}
             className="chronicle-search-input"
-            style={{ flex: '1 1 auto', minWidth: 0 }}
           />
           {search && (
             <button
               type="button"
               onClick={() => setSearch('')}
-              style={{ background: 'transparent', border: 'none', color: '#8b949e', fontSize: 12, cursor: 'pointer', padding: '2px 6px', minHeight: 28 }}
+              className="chronicle-search-clear"
               title="Clear search"
             >
               ✕
             </button>
           )}
-
-          {/* BM-6: Jump to tick input */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 'none' }}>
-            <input
-              type="number"
-              placeholder="Tick #"
-              value={jumpTickInput}
-              onChange={(e) => setJumpTickInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && jumpTickInput) {
-                  handleJumpToTick(parseInt(jumpTickInput, 10))
-                }
-              }}
-              style={{
-                width: 62,
-                fontSize: 11,
-                padding: '2px 6px',
-                background: '#0d1117',
-                border: '1px solid #30363d',
-                borderRadius: 4,
-                color: '#e6edf3',
-              }}
-              title={t('chronicle.jumpToTickTooltip') || 'Jump to tick number'}
-            />
-            <button
-              type="button"
-              className="chip"
-              onClick={() => jumpTickInput && handleJumpToTick(parseInt(jumpTickInput, 10))}
-              style={{
-                padding: '2px 6px',
-                fontSize: 10.5,
-                background: '#21262d',
-                border: '1px solid #30363d',
-                cursor: 'pointer',
-                color: '#c9d1d9',
-              }}
-            >
-              {t('chronicle.jump') || 'Go'}
-            </button>
-          </div>
         </div>
 
-        {/* single-row horizontal scroll category pills */}
+        {/* Single-row horizontal scroll category pills */}
         <div className="chronicle-controls-pill-row">
           {CATEGORIES.map((cat) => {
             const active = category === cat.key
@@ -422,6 +351,28 @@ function ChronicleFeed({
             )
           })}
         </div>
+
+        {/* BM-1: Subtle Major Moments Jump Chips (desktop only to save space) */}
+        {!compact && majorMoments.length > 0 && (
+          <div className="chronicle-moments-row">
+            <span className="chronicle-moments-tag">
+              ⚡ {t('chronicle.momentsTitle') || 'Moments'}:
+            </span>
+            <div className="chronicle-moments-list">
+              {majorMoments.map((m) => (
+                <button
+                  key={m.day}
+                  type="button"
+                  className="chronicle-moment-chip"
+                  onClick={() => handleJumpToTick(m.startTick)}
+                  title={`Jump to Day ${m.day} (tick ${m.startTick})`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Status Count & Clear */}
         <div

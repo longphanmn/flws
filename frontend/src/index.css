@@ -3271,3 +3271,476 @@ select {
   animation: chroniclePulse 2.4s ease-out forwards;
   border-radius: 4px;
 }
+
+/* ==========================================================================
+   World History & Chronicle Modern Polished Controls
+   ========================================================================== */
+
+/* --- World History Header & Navigation --- */
+.history-modal-head {
+  padding: 12px 18px;
+  border-bottom: 1px solid #21262d;
+  background: #161b22;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.history-head-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.history-head-icon {
+  font-size: 22px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.history-head-title {
+  font-size: 15px;
+  margin: 0;
+  color: #f0f6fc;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.history-head-subtitle {
+  font-size: 11px;
+  color: #8b949e;
+  margin-top: 1px;
+  white-space: nowrap;
+}
+
+.history-head-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Segmented Tabs Control */
+.history-segmented-nav {
+  display: inline-flex;
+  align-items: center;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.history-nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #8b949e;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  user-select: none;
+  line-height: 1.2;
+}
+
+.history-nav-item:hover:not(.active) {
+  color: #c9d1d9;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.history-nav-item.active {
+  color: #f0f6fc;
+  font-weight: 600;
+  background: #21262d;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.history-nav-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.history-nav-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 10px;
+  background: rgba(110, 118, 129, 0.2);
+  color: #8b949e;
+}
+
+.history-nav-item.active .history-nav-badge {
+  background: rgba(56, 139, 253, 0.25);
+  color: #58a6ff;
+}
+
+/* Actions Group */
+.history-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.history-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #c9d1d9;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.history-tool-btn:hover {
+  background: #30363d;
+  border-color: #58a6ff;
+  color: #58a6ff;
+}
+
+.history-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font-size: 16px;
+  color: #8b949e;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.history-close-btn:hover {
+  color: #f0f6fc;
+  background: #21262d;
+  border-color: #30363d;
+}
+
+/* Stats Ticker Strip */
+.history-stats-ticker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: rgba(13, 17, 23, 0.6);
+  border-bottom: 1px solid #21262d;
+  font-size: 11px;
+  color: #8b949e;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.history-stats-ticker::-webkit-scrollbar {
+  display: none;
+}
+
+.history-stat-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.history-stat-item b {
+  color: #c9d1d9;
+  font-weight: 600;
+}
+
+.history-stat-dot {
+  color: #484f58;
+}
+
+/* Filter & Search Bar */
+.history-filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.history-category-pills {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.history-category-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.history-cat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 14px;
+  border: 1px solid #30363d;
+  background: #161b22;
+  color: #8b949e;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.history-cat-pill:hover:not(.active) {
+  background: #21262d;
+  color: #c9d1d9;
+}
+
+.history-cat-pill.active {
+  background: rgba(56, 139, 253, 0.15);
+  border-color: #388bfd;
+  color: #58a6ff;
+  font-weight: 600;
+}
+
+.history-search-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.history-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.history-search-icon {
+  position: absolute;
+  left: 8px;
+  font-size: 11px;
+  color: #8b949e;
+  pointer-events: none;
+}
+
+.history-search-input {
+  background: #161b22;
+  border: 1px solid #30363d;
+  color: #e6edf3;
+  padding: 5px 24px 5px 26px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  width: 190px;
+  transition: border-color 0.15s ease, width 0.2s ease;
+}
+
+.history-search-input:focus {
+  border-color: #58a6ff;
+  outline: none;
+  width: 220px;
+}
+
+.history-search-clear {
+  position: absolute;
+  right: 6px;
+  background: transparent;
+  border: none;
+  color: #8b949e;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.history-chart-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid #30363d;
+  background: #161b22;
+  color: #8b949e;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.history-chart-toggle-btn:hover {
+  background: #21262d;
+  color: #c9d1d9;
+}
+
+.history-chart-toggle-btn.active {
+  background: rgba(56, 139, 253, 0.15);
+  border-color: #388bfd;
+  color: #58a6ff;
+  font-weight: 600;
+}
+
+/* --- Chronicle Feed Controls --- */
+.chronicle-search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.chronicle-search-bar .chronicle-search-icon {
+  position: absolute;
+  left: 8px;
+  font-size: 11px;
+  color: #8b949e;
+  pointer-events: none;
+}
+
+.chronicle-search-bar .chronicle-search-input {
+  width: 100%;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 5px 26px 5px 26px;
+  font-size: 12px;
+  color: #e6edf3;
+  min-height: 28px;
+  box-sizing: border-box;
+}
+
+.chronicle-search-bar .chronicle-search-input:focus {
+  border-color: #58a6ff;
+  outline: none;
+}
+
+.chronicle-search-bar .chronicle-search-clear {
+  position: absolute;
+  right: 6px;
+  background: transparent;
+  border: none;
+  color: #8b949e;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+/* Chronicle Moments Strip */
+.chronicle-moments-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-top: 2px;
+}
+
+.chronicle-moments-row::-webkit-scrollbar {
+  display: none;
+}
+
+.chronicle-moments-tag {
+  font-size: 10px;
+  color: #8b949e;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.chronicle-moments-list {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.chronicle-moment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10.5px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  color: #8b949e;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+  user-select: none;
+}
+
+.chronicle-moment-chip:hover {
+  background: #21262d;
+  border-color: #58a6ff;
+  color: #58a6ff;
+}
+
+/* Responsive mobile adjustments for World History Modal */
+@media (max-width: 768px) {
+  .history-modal-head {
+    padding: max(10px, env(safe-area-inset-top)) 12px 8px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .history-head-title-wrap {
+    justify-content: space-between;
+    width: 100%;
+  }
+  .history-head-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .history-segmented-nav {
+    flex: 1;
+    display: flex;
+  }
+  .history-nav-item {
+    flex: 1;
+    justify-content: center;
+    padding: 6px 4px;
+    font-size: 11px;
+    gap: 3px;
+  }
+  .history-nav-badge {
+    display: none;
+  }
+  .history-search-input {
+    width: 100%;
+  }
+  .history-search-input:focus {
+    width: 100%;
+  }
+  .history-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .history-search-row {
+    width: 100%;
+  }
+  .history-search-wrap {
+    flex: 1;
+  }
+}
