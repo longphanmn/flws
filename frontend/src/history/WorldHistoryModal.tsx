@@ -950,8 +950,8 @@ ${langInstruction}
                 className={`history-nav-item ${activeTab === 'analytics' ? 'active' : ''}`}
                 onClick={() => setActiveTab('analytics')}
               >
-                <span className="history-nav-icon">🌐</span>
-                <span className="history-nav-text">{t('history.tabs.analyticsTab') || 'Dynamics'}</span>
+                <span className="history-nav-icon">🧮</span>
+                <span className="history-nav-text">{t('history.tabs.analyticsTab') || 'Matrix'}</span>
               </button>
               <button
                 type="button"
