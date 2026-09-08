@@ -49,7 +49,7 @@ UI_I18N = {
         "badge_presets": "{presets} presets",
         "sphere_motto": "The Sphere sets laws, never a life",
         "guide_link": "Guide",
-        "footer": "Generated from live code — <code>Config</code> defaults + <code>GodLaws</code> + <code>app.routes</code>. Official living documentation & encyclopedia for Flatland. · Developed by <strong>Long Phan</strong> — <a href=\"mailto:long@minhnhan.in\">long@minhnhan.in</a> · <a href=\"https://minhnhan.in\">minhnhan.in</a> · Built with OpenCode & Antigravity",
+        "footer": "Generated from live code — <code>Config</code> defaults + <code>GodLaws</code> + <code>app.routes</code>. Official living documentation & encyclopedia for Flatland. · Developed by <strong>Long Phan</strong> — <a href=\"mailto:long@minhnhan.in\">long@minhnhan.in</a> · <a href=\"https://minhnhan.in\">minhnhan.in</a> · <a href=\"https://github.com/longphanmn/flatland\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a> · Built with OpenCode & Antigravity",
         "preset_col_name": "Preset",
         "preset_col_laws": "Key laws",
         "preset_col_apply": "Apply",
@@ -97,7 +97,7 @@ UI_I18N = {
         "badge_presets": "{presets} mẫu",
         "sphere_motto": "Khối Cầu định đoạt thiên luật, không can thiệp số mệnh",
         "guide_link": "Cẩm nang",
-        "footer": "Trích xuất trực tiếp từ mã nguồn — <code>Config</code> + <code>GodLaws</code> + <code>app.routes</code>. Bách khoa toàn thư sống chính thức của Flatland. · Phát triển bởi <strong>Long Phan</strong> — <a href=\"mailto:long@minhnhan.in\">long@minhnhan.in</a> · <a href=\"https://minhnhan.in\">minhnhan.in</a> · Xây dựng với OpenCode & Antigravity",
+        "footer": "Trích xuất trực tiếp từ mã nguồn — <code>Config</code> + <code>GodLaws</code> + <code>app.routes</code>. Bách khoa toàn thư sống chính thức của Flatland. · Phát triển bởi <strong>Long Phan</strong> — <a href=\"mailto:long@minhnhan.in\">long@minhnhan.in</a> · <a href=\"https://minhnhan.in\">minhnhan.in</a> · <a href=\"https://github.com/longphanmn/flatland\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a> · Xây dựng với OpenCode & Antigravity",
         "preset_col_name": "Thiết lập mẫu",
         "preset_col_laws": "Quy luật trọng tâm",
         "preset_col_apply": "Áp dụng",
@@ -125,16 +125,16 @@ UI_I18N = {
         "live_pulse": "Thế giới Trực tiếp",
     },
     "fr": {
-        "title": "Flatland — Wiki Vivant — Simulation de Monde par Long Phan",
-        "description": "Wiki vivant officiel et encyclopédie du système Flatland : Simulation de monde autonome en 2D par Long Phan (long@minhnhan.in).",
+        "title": "Flatland — Wiki Vivant & Encyclopédie — Simulation de Monde par Long Phan",
+        "description": "Wiki vivant officiel et encyclopédie du système pour Flatland : simulation 2D autonome de vie artificielle par Long Phan (long@minhnhan.in).",
         "og_title": "Flatland — Wiki Vivant | Simulation de Monde par Long Phan",
-        "og_desc": "Documentation officielle du wiki, des préréglages et des mécaniques de la simulation Flatland par Long Phan (long@minhnhan.in).",
+        "og_desc": "Documentation officielle vivante, préréglages et mécanique du monde de Flatland par Long Phan (long@minhnhan.in).",
         "wiki_heading": "📖 Encyclopédie Flatland",
-        "search_placeholder": "Rechercher des lois, routes API, docs… ( / )",
+        "search_placeholder": "Rechercher lois, routes, docs… ( / )",
         "swagger_docs": "Swagger /docs",
         "openapi": "OpenAPI",
         "guide": "Guide",
-        "json_api": "Données JSON",
+        "json_api": "JSON",
         "live_world": "← Monde en direct",
         "presets_label": "Préréglages :",
         "dev_by": "Développé par",
@@ -145,7 +145,7 @@ UI_I18N = {
         "badge_presets": "{presets} préréglages",
         "sphere_motto": "La Sphère dicte les lois, jamais une vie",
         "guide_link": "Guide",
-        "footer": "Généré à partir du code source en temps réel — Valeurs <code>Config</code> + <code>GodLaws</code> + <code>app.routes</code>. Documentation vivante officielle et encyclopédie de Flatland. · Développé par <strong>Long Phan</strong> — <a href=\"mailto:long@minhnhan.in\">long@minhnhan.in</a> · <a href=\"https://minhnhan.in\">minhnhan.in</a> · Conçu avec OpenCode & Antigravity",
+        "footer": "Généré à partir du code source en temps réel — Valeurs <code>Config</code> + <code>GodLaws</code> + <code>app.routes</code>. Documentation vivante officielle et encyclopédie de Flatland. · Développé par <strong>Long Phan</strong> — <a href=\"mailto:long@minhnhan.in\">long@minhnhan.in</a> · <a href=\"https://minhnhan.in\">minhnhan.in</a> · <a href=\"https://github.com/longphanmn/flatland\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a> · Conçu avec OpenCode & Antigravity",
         "preset_col_name": "Préréglage",
         "preset_col_laws": "Lois fondamentales",
         "preset_col_apply": "Appliquer",
@@ -206,6 +206,7 @@ WIKI_OVERVIEW_MD_I18N = {
     "en": r"""
 # Flatland Wiki & Encyclopedia
 
+> **Source Code**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)  
 > **Developed by [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · [minhnhan.in](https://minhnhan.in) · [world.minhnhan.in](https://world.minhnhan.in))  
 > Built and refined using **OpenCode** and **Antigravity** · Developed from the core ideas of **Edwin A. Abbott's *Flatland: A Romance of Many Dimensions*** (1884).
 
@@ -227,6 +228,7 @@ This project is **developed from the Flatland idea rather than mimicking the boo
     "vi": r"""
 # Bách khoa toàn thư & Wiki Flatland
 
+> **Mã nguồn**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)  
 > **Phát triển bởi [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · [minhnhan.in](https://minhnhan.in) · [world.minhnhan.in](https://world.minhnhan.in))  
 > Xây dựng và hoàn thiện bằng **OpenCode** & **Antigravity** · Phát triển từ ý niệm nền tảng trong danh tác ***Flatland: A Romance of Many Dimensions*** (1884) của **Edwin A. Abbott**.
 
@@ -242,12 +244,13 @@ Dự án được **phát triển từ ý niệm cốt lõi của Xứ Phẳng c
 - **Tiến hóa tự hành & Bản sắc văn hóa**: 6 hình mẫu tính cách di truyền (`dũng cảm`, `thận trọng`, `vị tha`, `tư lợi`, `khai phá`, `xây dựng`), công cụ chế tác (giáo, túi cói, thuốc đắp, vương miện thủ lĩnh), 4 kỹ năng tinh thông (Nông canh 🌾, Chiến đấu ⚔️, Hái lượm 🦴, Y thuật 🌿), tước hiệu động, truyền dạy tri thức trong nhà ở và hiển thị suy nghĩ trực quan.
 - **Năng lượng & Trao đổi chất thực tế**: Con non tiêu hao ít năng lượng ($0.45\times$), thể lực sụt giảm khi tác chiến, và thói quen dự trữ thức ăn trong túi cói.
 - **Ấp định cư & Bang giao**: Nhà tường kín có cửa ra vào vừa vặn kích thước cơ thể, lãnh thổ thị tộc đa công trình, kho lương chung, khối liên minh phòng thủ, nộp cống và phân liệt ly khai khi bất mãn.
-- **Vật lý hình học & Đột biến hình thái (K∈[3,24])**: Bộ gen cực $(r_i,\phi_i)$ $K\in[3,24]$ (`KMAX 24`, `morphology_engine.py`) với đặc tính thể chất tích hợp ($A,P,I_{zz},\theta_{\min},asym,D_{mult}$) và va chạm đa giác SAT; cơ chế ủ nhiệt $\lambda(g)$ dung hòa giữa chuẩn mực Abbott cổ điển và tiến hóa tự do, ghép đôi nơ-ron, cùng mạng lưới bảo hộ chống tuyệt diệt ($\eta(N)$, Phép Màu Khai Thế Cấp 1/2/3).
+- **Vật lý hình học & Đột biến hình thái (K∈[3,24])**: Bộ gen cực $(r_i,\phi_i)$ $K\in[3,24]$ (`KMAX 24`, `morphology_engine.py`) với đặc tính thể chất tích hợp ($A,P,I_{zz},\theta_{\min},asym,D_{mult}$) và va chạm đa giác SAT; cơ chế ủ nhiệt $\lambda(g)$ dung hòa giữa chuẩn mực Abbott cổ điển và tiến hóa tự do, ghép đôi nơ-ron, cùng mạng lưới bảo hộ chống tuyệt diệt ($\eta(N)$, Phép Miracle Khai Thế Cấp 1/2/3).
 - **Đồng bộ hóa thời gian thực**: Vòng lặp mô phỏng xác định truyền phát trạng thái thế giới qua WebSocket (`/ws`) ở tốc độ ~30–60 FPS kết hợp lưu trữ biên niên sử bền vững trên SQLite.
 """,
     "fr": r"""
 # Encyclopédie & Wiki Flatland
 
+> **Code Source**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)  
 > **Développé par [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · [minhnhan.in](https://minhnhan.in) · [world.minhnhan.in](https://world.minhnhan.in))  
 > Conçu et perfectionné avec **OpenCode** & **Antigravity** · Développé à partir des concepts fondamentaux de l'œuvre classique d'**Edwin A. Abbott, *Flatland: A Romance of Many Dimensions*** (1884).
 

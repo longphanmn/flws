@@ -1,5 +1,6 @@
 # Flatland — 2D Autonomous World Simulation
 
+[![GitHub Repo](https://img.shields.io/badge/GitHub-longphanmn%2Fflatland-181717.svg?logo=github)](https://github.com/longphanmn/flatland)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg)](https://fastapi.tiangolo.com/)
@@ -8,6 +9,7 @@
 
 **Flatland** is an autonomous 2D artificial life and ecosystem simulation developed from the foundational ideas of **Edwin A. Abbott's 1884 classic *Flatland: A Romance of Many Dimensions***. Rather than rigidly mimicking or reenacting the 19th-century novella, this project takes Flatland's core geometric premises — 2D spatial existence, vertex-based caste hierarchy, atmospheric perception, and higher-dimensional observation — and transforms them into a **living, autonomous evolutionary world that dynamically changes and expands over time**.
 
+> **Source Code**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)  
 > **Developed by [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · [minhnhan.in](https://minhnhan.in) · [world.minhnhan.in](https://world.minhnhan.in))  
 > Built and refined using **OpenCode** and **Antigravity**.  
 > Developed from the core mathematical and spatial ideas of **Edwin A. Abbott** (1884).
@@ -62,9 +64,28 @@ Evolution emerges 100% autonomously without artificial intervention:
 - **Thought Bubbles**: Real-time floating emote indicators (`🍖`, `❤️`, `⚔️`, `🌿`, `🏆`, `💤`, `🧺`, `😱`).
 - **Cognitive Agency & Tactical Intelligence**: Multi-objective utility AI scoring replaces rigid if/else trees (evaluating survival, duty, traits, and kin needs); spatial waypoint mental maps (`home`, `rich_food`, `danger`, `patrol`); tactical soldier phalanxes, line kiting maneuvers, and interpersonal trust-based buddy pairing.
 
-### 3.1 Geometric Physics & Morphological Evolution (BC)
-Polar genomes $(r_i,\phi_i)$, $K\in[3,64]$ (`PRIEST_SIDES 24` threshold, ultra-circles 32/48/64) with SoA buffers `morph_radii/morph_angles/morph_k/morph_traits (A,P,Izz,θmin,asym,Dmult)`. Annealing $\lambda(g)$: $\lambda=1$ at $g<g_{start}$ snaps to Abbott templates (Woman thin triangle, Soldier $30°$, Priest regular $K\ge24$), decays to $0$ over $g_{decay}$ → free evolution $r^{child}=λ·r_{template}+(1-λ)·clamp(r_{parent}+𝒩)$. Topological $p=rate·(1-λ)$ add longest edge / remove closest neighbor. Trait baking: $E_{\max}\cdot clamp(A/A_{ref},0.5,2)$, $decay\cdot clamp(P/P_{ref},0.7,1.8)$, $Damage\cdot max(0,(cosθ_{\min}-0.5)/0.5)$, $\Delta\theta$ inertia $1/(1+I_{zz}/I_{ref})$, asymmetry → irregularity for $euthanasia\_threshold$. Energetic asymmetry $median(A)$ → high $35-50\%$ vs low $5-10\%$ $E_{\max}$, SAT broadphase $r_{\max}$ + edge normals, telemetry `/api/metrics/morphology`. God laws `morphology_annealing_enabled` (`true` default), `annealing_start_generation 50`, `annealing_decay_generations 150`, `morph_lambda_override None|0..1`, `vertex_mutation_std 0.05`, `angle_mutation_std 0.02`, `topological_mutation_rate 0.01` live in ⚖ God Panel **Morphology** group.
+### 3.1 Geometric Physics & Morphological Evolution (§BC)
+- **Polar Genomes & Physical Trait Baking**: Every organism is defined by polar coordinates $(r_i,\phi_i)$ with vertex count $K\in[3,64]$ (ultra-circles up to 64). Biomechanical traits are computed in real time via Green-Gauss and Shoelace formulas: Area $A$, Perimeter $P$, Rotational Inertia $I_{zz}$, Minimum Interior Apex Angle $\theta_{\min}$, and Damage Multiplier $D_{\text{mult}}$.
+- **Evolutionary Annealing $\lambda(g)$**: Foundational generations adhere strictly to Abbott orthodoxy ($\lambda=1$); as generations elapse, $\lambda \to 0$ unlocks open-ended speciation, meiotic two-parent crossover, and macro-mutation spurts.
+- **Micro-Elman RNN Controllers**: 295 evolvable neural controller weights ($16 \to 12 \to 7$) driving real-time sensory raycasting, predator evasion, forage navigation, and buddy-trust bonding.
 
+### 3.2 Mutational Phenotypes, Veteran Scars & Map Lenses (§BG & §BK)
+- **True Isosceles Soldier Razor Apex**: Soldiers render their physical apex angle ($\theta_{\text{iso}} \in [10^\circ, 59.5^\circ]$) pointing forward along their velocity heading.
+- **Dynamic Mutated Geometry**: Irregular, asymmetric polygons procedurally generated with vertex offsets and dynamic chaotic oscillation for thrashed mutants ($irr > 0.15$).
+- **Visual Phenotypic Accents**:
+  - **Blade Glint (Kinetic Pierce)**: High-damage creatures display a sharp neon glint on their sharpest vertex ($\theta_{\min}$).
+  - **Heavy Inertia Armor**: High $I_{zz}$ and large Shoelace area creatures display double-stroke perimeter plating and darkened protective fills.
+  - **Speciation Chromatic Aberration**: Divergent evolutionary branches ($\lambda \to 0$) emit iridescent dual-tone outlines.
+  - **Primordial Genesis Sparks**: Founding ancestors (Gen 0–2) carry an unmistakable radiant 4-point star diamond core pip.
+  - **Concentric Lineage Halos & Starburst Corona**: Generational milestones unlock depth rings — Gen 10–24 inner lineage halos, Gen 25–49 double dynasty rings, and Gen 50+ radiating 8-ray Celestial Ancestral Starburst Coronas.
+  - **Battle Veteran Wound Scars**: Hardened survivors display visible perimeter notch scars from grievous wounds (`scars > 0`).
+- **Interactive Map Lenses**: Instant visual shaders via HUD buttons or keys `1`–`4`:
+  - **`1` Classic**: Traditional clan and caste hierarchy colors.
+  - **`2` Mutants Lens**: Dims Abbott orthodox shapes; highlights radical mutants in vivid cyan $\to$ neon magenta.
+  - **`3` Generations Lens**: Visual gradient from icy primordial blue (Gen 0) to incandescent ancient gold (Gen 50+).
+  - **`4` Dynasty Lens**: Highlights clan territory spheres, borders, and ancestral dynasties.
+- **Inspector Polar Morphology Radar**: Complete visual parity between the world map and the Inspector dossier; shows the creature's mutated polygon overlaid against the orthodox Abbott template alongside calculated physical metrics ($\theta_{\min}$, irregularity, $I_{zz}$, Area).
+- **Active Safeguard & Softcap Status Indicators**: Real-time HUD badges at the bottom-left of the viewport indicating when Extinction Safeguards ($\eta$, green) or Density Soft-Cap Damping ($\xi$, red) are actively interceding.
 
 ### 4. Settlements, Clans & Diplomacy
 - **Settlement Houses**: Square walled halls with creature-sized doorways; houses block outside elements and wild carnivores.
@@ -78,23 +99,23 @@ Polar genomes $(r_i,\phi_i)$, $K\in[3,64]$ (`PRIEST_SIDES 24` threshold, ultra-c
 - **Inter-Clan Trade Caravans**: Economic specialization barter between agrarian and warrior clans (+12 relations and combat skill sharing).
 - **Tribal Traditions & Harvest Festivals**: Annual autumn harvest celebrations at settlement Main Houses boosting energy (+25), mood, trust, and oral epic lore.
 
-
-
 ### 5. Environment & Ecosystem
 - **Dynamic Seasons & Day/Night**: Spring blossoms, summer abundance, autumn harvests, and winter lean periods.
 - **Biodiversity & Functional Nutrition**: Six distinct plant species (Grass, Golden Grain, Berry Bushes, Medicinal Herbs, Fungi Mushrooms, and Poisonous Sprouts) with targeted health-based foraging preferences and nutrient recycling from fallen corpses.
-
 
 ---
 
 ## Quickstart
 
 ### Prerequisites
+- **Git**
 - **Python 3.12+** (with [`uv`](https://docs.astral.sh/uv/) recommended)
 - **Node.js 18+** & **npm**
 
-### One-Line Launch (local dev)
+### Clone & Launch
 ```bash
+git clone https://github.com/longphanmn/flatland.git
+cd flatland
 ./run.sh          # Starts FastAPI backend (:8000) and Vite frontend (:5173)
 ./run.sh tui      # Launches terminal client attached to local backend
 ```
@@ -201,7 +222,7 @@ ws/
 │   │   ├── wiki.py              # Living Wiki, API documentation & guide routes
 │   │   └── main.py              # FastAPI app, SimEngine thread, Hub broadcaster, REST & WebSocket
 │   ├── tui/                     # Textual terminal client
-│   └── tests/                   # Pytest test suite (490+ automated tests)
+│   └── tests/                   # Pytest test suite (503+ automated tests across 44 suites)
 └── frontend/
     └── src/
         ├── analytics/           # Observatory & Macro Analytics Engine
@@ -214,12 +235,18 @@ ws/
         │   ├── MetricCard.tsx   # Formatted metric card with trend badges
         │   └── Sparkline.tsx    # Lightweight SVG time-series sparkline
         ├── render/
-        │   ├── CanvasRenderer.tsx # High-performance 60 FPS batched Canvas renderer
-        │   ├── ClanPanel.tsx      # Live clan settlements, totems, and war records
-        │   ├── ChronicleFeed.tsx  # Filterable, scrollable real-time event log
-        │   ├── PlotsPanel.tsx     # Multi-metric population and caste sparklines
-        │   ├── OverviewPanel.tsx  # Day-trend demographics, mortality, hegemon
+        │   ├── CanvasRenderer.tsx # High-performance 60 FPS viewport with pointer controls
+        │   ├── renderCore.ts      # Hardware-accelerated Canvas2D engine, LOD gates & scratch pools
+        │   ├── webglRenderer.ts   # WebGL instanced sprite renderer & shaders
+        │   ├── ClanPanel.tsx      # Live clan settlements, totems, and war records (memoized)
+        │   ├── ChronicleFeed.tsx  # Filterable, scrollable real-time event log (memoized)
+        │   ├── OverviewPanel.tsx  # Day-trend demographics, mortality, hegemon (memoized)
+        │   ├── CasteChart.tsx     # Caste demographic distribution proportions
+        │   ├── TrophicChart.tsx   # Biomass and trophic level distribution pyramid
         │   └── Collapsible.tsx    # Dynamic flex collapsible accordion component
+        ├── components/
+        │   ├── CreatureAvatar.tsx # SVG creature avatar with full phenotypic parity & radar
+        │   └── ConfirmModal.tsx   # Confirmation dialogs for dangerous actions
         ├── clan/
         │   └── ClanDetails.tsx    # Clan profile, leader residence, founded day & casualty stats
         ├── history/
@@ -240,15 +267,19 @@ ws/
 
 ## Performance & Scale
 
+- **Offscreen Elevation Grid Caching (§BL)**: The 15,000-cell elevation hillshade is pre-rendered once into an `OffscreenCanvas` bitmap and blitted with a single `ctx.drawImage()` call per frame, eliminating ~900,000 CPU rasterization calls and string parses per second (saving 10–15ms per frame).
+- **Level-of-Detail (LOD) Gating (§BL)**: When zoomed out (`camScale < 3.2`), sub-pixel micro-phenotype decorations (blade glints, starburst coronas, genesis sparks, halos, auras, chromatic aberration) are automatically culled, eliminating draw-call saturation while keeping full fidelity when inspecting close-up.
+- **Zero-Allocation Batching & Scratch Recycling (§BL)**: Reusable scratch arrays for all castes, crests, and dynamic groups persist across frames by resetting array lengths (`.length = 0`), reducing per-frame heap allocations by >85% and eliminating garbage collection stutters.
+- **Decoupled React Virtual DOM (§BL)**: Non-critical DOM sidebars and HUD chips are throttled to ~4 Hz (250ms budget) while the 60 FPS Canvas 2D render loop advances uninhibited directly from mutable refs. Secondary panels (`ChronicleFeed`, `ClanPanel`, `OverviewPanel`) are guarded with `React.memo`.
 - **Zero-Allocation Spatial Hash**: Pre-allocated 1D bucket list in `world.py` eliminates tuple allocations and dictionary re-hashing per tick; neighbor lookups use squared-distance early-exits.
 - **Dedicated Engine Thread**: Simulation runs on a dedicated high-priority tick loop (`SimEngine` in `main.py`), completely isolating mathematical simulation advancement from asynchronous HTTP/WebSocket I/O.
-- **Batched Canvas 2D Rendering**: `CanvasRenderer.tsx` batches drawing passes by caste, plant variant, and house primitives with inline trigonometric vertex transforms, reducing draw calls from over 20,000 to ~30–50.
-- **Decoupled React State**: High-frequency snapshot data streams directly into mutable refs for canvas rendering at 60 FPS, while React DOM reconciliation for HUD chips and panels is throttled to ~6 Hz to keep the browser responsive.
+- **Vectorized Structure-of-Arrays (SoA)**: `AgentSoA` stores agent positions, velocities, energies, and genetic traits in contiguous NumPy arrays for vectorized distance calculations and C-accelerated OpenMP batch processing.
 
 ---
 
 ## Authors & Attribution
 
+- **Repository**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)
 - **Developed by**: **[Long Phan](mailto:long@minhnhan.in)**  
   Email: [long@minhnhan.in](mailto:long@minhnhan.in)  
   Website: [https://minhnhan.in](https://minhnhan.in)  

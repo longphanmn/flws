@@ -1,5 +1,8 @@
 # God Laws — Flatland Simulation Reference
 
+[![GitHub Repo](https://img.shields.io/badge/GitHub-longphanmn%2Fflatland-181717.svg?logo=github)](https://github.com/longphanmn/flatland)
+
+> **Source Code**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)  
 > **Developed by [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · [minhnhan.in](https://minhnhan.in) · [world.minhnhan.in](https://world.minhnhan.in))  
 > Built and refined using **OpenCode** and **Antigravity** · Developed from the core concepts of **Edwin A. Abbott's *Flatland***.
 

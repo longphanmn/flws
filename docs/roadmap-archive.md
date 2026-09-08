@@ -1,6 +1,8 @@
 # Roadmap Archive — Flatland Completed Work
 
-> Historical record of sections §F–§BD (632 completed items: 573 §F–§BA + 14 §BC + 12 §AZ + 33 §BD). For active work see [`TODO.md`](../TODO.md) (0 open + 8 parked, all 45 AZ+BD done 2026-08-31). Line anchors (`file:line`) have been stripped — all were stale after repeated rewrites; symbols are kept.
+[![GitHub Repository](https://img.shields.io/badge/GitHub-Flatland-181717?style=flat-square&logo=github)](https://github.com/longphanmn/flatland)
+> **Source Repository**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)  
+> Historical record of completed sections (§F–§BD, 632 completed items: 573 §F–§BA + 14 §BC + 12 §AZ + 33 §BD). For active work and latest sections (§BE–§BL), see [`TODO.md`](../TODO.md). Line anchors (`file:line`) have been stripped — all were stale after repeated rewrites; symbols are kept.
 
 ---
 
