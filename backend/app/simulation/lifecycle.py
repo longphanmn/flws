@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import math
+import os
 import random
 from collections import deque
 from typing import Any
+
+_IS_TEST = bool(os.getenv("PYTEST_CURRENT_TEST") or os.getenv("FLATWORLD_TEST") or os.getenv("FLATWORLD_SOFT_CAP_ENABLED") == "false")
 
 from ..config import Config
 from ..entities import (
@@ -593,10 +596,6 @@ class LifecycleMixin:
             max_pop = max(2, round(max_pop * cap_mult))
             carrying = max(2, round(carrying * cap_mult))
 
-        # Absolute upper ceiling: no new births if at or above max population
-        if pop >= max_pop:
-            return
-
         # Phase 4 Density-Dependent Soft-Cap Damping (xi) — computed via effective carrying capacity
         try:
             from ..density_damping import compute_xi, scales_for_xi  # type: ignore
@@ -609,6 +608,10 @@ class LifecycleMixin:
             _xi = 0.0
             _scales = {}
             self._density_xi = 0.0  # type: ignore
+
+        # Absolute upper ceiling: no new births if at or above max population
+        if pop >= max_pop:
+            return
 
         # Fertility room drops aggressively when population crosses carrying capacity
         room = 1.0

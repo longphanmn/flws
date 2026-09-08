@@ -1680,7 +1680,7 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
         self._refresh_movement_cache()
         self._record_phase("post_disease_war", (time.perf_counter() - _ph_post) * 1000.0)
         # Phase 5 Safeguards — 1 Hz homeostatic loop (eta, Tier1/2/3)
-        if getattr(self.config, "safeguard_enabled", False) and not _IS_TEST and getattr(self, "_safeguard", None) is not None and self.tick % 10 == 0:
+        if getattr(self.config, "safeguard_enabled", True) and not _IS_TEST and getattr(self, "_safeguard", None) is not None and self.tick % 10 == 0:
             try:
                 N = len(self._cached_creatures)
                 females_alive = sum(1 for c in self._cached_creatures if getattr(c, "shape", "polygon") == "line")

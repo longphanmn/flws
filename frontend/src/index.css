@@ -133,7 +133,7 @@ body {
   position: absolute;
   bottom: 12px;
   left: 14px;
-  z-index: 10;
+  z-index: 25;
   pointer-events: none;
   display: flex;
   flex-direction: column;

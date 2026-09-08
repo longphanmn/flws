@@ -142,6 +142,27 @@ Legend: [P0] foundational · [P1] core Flatland identity · [P2] flavor/observab
 
 ---
 
+## §BK Creature Visual Evolution, Generational Lineage & Aberrant Morphology — 2026-09-08
+
+> **Context**: Transforms creature appearance on the map from flat, uniform caste shapes into an intuitive, visually rich living tapestry of generations, mutations, and evolutionary identities. Users can visually distinguish Primordial founders vs. ancient dynasties, identify aberrant/mutant outcasts at a glance, and inspect biomechanical lineages.
+
+### Phase 1: Core Generational Lineage & Aberrant Morphology Rendering [P0] — ✅ Done
+- [x] [P0] **BK-1 Genesis Spark for Primordials (Gen 0–2)** — Render an unmistakable glowing central Genesis Spark (star/diamond core pip) inside founding creatures and first ancestors on the map so founders stand out everywhere.
+- [x] [P0] **BK-2 Concentric Lineage Halos & Celestial Ancestral Corona** — Render generational depth rings: Gen 10–24 inner lineage halo ($0.65 \times r$), Gen 25–49 double concentric dynasty ring, and Gen 50+ radiating starburst Ancestral Corona ticks around the perimeter.
+- [x] [P0] **BK-3 Dynamic Chaotic Breathing & Jagged Mutant Spires** — Procedural dynamic micro-oscillation for irregular vertices ($\Delta r_i \propto \sin(\text{tick} \cdot 0.35 + i \cdot 2.1) \cdot \text{irr}$), thorny jagged spires for $irr > 0.15$, and bioluminescent aberrant hue accents for radical mutants.
+
+### Phase 2: Phenotypic Accents & Inspector CreatureAvatar Parity [P1]
+- [ ] [P1] **BK-4 Ancestral Crystalline Core Patina** — Generational fill luminescence transition from soft young matte fill to deep crystalline obsidian/amber core glow as generation increases.
+- [ ] [P1] **BK-5 Soldier Razor Apex & Piercing Glint** — Extended needle apex geometry for razor soldiers ($\theta < 30^\circ$) with metallic/blood sheen on kinetic piercing tips.
+- [ ] [P1] **BK-6 Battle Veteran Wound Scars** — Render dark hash-mark notches and veteran scars along perimeter borders for creatures surviving grievous wounds (`scars > 0`).
+- [ ] [P1] **BK-7 CreatureAvatar & Radar Complete Visual Parity** — Mirror all generational rings, genesis sparks, jagged mutant spires, and scars inside `CreatureAvatar.tsx` and the Inspector panel.
+
+### Phase 3: Interactive Map Lenses & Visual Filters [P2]
+- [ ] [P2] **BK-8 Canvas HUD Lens Switcher Toolbar** — Add a quick lens switcher bar / keyboard shortcuts (`1`: Classic, `2`: Mutants, `3`: Generations, `4`: Dynasty).
+- [ ] [P2] **BK-9 Mutation & Generational Heatmap Shaders** — Render map in specialized analytic color-modes: Mutation Lens (dim normals, highlight irregulars in cyan $\to$ neon magenta) and Generational Epoch Lens (gradient from cold primordial blue to incandescent ancient gold).
+
+---
+
 ## Parked — decided, not pending (8 items; 9 before dedupe)
 
 These are documented decisions with rationale, not overdue work. The original 22 unchecked items included 9 such; 2 were the same task.

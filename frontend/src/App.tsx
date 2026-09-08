@@ -750,7 +750,8 @@ export default function App() {
           <div
             className="regulation-status-container"
             style={{
-              left: !isMobile && selectedId !== null ? 406 : 14,
+              left: !isMobile && (selectedId !== null || selectedClanId !== null) ? 406 : 14,
+              bottom: isMobile ? 'calc(var(--thumb-h, 50px) + 12px)' : 14,
             }}
           >
             {isSafeguardActive && (
