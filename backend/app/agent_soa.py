@@ -84,10 +84,21 @@ class AgentSoA:
             self.outputs_buf = [[0.0]*7 for _ in range(capacity)]
             self.hidden_buf = [[0.0] for _ in range(capacity)]
 
-    def add_agent(self, eid: int, x: float, y: float, angle: float = 0.0, energy: float = 80.0, max_energy: float = 100.0, health: float = 100.0, chill: float = 0.0, genome=None, morph_radii=None, morph_angles=None, morph_k: int | None = None) -> int:
+    def add_agent(self, eid: int, x: float, y: float, angle: float = 0.0, energy: float = 80.0, max_energy: float = 100.0, health: float = 100.0, chill: float = 0.0, genome=None, morph_radii=None, morph_angles=None, morph_k: int | None = None, caste: str | None = None, sides: int | None = None) -> int:
         idx = self.N
         if idx >= self.capacity:
             raise RuntimeError("AgentSoA capacity exceeded")
+        # Determine fallback K from caste / sides if morph_k is omitted
+        _caste_k_map = {"Woman": 3, "Soldier": 3, "Artisan": 3, "Gentleman": 4, "Professional": 5, "Noble": 8, "Priest": 24}
+        if morph_k is not None:
+            effective_k = int(max(3, min(24, int(morph_k))))
+        elif caste and caste in _caste_k_map:
+            effective_k = _caste_k_map[caste]
+        elif sides is not None:
+            effective_k = 3 if sides <= 3 else int(max(3, min(24, int(sides))))
+        else:
+            effective_k = 4
+
         if HAS_NUMPY:
             self.pos[idx, 0] = x
             self.pos[idx, 1] = y
@@ -104,21 +115,32 @@ class AgentSoA:
             # BC morph — init or copy
             if morph_radii is not None:
                 self.morph_radii[idx, :len(morph_radii)] = morph_radii
+            elif caste == "Soldier":
+                self.morph_radii[idx, :3] = [1.5, 0.8, 0.8]
+                self.morph_radii[idx, 3:] = 1.0
+            elif caste == "Woman":
+                self.morph_radii[idx, :3] = [1.8, 0.2, 0.2]
+                self.morph_radii[idx, 3:] = 1.0
             else:
                 self.morph_radii[idx, :] = 1.0
+
             if morph_angles is not None:
                 self.morph_angles[idx, :len(morph_angles)] = morph_angles
-            else:
-                # regular polygon angles for K
-                _k = int(morph_k) if morph_k is not None else 4
-                for ki in range(_k):
-                    self.morph_angles[idx, ki] = 2 * 3.141592653589793 * ki / _k
-                for ki in range(_k, self.KMAX):
+            elif caste == "Soldier":
+                self.morph_angles[idx, :3] = [0.0, 2.4, 3.88]
+                for ki in range(3, self.KMAX):
                     self.morph_angles[idx, ki] = 2 * 3.141592653589793 * ki / self.KMAX
-            if morph_k is not None:
-                self.morph_k[idx] = int(max(3, min(24, int(morph_k))))
+            elif caste == "Woman":
+                self.morph_angles[idx, :3] = [0.0, 3.141592653589793 - 0.08, 3.141592653589793 + 0.08]
+                for ki in range(3, self.KMAX):
+                    self.morph_angles[idx, ki] = 2 * 3.141592653589793 * ki / self.KMAX
             else:
-                self.morph_k[idx] = 4
+                # regular polygon angles for effective_k
+                for ki in range(effective_k):
+                    self.morph_angles[idx, ki] = 2 * 3.141592653589793 * ki / effective_k
+                for ki in range(effective_k, self.KMAX):
+                    self.morph_angles[idx, ki] = 2 * 3.141592653589793 * ki / self.KMAX
+            self.morph_k[idx] = effective_k
             self.morph_traits[idx, :] = 0.0
             # physical_traits alias already 0
             self.reproduction_role[idx] = 0
@@ -136,25 +158,46 @@ class AgentSoA:
                 for i, v in enumerate(morph_radii):
                     if i < self.KMAX:
                         self.morph_radii[idx][i] = float(v)
+            elif caste == "Soldier":
+                self.morph_radii[idx][0] = 1.5
+                self.morph_radii[idx][1] = 0.8
+                self.morph_radii[idx][2] = 0.8
+                for i in range(3, self.KMAX):
+                    self.morph_radii[idx][i] = 1.0
+            elif caste == "Woman":
+                self.morph_radii[idx][0] = 1.8
+                self.morph_radii[idx][1] = 0.2
+                self.morph_radii[idx][2] = 0.2
+                for i in range(3, self.KMAX):
+                    self.morph_radii[idx][i] = 1.0
             else:
                 for i in range(self.KMAX):
                     self.morph_radii[idx][i] = 1.0
+
+            import math as _mm
             if morph_angles is not None:
                 for i, v in enumerate(morph_angles):
                     if i < self.KMAX:
                         self.morph_angles[idx][i] = float(v)
+            elif caste == "Soldier":
+                self.morph_angles[idx][0] = 0.0
+                self.morph_angles[idx][1] = 2.4
+                self.morph_angles[idx][2] = 3.88
+                for ki in range(3, self.KMAX):
+                    self.morph_angles[idx][ki] = 2 * _mm.pi * ki / self.KMAX
+            elif caste == "Woman":
+                self.morph_angles[idx][0] = 0.0
+                self.morph_angles[idx][1] = _mm.pi - 0.08
+                self.morph_angles[idx][2] = _mm.pi + 0.08
+                for ki in range(3, self.KMAX):
+                    self.morph_angles[idx][ki] = 2 * _mm.pi * ki / self.KMAX
             else:
-                _k = int(max(3, min(24, int(morph_k)))) if morph_k is not None else 4
-                import math as _mm
                 for ki in range(self.KMAX):
-                    if ki < _k:
-                        self.morph_angles[idx][ki] = 2 * _mm.pi * ki / _k
+                    if ki < effective_k:
+                        self.morph_angles[idx][ki] = 2 * _mm.pi * ki / effective_k
                     else:
                         self.morph_angles[idx][ki] = 2 * _mm.pi * ki / self.KMAX
-            if morph_k is not None:
-                self.morph_k[idx] = int(max(3, min(24, int(morph_k))))
-            else:
-                self.morph_k[idx] = 4
+            self.morph_k[idx] = effective_k
             self.morph_traits[idx] = [0.0]*6
             # physical_traits alias same
             self.reproduction_role[idx] = 0

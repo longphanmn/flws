@@ -88,48 +88,82 @@ function KinCardView({
 }
 
 // §BG-9 Polar Morphology Radar — mutated vs Abbott ghost
+const CANONICAL_TEMPLATES: Record<string, { r: number[]; phi: number[]; k: number }> = {
+  Woman: { r: [1.8, 0.2, 0.2], phi: [0.0, Math.PI - 0.08, Math.PI + 0.08], k: 3 },
+  Soldier: { r: [1.5, 0.8, 0.8], phi: [0.0, 2.4, 3.88], k: 3 },
+  Artisan: { r: [1.0, 1.0, 1.0], phi: [0.0, (2 * Math.PI) / 3, (4 * Math.PI) / 3], k: 3 },
+  Gentleman: { r: [1.0, 1.0, 1.0, 1.0], phi: [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2], k: 4 },
+  Professional: { r: [1.0, 1.0, 1.0, 1.0, 1.0], phi: [0, 1, 2, 3, 4].map((i) => (i * 2 * Math.PI) / 5), k: 5 },
+  Noble: { r: Array(8).fill(1.0), phi: Array.from({ length: 8 }, (_, i) => (i * 2 * Math.PI) / 8), k: 8 },
+  Priest: { r: Array(24).fill(1.0), phi: Array.from({ length: 24 }, (_, i) => (i * 2 * Math.PI) / 24), k: 24 },
+}
+
+function getCasteTemplate(caste?: string, sides?: number, shape?: string) {
+  if (shape === 'line' || caste === 'Woman' || sides === 2) return CANONICAL_TEMPLATES.Woman
+  if (caste && CANONICAL_TEMPLATES[caste]) return CANONICAL_TEMPLATES[caste]
+  if (sides === 3) return CANONICAL_TEMPLATES.Soldier
+  if (sides === 4) return CANONICAL_TEMPLATES.Gentleman
+  if (sides === 5) return CANONICAL_TEMPLATES.Professional
+  if (sides && sides >= 24) return CANONICAL_TEMPLATES.Priest
+  if (sides && sides >= 6) {
+    const k = Math.min(24, sides)
+    return { r: Array(k).fill(1.0), phi: Array.from({ length: k }, (_, i) => (i * 2 * Math.PI) / k), k }
+  }
+  return CANONICAL_TEMPLATES.Gentleman
+}
+
 function pseudoRand(seed: number, i: number): number {
   const x = Math.sin(seed * 127.1 + i * 311.7) * 43758.5453
   return x - Math.floor(x)
 }
+
 function PolarRadar({ e }: { e: EntityState }) {
   const { t } = useI18n()
-  const cx = 70, cy = 70, R = 46
-  const k = Math.max(3, Math.min(24, (e as any).morph_k ?? e.sides ?? 4))
+  const cx = 70, cy = 70
+  const scale = 26 // unit r=1.0 maps to 26px; Soldier apex r=1.5 is 39px, Woman r=1.8 is 46.8px (fits comfortably in 50px radius)
+  const tpl = getCasteTemplate(e.caste, e.sides, e.shape)
+  const k = Math.max(3, Math.min(24, (e as any).morph_k ?? tpl.k))
   const id = (e as any).id ?? 1
   const irr = (e as any).irregularity ?? 0
   const mt = (e as any).morph_traits as number[] | undefined
   const radii = (e as any).morph_radii as number[] | undefined
   const angles = (e as any).morph_angles as number[] | undefined
   const hasDetailed = Array.isArray(radii) && Array.isArray(angles) && radii.length >= k
-  // Mutated points
+
+  // Ghost Abbott template: orthodox canonical shape for this caste
+  // Heading phi=0 points UP (North) with -pi/2
+  const ghostPts: Array<[number, number]> = []
+  for (let i = 0; i < tpl.k; i++) {
+    const a = tpl.phi[i] - Math.PI / 2
+    const rr = tpl.r[i] * scale
+    ghostPts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr])
+  }
+
+  // Mutated points: from detailed arrays or preview from caste template with irregularity
   const mutPts: Array<[number, number]> = []
   if (hasDetailed) {
     for (let i = 0; i < k; i++) {
-      const r = Number(radii![i]) || 1
-      const a = Number(angles![i]) || (2 * Math.PI * i / k)
-      // normalize radii to fit: scale by R / maxR? max approx 2.5 -> map to R
-      const rr = (r / 1.6) * R
+      const r = Number(radii![i]) || 1.0
+      const a = (Number(angles![i]) || (2 * Math.PI * i / k)) - Math.PI / 2
+      const rr = r * scale
       mutPts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr])
     }
   } else {
-    for (let i = 0; i < k; i++) {
-      const aJ = (pseudoRand(id, i * 2) - 0.5) * irr * 0.65
-      const rJ = 1 + (pseudoRand(id, i * 2 + 1) - 0.5) * irr * 0.9
-      const a = (i / k) * Math.PI * 2 - Math.PI / 2 + aJ
-      const rr = R * rJ * 0.82
+    // Fallback: apply irregularity jitter to the orthodox caste template
+    const baseK = tpl.k
+    for (let i = 0; i < baseK; i++) {
+      const aJ = (pseudoRand(id, i * 2) - 0.5) * irr * 0.4
+      const rJ = 1 + (pseudoRand(id, i * 2 + 1) - 0.5) * irr * 0.7
+      const a = tpl.phi[i] + aJ - Math.PI / 2
+      const rr = tpl.r[i] * rJ * scale
       mutPts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr])
     }
   }
-  // Ghost Abbott regular template
-  const ghostPts: Array<[number, number]> = []
-  for (let i = 0; i < k; i++) {
-    const a = (i / k) * Math.PI * 2 - Math.PI / 2
-    ghostPts.push([cx + Math.cos(a) * R * 0.82, cy + Math.sin(a) * R * 0.82])
-  }
+
   const mutStr = mutPts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
   const ghostStr = ghostPts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
-  const isMutant = irr > 0.25 || ![3,4,5,8,24].includes(k)
+  const isMutant = irr > 0.25 || (tpl.k !== 4 && k !== tpl.k) || (mt && ((mt[4] ?? 0) > 0.15 || (mt[5] ?? 0) > 0.3))
+
   return (
     <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: 8, padding: '8px 8px 6px', minWidth: 0, overflow: 'hidden' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, marginBottom: 4, minWidth: 0 }}>
@@ -137,17 +171,18 @@ function PolarRadar({ e }: { e: EntityState }) {
         <span style={{ fontSize: 10, color: '#8b949e', flex: 'none' }}>irr {irr.toFixed(3)}</span>
       </div>
       <svg width={140} height={140} viewBox="0 0 140 140" style={{ display: 'block', margin: '0 auto', background: '#161b22', borderRadius: 6, border: '1px solid #30363d', maxWidth: '100%', height: 'auto' }}>
-        {/* radial grid */}
-        {[1, 0.66, 0.33].map((s, idx) => (
-          <circle key={idx} cx={cx} cy={cy} r={R * s * 0.82} fill="none" stroke="#21262d" strokeWidth={0.6} strokeDasharray={idx === 0 ? undefined : '2 2'} />
+        {/* radial grid: 0.5, 1.0 (canonical unit circle), 1.5 (apex reach) */}
+        {[1.5, 1.0, 0.5].map((s, idx) => (
+          <circle key={idx} cx={cx} cy={cy} r={scale * s} fill="none" stroke="#21262d" strokeWidth={0.6} strokeDasharray={s === 1.0 ? undefined : '2 2'} />
         ))}
-        {Array.from({ length: k }, (_, i) => {
-          const a = (i / k) * Math.PI * 2 - Math.PI / 2
-          return <line key={i} x1={cx} y1={cy} x2={cx + Math.cos(a) * R * 0.82} y2={cy + Math.sin(a) * R * 0.82} stroke="#21262d" strokeWidth={0.4} />
+        {/* angle spoke lines for template vertices */}
+        {tpl.phi.map((ph, i) => {
+          const a = ph - Math.PI / 2
+          return <line key={i} x1={cx} y1={cy} x2={cx + Math.cos(a) * scale * 1.6} y2={cy + Math.sin(a) * scale * 1.6} stroke="#21262d" strokeWidth={0.4} />
         })}
-        {/* ghost Abbott */}
-        <polygon points={ghostStr} fill="none" stroke="#8b949e" strokeWidth={1.1} opacity={0.35} strokeDasharray="3 3" strokeLinejoin="round" />
-        {/* mutated */}
+        {/* ghost Abbott orthodoxy */}
+        <polygon points={ghostStr} fill="none" stroke="#8b949e" strokeWidth={1.1} opacity={0.4} strokeDasharray="3 3" strokeLinejoin="round" />
+        {/* mutated polar polygon */}
         <polygon points={mutStr} fill={isMutant ? 'rgba(163,113,247,0.18)' : 'rgba(121,192,255,0.18)'} stroke={isMutant ? '#d2a8ff' : '#79c0ff'} strokeWidth={1.4} strokeLinejoin="round" />
         {/* vertices */}
         {mutPts.map(([x, y], i) => (
@@ -175,7 +210,7 @@ function BiomechHUD({ e }: { e: EntityState }) {
   const asym = mt?.[4] ?? irr/1.5
   const dmult = mt?.[5] ?? 0
   const hasData = mt && area > 1e-6
-  const Aref = 2.0, Iref = 0.666, Pref = 5.657
+  const Aref = 2.0, Iref = 0.333, Pref = 5.657
   if (!hasData) {
     return (
       <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 6, padding: '8px 10px' }}>

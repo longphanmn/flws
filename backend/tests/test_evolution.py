@@ -303,4 +303,73 @@ def test_multi_generation_mutation_frequency():
     assert gen_data["mutation_freq"] > 0.05
 
 
+def test_polar_morph_caste_template_defaults():
+    from app.agent_soa import AgentSoA
+    soa = AgentSoA(capacity=10)
+
+    # Soldier
+    idx_soldier = soa.add_agent(1, 10.0, 10.0, caste="Soldier", sides=3)
+    assert soa.morph_k[idx_soldier] == 3
+    assert soa.morph_radii[idx_soldier, 0] == pytest.approx(1.5)
+
+    # Woman
+    idx_woman = soa.add_agent(2, 12.0, 10.0, caste="Woman", sides=2)
+    assert soa.morph_k[idx_woman] == 3
+    assert soa.morph_radii[idx_woman, 0] == pytest.approx(1.8)
+
+    # Gentleman
+    idx_gent = soa.add_agent(3, 14.0, 10.0, caste="Gentleman", sides=4)
+    assert soa.morph_k[idx_gent] == 4
+    assert soa.morph_radii[idx_gent, 0] == pytest.approx(1.0)
+
+
+def test_child_morphology_respects_caste_template():
+    import random
+    from app.evolution_manager import child_morphology_two_parent, get_template_for_caste
+
+    rng = random.Random(42)
+    # Parents are both K=4 squares
+    mo_r, mo_phi, mo_k = [1.0] * 4, [0.0, 1.57, 3.14, 4.71], 4
+    fa_r, fa_phi, fa_k = [1.0] * 4, [0.0, 1.57, 3.14, 4.71], 4
+
+    # Child is a Soldier (caste template K=3, apex 1.5)
+    tr, tphi, tk = get_template_for_caste("Soldier")
+    assert tk == 3
+
+    cr, cphi, ck = child_morphology_two_parent(
+        mo_r, mo_phi, mo_k, fa_r, fa_phi, fa_k,
+        tr, tphi, tk, lam=0.0, config=None, rng=rng,
+    )
+    # Must not be clamped to 4! Must receive Soldier K=3
+    assert ck == 3
+
+
+def test_healing_legacy_square_morphs():
+    from app.simulation.core import Simulation
+    from app.config import Config
+    from app.entities import Creature
+    from app.agent_soa import AgentSoA
+
+    cfg = Config(seed=42)
+    sim = Simulation(cfg)
+    sim.world.entities.clear()
+
+    # Create soldier with legacy corrupted k=4 square
+    soldier = Creature(shape="polygon", sides=3, caste="Soldier", x=10.0, y=10.0)
+    sim.world.add(soldier)
+    sim._cached_creatures = [soldier]
+    sim._soa = AgentSoA(capacity=10)
+    sim._soa.add_agent(soldier.id, 10.0, 10.0, morph_k=4, morph_radii=[1.0]*4)
+    sim._soa_id_map = {soldier.id: 0}
+
+    assert sim._soa.morph_k[0] == 4
+
+    # Step simulation: healing pass runs
+    sim._sync_soa_incremental()
+
+    assert sim._soa.morph_k[0] == 3
+    assert sim._soa.morph_radii[0, 0] == pytest.approx(1.5)
+
+
+
 

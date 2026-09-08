@@ -133,6 +133,12 @@ class LifecycleMixin:
                         pass
                 if getattr(p, "_bc_morph_r", None) is not None:
                     return p._bc_morph_r, p._bc_morph_phi, int(getattr(p, "_bc_morph_k", 4))  # type: ignore
+                if _evo_mgr is not None and getattr(p, "caste", None):
+                    try:
+                        tr, tphi, tk = _evo_mgr.get_template_for_caste(p.caste)
+                        return list(tr), list(tphi), int(tk)
+                    except Exception:
+                        pass
                 k = max(3, min(24, p.sides if getattr(p, "sides", None) else 4))
                 r = [1.0] * k + [1.0] * (24 - k)
                 a = [2 * math.pi * i / k if i < k else 2 * math.pi * i / 24 for i in range(24)]

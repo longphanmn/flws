@@ -3565,6 +3565,16 @@ def _creature_mem_dossier(creature_id: int) -> dict:
                     entity["morph_k"] = k
                 except Exception:
                     pass
+            if "morph_radii" not in entity:
+                try:
+                    from . import evolution_manager as _evo_mgr
+                    caste = entity.get("caste") or getattr(ent, "caste", "Gentleman")
+                    tr, tphi, tk = _evo_mgr.get_template_for_caste(caste)
+                    entity["morph_radii"] = [round(float(v), 4) for v in tr[:tk]]
+                    entity["morph_angles"] = [round(float(v), 4) for v in tphi[:tk]]
+                    entity["morph_k"] = int(tk)
+                except Exception:
+                    pass
             # BH-10: full 295-weight genome for Inspector heatmap (detail only)
             if midx >= 0 and hasattr(soa, "genomes"):
                 try:

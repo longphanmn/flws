@@ -1361,6 +1361,16 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
                         _mk = getattr(c, "_bc_morph_k", None)
                 except Exception:
                     pass
+                if _mr is None and _evo_mgr is not None and getattr(c, "caste", None):
+                    try:
+                        _tr, _tphi, _tk = _evo_mgr.get_template_for_caste(c.caste)
+                        _mr = list(_tr)
+                        _ma = list(_tphi)
+                        _mk = int(_tk)
+                        if hasattr(self, "_morph_cache"):
+                            self._morph_cache[c.id] = (list(_mr), list(_ma), int(_mk))
+                    except Exception:
+                        pass
                 existing_genome = None
                 try:
                     if hasattr(self, "_nn_cache") and c.id in self._nn_cache:
@@ -1394,6 +1404,7 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
                         int(c.id), float(c.x), float(c.y),
                         angle=float(c.angle), energy=float(c.energy), health=float(c.health),
                         genome=existing_genome, morph_radii=_mr, morph_angles=_ma, morph_k=_mk,
+                        caste=getattr(c, "caste", None), sides=getattr(c, "sides", None),
                     )
                     id_map[int(c.id)] = int(new_idx)
                     if grid is not None:
@@ -1420,6 +1431,38 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
                             grid.insert(int(c.id), float(c.x), float(c.y))
                     except Exception:
                         pass
+
+        # Heal corrupted / legacy default square morphs (e.g. k=4 on Soldier, Woman, Artisan, etc.)
+        if getattr(self, "_morph_healed", False) is not True and _evo_mgr is not None and hasattr(soa, "morph_k") and hasattr(soa, "morph_radii"):
+            healed_any = False
+            for c in alive:
+                midx = id_map.get(c.id)
+                if midx is not None and 0 <= midx < soa.N:
+                    caste = getattr(c, "caste", None)
+                    if caste and caste in ("Soldier", "Woman", "Artisan", "Professional", "Noble", "Priest"):
+                        expected_k = _evo_mgr.get_template_for_caste(caste)[2]
+                        cur_k = int(soa.morph_k[midx])
+                        asym = float(soa.morph_traits[midx, 4]) if hasattr(soa, "morph_traits") else 0.0
+                        if cur_k != expected_k and (asym < 0.05 or cur_k == 4):
+                            tr, tphi, tk = _evo_mgr.get_template_for_caste(caste)
+                            soa.morph_k[midx] = tk
+                            if hasattr(soa.morph_radii, "shape"):
+                                soa.morph_radii[midx, :len(tr)] = tr
+                                soa.morph_angles[midx, :len(tphi)] = tphi
+                            else:
+                                for ki, rv in enumerate(tr):
+                                    soa.morph_radii[midx][ki] = float(rv)
+                                for ki, pv in enumerate(tphi):
+                                    soa.morph_angles[midx][ki] = float(pv)
+                            if hasattr(self, "_morph_cache"):
+                                self._morph_cache[c.id] = (list(tr), list(tphi), int(tk))
+                            healed_any = True
+            if healed_any and _morphology is not None:
+                try:
+                    _morphology.sync_soa_traits(soa)
+                except Exception:
+                    pass
+            self._morph_healed = True
 
     def _record_phase(self, name: str, ms: float) -> None:
         """BJ-6: record one subsystem timing sample (last + rolling totals)."""
@@ -1859,7 +1902,17 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
                             _mr = getattr(c, "_bc_morph_r", None)
                             _ma = getattr(c, "_bc_morph_phi", None)
                             _mk = getattr(c, "_bc_morph_k", None)
-                        self._soa.add_agent(int(c.id), float(c.x), float(c.y), angle=float(c.angle), energy=float(c.energy), health=float(c.health), morph_radii=_mr, morph_angles=_ma, morph_k=_mk)
+                        if _mr is None and _evo_mgr is not None and getattr(c, "caste", None):
+                            try:
+                                _tr, _tphi, _tk = _evo_mgr.get_template_for_caste(c.caste)
+                                _mr = list(_tr)
+                                _ma = list(_tphi)
+                                _mk = int(_tk)
+                                if hasattr(self, "_morph_cache"):
+                                    self._morph_cache[c.id] = (list(_mr), list(_ma), int(_mk))
+                            except Exception:
+                                pass
+                        self._soa.add_agent(int(c.id), float(c.x), float(c.y), angle=float(c.angle), energy=float(c.energy), health=float(c.health), morph_radii=_mr, morph_angles=_ma, morph_k=_mk, caste=getattr(c, "caste", None), sides=getattr(c, "sides", None))
                     self._soa_id_map = {c.id: idx for idx, c in enumerate(self._cached_creatures)}
                     # init genomes — carry over any cached NN genomes
                     if _evolution is not None:

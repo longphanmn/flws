@@ -84,17 +84,20 @@ def child_morphology_two_parent(
     template_r, template_phi, template_k: int, lam: float, config, rng: random.Random
 ) -> Tuple[list, list, int]:
     """BH-1 Two-Parent Meiotic Polar Crossover. K_child∈[Kmo,Kfa] with sector-arc recombination."""
-    # BH-1: K interpolated between parents and template; respect interval [Kmo,Kfa]
-    k_min = min(int(mother_k), int(father_k))
-    k_max = max(int(mother_k), int(father_k))
-    k_avg = (int(mother_k) + int(father_k)) // 2
-    # template contribution decays with lam, but clamp to parental interval
-    base_k = int(round(lam * template_k + (1 - lam) * k_avg))
-    base_k = max(k_min, min(k_max, base_k))
-    # allow ±1 drift within interval 30% chance to encourage exploration
-    if rng.random() < 0.3 and k_min != k_max:
-        base_k += rng.choice((-1, 1))
+    # BH-1: K interpolated between parents and template; respect child's caste template
+    k_min = min(int(mother_k), int(father_k), int(template_k))
+    k_max = max(int(mother_k), int(father_k), int(template_k))
+    if int(template_k) not in (int(mother_k), int(father_k)):
+        # Child belongs to a caste with a distinct geometric specification (e.g. Woman/Soldier)
+        base_k = int(template_k)
+    else:
+        k_avg = (int(mother_k) + int(father_k)) // 2
+        base_k = int(round(lam * template_k + (1 - lam) * k_avg))
         base_k = max(k_min, min(k_max, base_k))
+        # allow ±1 drift within interval 30% chance to encourage exploration
+        if rng.random() < 0.3 and k_min != k_max:
+            base_k += rng.choice((-1, 1))
+            base_k = max(k_min, min(k_max, base_k))
     base_k = max(3, min(KMAX, base_k))
 
     sigma_r = float(getattr(config, "vertex_mutation_std", 0.05))
