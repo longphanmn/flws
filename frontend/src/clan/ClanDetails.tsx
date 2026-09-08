@@ -321,7 +321,7 @@ export default function ClanDetails({
                   cursor: 'pointer',
                   marginLeft: 4,
                 }}
-                title="Copy shareable link for this clan (BM-20)"
+                title="Copy shareable link for this clan"
               >
                 {copiedClanLink ? '✓ Link Copied' : '🔗 Share'}
               </button>

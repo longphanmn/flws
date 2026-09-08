@@ -44,7 +44,7 @@ export default function WarArcGraph({ wars }: Props) {
       }}
     >
       <div style={{ fontSize: 10.5, color: '#8b949e', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
-        ⚔️ War Arc Dynamic Linkage (BM-11)
+        ⚔️ War Arc Dynamic Linkage
       </div>
 
       <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 90, overflow: 'visible' }}>

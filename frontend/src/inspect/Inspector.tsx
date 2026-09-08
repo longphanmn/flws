@@ -512,7 +512,7 @@ ${events.map((ev) => `- Tick ${ev.tick}: ${ev.type}${ev.caste ? ` (${ev.caste})`
               fontSize: 10.5,
               padding: '2px 7px',
             }}
-            title="Generate and copy single-creature Story Arc narrative prompt (BM-18)"
+            title="Generate and copy single-creature Story Arc narrative prompt"
           >
             {arcCopied ? '✓ Copied!' : '📖 Story Arc'}
           </button>

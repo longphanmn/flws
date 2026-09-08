@@ -59,7 +59,7 @@ export default function PopulationSparkline({
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: '#8b949e', marginBottom: 2 }}>
         <span style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          📈 Conflict & Crisis Intensity Sparkline (BM-9)
+          📈 Conflict & Crisis Intensity Sparkline
         </span>
         {activeDay ? (
           <span style={{ color: '#58a6ff' }}>

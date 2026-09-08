@@ -319,7 +319,7 @@ export default function InAppAIGenerator({
               gap: 8,
             }}
           >
-            {loading ? '⏳ Composing Chronicle Narrative...' : '✨ Generate Story with AI (BM-17)'}
+            {loading ? '⏳ Composing Chronicle Narrative...' : '✨ Generate Story with AI'}
           </button>
         </div>
 

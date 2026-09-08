@@ -73,3 +73,10 @@ export function useI18n() {
 export function useT() {
   return useContext(Ctx).t
 }
+
+export function getTranslator(lang: string) {
+  const normalized = lang === 'vn' ? 'vi' : lang
+  const dict = locales[normalized] ?? en
+  return (key: string, vars?: Record<string, any>) => interpolate(resolve(key, dict), vars)
+}
+
