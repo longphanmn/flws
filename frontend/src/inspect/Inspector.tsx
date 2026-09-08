@@ -266,7 +266,7 @@ function NNHeatmap({ e }: { e: EntityState }) {
   const g = genome && genome.length >= 295 ? genome : null
   if (!g) {
     return (
-      <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: 8, padding: '8px 10px', marginTop: 8 }}>
+      <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: 8, padding: '8px 10px', marginTop: 8, flexShrink: 0 }}>
         <div style={{ fontSize: 11, color: '#8b949e', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>🧠 NN Connectivity 16→12→7 (BH-10)</div>
         <div style={{ fontSize: 11, color: '#6e7681' }}>
           Full 295-weight genome not yet cached — preview {preview ? `(${preview.length} weights)` : '(pending)'}.
@@ -299,7 +299,19 @@ function NNHeatmap({ e }: { e: EntityState }) {
   const W1w = 16 * (cellW1 + gap) + 8, W1h = 12 * (cellH1 + gap) + 18
   const W2w = 12 * (cellW1 + gap) + 8, W2h = 7 * (cellH1 + gap) + 18
   return (
-    <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: 8, padding: '8px 10px', marginTop: 8, minWidth: 0, overflow: 'hidden' }}>
+    <div
+      className="nn-heatmap-card"
+      style={{
+        background: '#0d1117',
+        border: '1px solid #21262d',
+        borderRadius: 8,
+        padding: '8px 10px',
+        marginTop: 8,
+        minWidth: 0,
+        overflow: 'visible',
+        flexShrink: 0,
+      }}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, marginBottom: 6, minWidth: 0 }}>
         <span style={{ fontSize: 11, color: '#8b949e', textTransform: 'uppercase', letterSpacing: 0.5, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🧠 NN Connectivity 16→12→7</span>
         <span style={{ fontSize: 9, color: '#6e7681', flex: 'none' }}>295w · BH-5</span>
@@ -422,7 +434,7 @@ export default function Inspector({ id, state, onClose, onNavigate, onSelectClan
   if ((e?.scars ?? 0) > 0) statusChips.push({ text: `⚔ Veteran (${e?.scars} ${(e?.scars === 1 ? 'scar' : 'scars')})`, cls: 'st-starving' })
 
   return (
-    <aside className="inspector" data-snap={snap}>
+    <aside className="inspector" data-snap={snap} onWheel={(e) => e.stopPropagation()}>
       <div
         className="inspector-handle"
         role="button"
@@ -571,7 +583,7 @@ export default function Inspector({ id, state, onClose, onNavigate, onSelectClan
       {e && activeTab === 'skills' && (
         <>
           {/* 2x2 circular mastery badge grid */}
-          <div className="insp-2col" style={{ marginBottom: 8 }}>
+          <div className="insp-2col" style={{ marginBottom: 8, flexShrink: 0 }}>
             {[
               { name: t('inspector.farming'), key: 'farming', icon: '🌾', color: '#3fb950', max: 30 },
               { name: t('inspector.combat'), key: 'combat', icon: '⚔️', max: 30, color: '#ff7b72' },
@@ -595,7 +607,7 @@ export default function Inspector({ id, state, onClose, onNavigate, onSelectClan
             })}
           </div>
           {/* Neural radar compact gauges */}
-          <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: 8, padding: '8px 10px' }}>
+          <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: 8, padding: '8px 10px', flexShrink: 0 }}>
             <div style={{ fontSize: 11, color: '#8b949e', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, display: 'flex', justifyContent: 'space-between' }}>
               <span>🧠 Neural Engine (BA)</span>
               <span style={{ color: '#58a6ff', textTransform: 'none' }}>hidden {e.nn_hidden?.toFixed(3) ?? '—'}</span>

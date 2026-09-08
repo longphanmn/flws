@@ -488,31 +488,40 @@ body {
 
 @media (max-width: 768px) {
   .lens-switcher-toolbar {
-    position: absolute !important;
+    position: fixed !important;
     top: auto !important;
-    bottom: 8px !important;
+    bottom: calc(var(--thumb-h) + env(safe-area-inset-bottom) + 8px) !important;
     left: 8px !important;
     right: auto !important;
     transform: none !important;
-    padding: 2px 3px !important;
+    padding: 2px 4px !important;
     gap: 2px !important;
     width: fit-content !important;
     max-width: calc(100vw - 16px) !important;
     height: auto !important;
     min-height: 0 !important;
-    max-height: 26px !important;
+    max-height: 28px !important;
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
     align-items: center !important;
     justify-content: flex-start !important;
+    border-radius: 12px !important;
+    background: rgba(13, 17, 23, 0.88) !important;
+    border: 1px solid rgba(48, 54, 61, 0.8) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+    z-index: 24 !important;
   }
   .lens-btn {
-    padding: 2px 4.5px !important;
-    font-size: 9.5px !important;
-    height: 20px !important;
+    padding: 2px 5px !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    height: 22px !important;
     min-height: 0 !important;
-    max-height: 20px !important;
+    max-height: 22px !important;
+    border-radius: 8px !important;
     flex: none !important;
     white-space: nowrap !important;
     line-height: 1 !important;
@@ -520,30 +529,48 @@ body {
   }
   .lens-btn .lens-num {
     display: inline-flex !important;
-    font-size: 8px !important;
-    padding: 0.5px 3px !important;
-    line-height: 1 !important;
+    font-size: 8.5px !important;
+    padding: 0.5px 3.5px !important;
+    border-radius: 3px !important;
+    line-height: 1.1 !important;
+  }
+  .lens-btn.active .lens-num {
+    background: #38bdf8 !important;
+    color: #0b0f14 !important;
+    font-weight: 700 !important;
+  }
+  .lens-btn.active {
+    background: rgba(56, 189, 248, 0.15) !important;
+    border-color: rgba(56, 189, 248, 0.45) !important;
+    color: #38bdf8 !important;
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.25) !important;
+  }
+  .lens-btn .lens-label {
+    font-size: 10px !important;
   }
   .lens-hint-btn {
-    padding: 0 4px !important;
-    font-size: 10px !important;
-    height: 20px !important;
+    padding: 0 5px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    height: 22px !important;
     min-height: 0 !important;
-    max-height: 20px !important;
+    max-height: 22px !important;
+    border-radius: 8px !important;
   }
   .lens-hint-popover {
-    width: calc(100vw - 16px) !important;
+    width: min(330px, calc(100vw - 16px)) !important;
     max-width: calc(100vw - 16px) !important;
     left: 8px !important;
-    bottom: 38px !important;
+    bottom: calc(var(--thumb-h) + env(safe-area-inset-bottom) + 38px) !important;
     max-height: 60dvh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding: 10px !important;
+    z-index: 35 !important;
   }
   .regulation-status-container {
     top: auto !important;
-    bottom: 38px !important;
+    bottom: calc(var(--thumb-h) + env(safe-area-inset-bottom) + 38px) !important;
     left: 8px !important;
     right: auto !important;
     width: fit-content !important;
@@ -1088,8 +1115,9 @@ body {
   border: 1px solid #30363d;
   border-radius: 10px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65);
-  padding: 14px 16px;
+  padding: 14px 16px 24px;
   overflow-y: auto;
+  overflow-x: hidden;
   z-index: 40;
   display: flex;
   flex-direction: column;
@@ -1097,6 +1125,11 @@ body {
   box-sizing: border-box;
   scrollbar-width: thin;
   scrollbar-color: #30363d transparent;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+.inspector > * {
+  flex-shrink: 0;
 }
 .inspector::-webkit-scrollbar {
   width: 6px;

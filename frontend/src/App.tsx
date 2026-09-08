@@ -799,11 +799,11 @@ export default function App() {
           role="toolbar"
           aria-label={t('app.lenses.toolbarLabel') || 'Map Lenses'}
           style={{
-            position: 'absolute',
+            position: isMobile ? 'fixed' : 'absolute',
             top: 'auto',
             right: 'auto',
             left: !isMobile && (selectedId !== null || selectedClanId !== null) ? 406 : (isMobile ? 8 : 14),
-            bottom: isMobile ? 8 : 12,
+            bottom: isMobile ? 'calc(var(--thumb-h) + env(safe-area-inset-bottom) + 8px)' : 12,
             transform: 'none',
             width: 'fit-content',
             height: 'auto',
@@ -872,7 +872,7 @@ export default function App() {
             aria-label={t('app.lenses.hintTitle') || 'Map Lens Modes'}
             style={{
               left: !isMobile && (selectedId !== null || selectedClanId !== null) ? 406 : (isMobile ? 8 : 14),
-              bottom: isMobile ? 38 : 44,
+              bottom: isMobile ? 'calc(var(--thumb-h) + env(safe-area-inset-bottom) + 38px)' : 44,
             }}
           >
             <div className="lens-hint-header">
@@ -983,11 +983,11 @@ export default function App() {
           <div
             className="regulation-status-container"
             style={{
-              position: 'absolute',
+              position: isMobile ? 'fixed' : 'absolute',
               top: 'auto',
               right: 'auto',
               left: !isMobile && (selectedId !== null || selectedClanId !== null) ? 406 : (isMobile ? 8 : 14),
-              bottom: isMobile ? 38 : 42,
+              bottom: isMobile ? 'calc(var(--thumb-h) + env(safe-area-inset-bottom) + 38px)' : 42,
               width: 'fit-content',
               transform: 'none',
             }}
