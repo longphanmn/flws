@@ -3688,6 +3688,15 @@ def _enrich_dossier_from_db(creature_id: int, mem: dict) -> dict:
                 "angle_jitter": v["angle_jitter"],
                 "sex": "female" if row["caste"] == "Woman" else "male" if row["caste"] else None,
             }
+            try:
+                from . import evolution_manager as _evo_mgr
+                caste = entity.get("caste") or "Gentleman"
+                tr, tphi, tk = _evo_mgr.get_template_for_caste(caste)
+                entity["morph_radii"] = [round(float(v), 4) for v in tr[:tk]]
+                entity["morph_angles"] = [round(float(v), 4) for v in tphi[:tk]]
+                entity["morph_k"] = int(tk)
+            except Exception:
+                pass
 
     if RT.world_id is not None:
         try:
