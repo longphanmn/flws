@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import type { StateMessage } from '../types'
 import { CASTE_COLORS } from './CanvasRenderer'
 import { totemEmoji } from '../totems'
@@ -35,7 +35,7 @@ const WEATHER_ICONS: Record<string, string> = {
   storm: '⛈️',
 }
 
-export default function OverviewPanel({
+function OverviewPanel({
   state,
   aliveHist = [],
   onSelectCreature,
@@ -345,3 +345,5 @@ export default function OverviewPanel({
     </div>
   )
 }
+
+export default memo(OverviewPanel)

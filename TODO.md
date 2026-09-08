@@ -163,6 +163,22 @@ Legend: [P0] foundational · [P1] core Flatland identity · [P2] flavor/observab
 
 ---
 
+## §BL Frontend High-Performance 60 FPS Engine — Optimization & LOD Pipeline — ✅ Done (6/6) — 2026-09-08
+
+> **Context**: High-end client profiling revealed canvas draw-call saturation (~900,000 `fillRect` and string parses/sec on static elevation data), micro-phenotype overdraw without zoom LOD gating, GC allocation spikes inside the render loop, and high-frequency React component tree reconciliation. §BL delivers solid 60 FPS across all zoom levels.
+
+### Phase 1: Canvas Rendering Optimizations & LOD Gating [P0] — ✅ Done
+- [x] [P0] **BL-1 Offscreen Terrain & Elevation Hillshade Caching** — Pre-render elevation grid into an OffscreenCanvas bitmap once per terrain generation; draw with a single `ctx.drawImage()` call per frame instead of 15,000 `fillRect` calls.
+- [x] [P0] **BL-2 Phenotype Level-of-Detail (LOD) Gating** — Gate micro-decorations (blade glints, starburst coronas, genesis sparks, halos, auras, chromatic aberration) when zoomed out (`camScale < 3.2`) to eliminate sub-pixel overdraw.
+- [x] [P0] **BL-3 Zero-Allocation Batching & Scratch Pool Recycling** — Persist scratch arrays for `polygonsByCaste`, `crestsByColor`, `womenGroups`, and `polyGroups` in `renderCore.ts` to prevent GC thrashing.
+
+### Phase 2: React Decoupling & Micro-Optimizations [P1] — ✅ Done
+- [x] [P1] **BL-4 Static Lookup Hoisting & Loop String Cleanup** — Hoist `matTint` and signal color tables outside inner render loops; eliminate `Array.from` inside polygon vertex calculations.
+- [x] [P1] **BL-5 React DOM Reconciliation Decoupling** — Throttle DOM UI state updates in `App.tsx` to 250ms for sidebars and HUDs while leaving the 60 FPS canvas render loop uninhibited.
+- [x] [P1] **BL-6 Component Memoization & Render Guarding** — Ensure secondary panels (`ChronicleFeed`, `ClanPanel`, `OverviewPanel`) do not re-render during smooth canvas camera pans.
+
+---
+
 ## Parked — decided, not pending (8 items; 9 before dedupe)
 
 These are documented decisions with rationale, not overdue work. The original 22 unchecked items included 9 such; 2 were the same task.

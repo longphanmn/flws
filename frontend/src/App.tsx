@@ -322,15 +322,14 @@ export default function App() {
           }
         }
 
-        // AF: Throttle React virtual DOM re-renders to ~10 Hz (every 100ms) so HUD tick
-        // appears at true rate (was 200ms → 5Hz, looked like 2 ticks/s when counting updates).
-        // CanvasRenderer continues to read stateRef.current at full 60 FPS.
+        // AF & §BL-5: Throttle React virtual DOM re-renders to ~4 Hz (every 250ms) for sidebars & HUDs.
+        // CanvasRenderer continues to read stateRef.current at full 60 FPS without main thread stalls.
         const now = performance.now()
         const isExtinct = msg.creatures_alive === 0
         const shouldUpdateReactState =
           isNewWorld ||
           isExtinct ||
-          now - (lastUiUpdateRef.current || 0) >= 100
+          now - (lastUiUpdateRef.current || 0) >= 250
 
         if (!archiveModeRef.current && msg.events && msg.events.length > 0) {
           for (const ev of msg.events) {

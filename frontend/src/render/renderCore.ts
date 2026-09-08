@@ -200,8 +200,107 @@ export function drawWeather(
   ctx.stroke()
 }
 
-// §AV F-1: persistent scratch arrays — cleared via .length=0 each frame
-// instead of allocating ~20 fresh arrays/Maps per 60 FPS tick.
+// §AQ PH-6: house wall tints
+const HOUSE_MAT_TINT: Record<string, string> = {
+  straw: 'rgba(214,177,94,0.10)',
+  wood: 'rgba(150,111,64,0.12)',
+  stone: 'rgba(140,150,160,0.14)',
+  clay: 'rgba(190,106,66,0.16)',
+}
+
+// §AN / §AP Signal color lookup
+const SIGNAL_COLOR: Record<string, string> = {
+  food: '#3fb950',
+  alarm: '#f85149',
+  help: '#ffd166',
+  knowledge: '#79c0ff',
+  grief: '#8b949e',
+  chime: '#e3b341', // §AP divine law resonance + §AN boundary stones
+  chant: '#b392f0', // §AN priest liturgy
+  hum: '#ff9ecd',   // §AN woman's peace-hum
+  war: '#ff7b72',   // §AN soldier war-chirp
+  trail: '#d2a8ff', // §AN forager scent trail
+  danger_scent: '#6e7681', // §AN death-site marker
+  courier: '#e3b341',      // §AN tribute courier
+  omen: '#e3b341',         // §AN season omen
+}
+
+interface GroupBatch {
+  list: EntityState[]
+  fillAlpha: number
+  strokeAlpha: number
+}
+
+// §BL-1: Cached offscreen canvas for elevation hillshade (eliminates 15,000 fillRect/frame)
+interface ElevationCache {
+  canvas: HTMLCanvasElement | OffscreenCanvas
+  ref: number[]
+  rows: number
+  cols: number
+}
+let _cachedElev: ElevationCache | null = null
+
+function getElevationCanvas(elev: { cell: number; rows: number; cols: number; h?: number[] }): HTMLCanvasElement | OffscreenCanvas | null {
+  if (!elev || !elev.h || !elev.h.length || !elev.rows || !elev.cols) return null
+  if (
+    _cachedElev &&
+    _cachedElev.ref === elev.h &&
+    _cachedElev.rows === elev.rows &&
+    _cachedElev.cols === elev.cols
+  ) {
+    return _cachedElev.canvas
+  }
+
+  const cols = elev.cols
+  const rows = elev.rows
+  let canvas: HTMLCanvasElement | OffscreenCanvas
+  if (typeof OffscreenCanvas !== 'undefined') {
+    canvas = new OffscreenCanvas(cols, rows)
+  } else {
+    canvas = document.createElement('canvas')
+    canvas.width = cols
+    canvas.height = rows
+  }
+
+  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null
+  if (!ctx) return null
+
+  const imgData = ctx.createImageData(cols, rows)
+  const data = imgData.data
+  const hArr = elev.h
+
+  for (let row = 0; row < rows; row++) {
+    const rowOffset = row * cols
+    for (let col = 0; col < cols; col++) {
+      const idx = rowOffset + col
+      const h = hArr[idx] ?? 0.5
+      const light = hArr[rowOffset + Math.max(0, col - 1)] ?? h
+      const shade = h - light
+      const v = Math.round(18 + h * 26)
+      const r = Math.max(0, Math.min(255, Math.round(v + shade * 40)))
+      const g = Math.max(0, Math.min(255, Math.round(v + 8 + shade * 30)))
+      const b = Math.max(0, Math.min(255, Math.round(v - 4)))
+      const a = 140 // ~0.55 * 255
+      const p = idx * 4
+      data[p] = r
+      data[p + 1] = g
+      data[p + 2] = b
+      data[p + 3] = a
+    }
+  }
+
+  ctx.putImageData(imgData, 0, 0)
+  _cachedElev = {
+    canvas,
+    ref: elev.h,
+    rows,
+    cols,
+  }
+  return canvas
+}
+
+// §AV F-1 & §BL-3: persistent scratch arrays & reusable map buckets — cleared via .length=0 each frame
+// instead of allocating fresh arrays/Maps per 60 FPS tick.
 const _scratch = {
   grass: [] as EntityState[],
   grain: [] as EntityState[],
@@ -215,6 +314,8 @@ const _scratch = {
   women: [] as EntityState[],
   polygonsByCaste: new Map<string, EntityState[]>(),
   crestsByColor: new Map<string, EntityState[]>(),
+  womenGroups: new Map<string, GroupBatch>(),
+  polyGroups: new Map<string, GroupBatch>(),
   sleeping: [] as EntityState[],
   hungry: [] as EntityState[],
   starving: [] as EntityState[],
@@ -248,8 +349,14 @@ export function drawBatchedEntities(
   const corpses = _scratch.corpses; corpses.length = 0
   const houses = _scratch.houses; houses.length = 0
   const women = _scratch.women; women.length = 0
-  const polygonsByCaste = _scratch.polygonsByCaste; polygonsByCaste.clear()
-  const crestsByColor = _scratch.crestsByColor; crestsByColor.clear()
+  const polygonsByCaste = _scratch.polygonsByCaste
+  for (const list of polygonsByCaste.values()) list.length = 0
+  const crestsByColor = _scratch.crestsByColor
+  for (const list of crestsByColor.values()) list.length = 0
+  const womenGroups = _scratch.womenGroups
+  for (const g of womenGroups.values()) g.list.length = 0
+  const polyGroups = _scratch.polyGroups
+  for (const g of polyGroups.values()) g.list.length = 0
   const sleepingCreatures = _scratch.sleeping; sleepingCreatures.length = 0
   const hungryCreatures = _scratch.hungry; hungryCreatures.length = 0
   const starvingCreatures = _scratch.starving; starvingCreatures.length = 0
@@ -350,14 +457,8 @@ export function drawBatchedEntities(
         ctx.lineTo(bx, by)
       }
       ctx.stroke()
-      // §AQ PH-6: material reads at a glance; worn walls show cracks
-      const matTint: Record<string, string> = {
-        straw: 'rgba(214,177,94,0.10)',
-        wood: 'rgba(150,111,64,0.12)',
-        stone: 'rgba(140,150,160,0.14)',
-        clay: 'rgba(190,106,66,0.16)',
-      }
-      const tint = h.material ? matTint[h.material] : undefined
+      // §AQ PH-6 & §BL-4: material reads at a glance using hoisted HOUSE_MAT_TINT
+      const tint = h.material ? HOUSE_MAT_TINT[h.material] : undefined
       if (tint) {
         ctx.fillStyle = tint
         ctx.fillRect(h.x - size / 2, h.y - size / 2, size, size)
@@ -464,18 +565,21 @@ export function drawBatchedEntities(
 
   // §BG & §BK Draw Women (Lines) — variable thickness & taper (BG-3) + BK-3 dynamic twitch + BK-9 lens
   if (women.length > 0) {
-    const womenGroups = new Map<string, { list: EntityState[]; fillAlpha: number; strokeAlpha: number }>()
     for (const w of women) {
       const style = getCreatureLensStyle(w, lensMode)
       let g = womenGroups.get(style.color)
       if (!g) {
         g = { list: [], fillAlpha: style.fillAlpha, strokeAlpha: style.strokeAlpha }
         womenGroups.set(style.color, g)
+      } else {
+        g.fillAlpha = style.fillAlpha
+        g.strokeAlpha = style.strokeAlpha
       }
       g.list.push(w)
     }
 
     for (const [color, group] of womenGroups.entries()) {
+      if (group.list.length === 0) continue
       ctx.fillStyle = color
       ctx.strokeStyle = color
       ctx.lineWidth = 0.35
@@ -517,20 +621,24 @@ export function drawBatchedEntities(
 
   // §BG & §BK Draw Polygons — mutated geometry (BG-1, BG-2, BG-4) + BK-9 lens
   const useCircleLOD = isVeryZoomedOut || (isZoomedOut && isDense)
-  const polyGroups = new Map<string, { list: EntityState[]; fillAlpha: number; strokeAlpha: number }>()
   for (const list of polygonsByCaste.values()) {
+    if (list.length === 0) continue
     for (const c of list) {
       const style = getCreatureLensStyle(c, lensMode)
       let g = polyGroups.get(style.color)
       if (!g) {
         g = { list: [], fillAlpha: style.fillAlpha, strokeAlpha: style.strokeAlpha }
         polyGroups.set(style.color, g)
+      } else {
+        g.fillAlpha = style.fillAlpha
+        g.strokeAlpha = style.strokeAlpha
       }
       g.list.push(c)
     }
   }
 
   for (const [color, group] of polyGroups.entries()) {
+    if (group.list.length === 0) continue
     ctx.beginPath()
     for (const c of group.list) {
       const stage = c.stage ?? 'adult'
@@ -588,8 +696,11 @@ export function drawBatchedEntities(
     ctx.globalAlpha = 1.0
   }
   // §BG & §BK Visual phenotypes overlays — BG-5 Blade Glint, BG-6 Armor, BG-7 Speciation, BG-8 Elder nucleus, BK-1 Genesis Spark, BK-2 Lineage Halos & Corona, BK-3 Aberrant Aura
+  // §BL-2 LOD Gating: skip expensive sub-pixel phenotypic decorations when zoomed out unless selected
+  const isPhenotypeZoomedOut = camScale < 3.2
   for (const c of visibleCreatures) {
     if (c.kind !== 'creature') continue
+    if (isPhenotypeZoomedOut && c.id !== selectedId) continue
     const isLine = c.shape === 'line'
     const mt = (c as any).morph_traits as number[] | undefined
     const irr = (c as any).irregularity ?? 0
@@ -638,36 +749,35 @@ export function drawBatchedEntities(
         ctx.stroke()
         ctx.globalAlpha = 1
       }
-      // BG-5 Blade glint — neon on sharpest vertex scaled by Dmult
+      // BG-5 & §BL-4 Blade glint — neon on sharpest vertex scaled by Dmult (zero-allocation)
       if (dmult > 0.18) {
         let gx = c.x, gy = c.y
         let found = false
         if (c.caste === 'Soldier' && sides===3 && typeof (c as any).iso_angle==='number' && (c as any).iso_angle < 59.9) {
           const pts = bgSoldierRazor(c.x, c.y, r, ang, (c as any).iso_angle)
           gx = pts[0][0]; gy = pts[0][1]; found = true
+        } else if (irr <= 0.02) {
+          // Regular polygon: apex vertex is at ang - PI/2
+          gx = c.x + Math.cos(ang - Math.PI / 2) * r
+          gy = c.y + Math.sin(ang - Math.PI / 2) * r
+          found = true
         } else {
-          // compute polygon points and find sharpest by interior angle or minimal edge length centroid distance
-          let pts: Array<[number,number]>
-          if (irr > 0.02) pts = bgMutatedPoints(c.x, c.y, sides, r, ang, irr, c.id, tick)
-          else {
-            const sa = ang - Math.PI/2
-            pts = Array.from({length:sides},(_,i)=>{ const a=sa+(i/sides)*TAU; return [c.x+Math.cos(a)*r, c.y+Math.sin(a)*r] as [number,number] })
+          // compute polygon points and find sharpest by interior angle
+          const pts = bgMutatedPoints(c.x, c.y, sides, r, ang, irr, c.id, tick)
+          let best = 999, bx = pts[0][0], by = pts[0][1]
+          for (let i = 0; i < pts.length; i++) {
+            const im1 = (i - 1 + pts.length) % pts.length, ip1 = (i + 1) % pts.length
+            const ux = pts[im1][0] - pts[i][0], uy = pts[im1][1] - pts[i][1]
+            const vx = pts[ip1][0] - pts[i][0], vy = pts[ip1][1] - pts[i][1]
+            const nu = Math.hypot(ux, uy), nv = Math.hypot(vx, vy)
+            if (nu < 1e-6 || nv < 1e-6) continue
+            const cosv = (ux * vx + uy * vy) / (nu * nv)
+            const av = Math.acos(Math.max(-1, Math.min(1, cosv)))
+            if (av < best) { best = av; bx = pts[i][0]; by = pts[i][1]; }
           }
-          // find vertex with smallest interior angle
-          let best = 999, bx=pts[0][0], by=pts[0][1]
-          for(let i=0;i<pts.length;i++){
-            const im1=(i-1+pts.length)%pts.length, ip1=(i+1)%pts.length
-            const ux=pts[im1][0]-pts[i][0], uy=pts[im1][1]-pts[i][1]
-            const vx=pts[ip1][0]-pts[i][0], vy=pts[ip1][1]-pts[i][1]
-            const nu=Math.hypot(ux,uy), nv=Math.hypot(vx,vy)
-            if(nu<1e-6||nv<1e-6) continue
-            const cosv=(ux*vx+uy*vy)/(nu*nv)
-            const av=Math.acos(Math.max(-1,Math.min(1,cosv)))
-            if(av<best){ best=av; bx=pts[i][0]; by=pts[i][1]; }
-          }
-          gx=bx; gy=by; found=true
+          gx = bx; gy = by; found = true
         }
-        if(found){
+        if (found) {
           const glintAlpha = Math.min(0.95, 0.35 + dmult * 0.75)
           const glintR = 0.35 + dmult * 0.7
           ctx.globalAlpha = glintAlpha
@@ -967,6 +1077,7 @@ export function drawBatchedEntities(
 
   // Draw Crests
   for (const [clanColor, list] of crestsByColor.entries()) {
+    if (list.length === 0) continue
     ctx.globalAlpha = 0.85
     ctx.strokeStyle = clanColor
     ctx.lineWidth = 0.18
@@ -1245,19 +1356,21 @@ export function renderWorldFrame(
   }
   ctx.stroke()
 
-  // §AQ PH-4: the height of the land — subtle hillshade under everything
+  // §AQ PH-4 & §BL-1: subtle hillshade under everything — hardware blitted from cached offscreen canvas
   const elev = state.elevation
   if (elev && elev.h?.length) {
-    const cw = elev.cell * cam.scale
-    for (let row = 0; row < elev.rows; row++) {
-      for (let col = 0; col < elev.cols; col++) {
-        const h = elev.h[row * elev.cols + col] ?? 0.5
-        const light = (elev.h[row * elev.cols + Math.max(0, col - 1)] ?? h) // west neighbour
-        const shade = h - light // lit from the west
-        const v = Math.round(18 + h * 26)
-        ctx.fillStyle = `rgba(${v + shade * 40},${v + 8 + shade * 30},${v - 4},0.55)`
-        ctx.fillRect(cam.ox + col * cw, cam.oy + row * cw, cw + 0.5, cw + 0.5)
-      }
+    const elevCanvas = getElevationCanvas(elev)
+    if (elevCanvas) {
+      const prevSmoothing = ctx.imageSmoothingEnabled
+      ctx.imageSmoothingEnabled = false
+      ctx.drawImage(
+        elevCanvas as any,
+        cam.ox,
+        cam.oy,
+        elev.cols * elev.cell * cam.scale,
+        elev.rows * elev.cell * cam.scale,
+      )
+      ctx.imageSmoothingEnabled = prevSmoothing
     }
   }
 
@@ -1417,23 +1530,8 @@ export function renderWorldFrame(
     }
   }
 
-  // Signals
+  // Signals — uses hoisted SIGNAL_COLOR (§BL-4)
   if (state.signals) {
-    const SIGNAL_COLOR: Record<string, string> = {
-      food: '#3fb950',
-      alarm: '#f85149',
-      help: '#ffd166',
-      knowledge: '#79c0ff',
-      grief: '#8b949e',
-      chime: '#e3b341', // §AP divine law resonance + §AN boundary stones
-      chant: '#b392f0', // §AN priest liturgy
-      hum: '#ff9ecd',   // §AN woman's peace-hum
-      war: '#ff7b72',   // §AN soldier war-chirp
-      trail: '#d2a8ff', // §AN forager scent trail
-      danger_scent: '#6e7681', // §AN death-site marker
-      courier: '#e3b341',      // §AN tribute courier
-      omen: '#e3b341',         // §AN season omen
-    }
     for (const sg of state.signals) {
       if (!visible0(sg.x, sg.y, 5)) continue
       const sx = cam.ox + sg.x * cam.scale

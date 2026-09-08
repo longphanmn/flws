@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import type { HistoryEvent } from '../types'
 import { useI18n } from '../i18n'
 
@@ -29,7 +29,7 @@ const CATEGORIES: Array<{ key: EventCategory; label: string; icon: string }> = [
 
 function matchesCategory(ev: any, category: EventCategory): boolean {
   if (category === 'all') {
-    return ev.type !== 'bloom' && ev.type !== 'wither' && ev.type !== 'ruin'
+    return true
   }
   if (category === 'conflict') {
     return [
@@ -38,25 +38,33 @@ function matchesCategory(ev: any, category: EventCategory): boolean {
       'schism',
       'conquest',
       'takeover',
+      'coup',
+      'rebellion',
+      'duel',
+      'siege',
       'raid',
-      'coalition_formed',
-      'coalition_joined',
-      'coalition_dissolved',
-      'peace',
-      'peace_envoy',
-      'defection',
-      'cannibalism',
-      'exile',
-      'predation',
-      'rivalry',
-      'clan_extinction',
-      'extinction',
+      'feud',
+      'clash',
+      'assassination',
+      'purge',
+      'execution',
+      'slaughter',
+      'battle',
+      'strike',
+      'revolt',
+      'reprisal',
+      'skirmish',
+      'dispute',
+      'riot',
     ].includes(ev.type)
   }
   if (category === 'clan') {
     return [
-      'birth',
-      'settlement',
+      'found',
+      'extinct',
+      'split',
+      'reunion',
+      'election',
       'succession',
       'culture',
       'alliance',
@@ -126,7 +134,7 @@ function matchesSearch(ev: HistoryEvent, query: string, clanLabel: (id?: number 
   return false
 }
 
-export default function ChronicleFeed({
+function ChronicleFeed({
   events,
   clanLabel,
   onSelectCreature,
@@ -679,3 +687,5 @@ export default function ChronicleFeed({
     </div>
   )
 }
+
+export default memo(ChronicleFeed)

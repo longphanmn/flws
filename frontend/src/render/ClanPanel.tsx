@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { memo, useEffect, useState, useMemo } from 'react'
 import { totemEmoji } from '../totems'
 import { useI18n } from '../i18n'
 
@@ -40,7 +40,7 @@ interface ClanInfo {
 
 type SortKey = 'pop' | 'wins' | 'larder' | 'age'
 
-export default function ClanPanel({ onSelectClan, onSelectCreature, state }: { onSelectClan?: (id: number) => void; onSelectCreature?: (id: number) => void; state?: any }) {
+function ClanPanel({ onSelectClan, onSelectCreature, state }: { onSelectClan?: (id: number) => void; onSelectCreature?: (id: number) => void; state?: any }) {
   const { t } = useI18n()
   const [clans, setClans] = useState<ClanInfo[]>([])
   const [tick, setTick] = useState(0)
@@ -173,3 +173,5 @@ export default function ClanPanel({ onSelectClan, onSelectCreature, state }: { o
     </div>
   )
 }
+
+export default memo(ClanPanel)
