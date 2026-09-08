@@ -7,7 +7,6 @@ import PopulationSparkline from './PopulationSparkline'
 import WarArcGraph from './WarArcGraph'
 import RecordsLeaderboard from './RecordsLeaderboard'
 import HistoryAnalytics from './HistoryAnalytics'
-import InAppAIGenerator from './InAppAIGenerator'
 import { generateAndDownloadWorldCard } from './ShareWorldCard'
 
 interface Props {
@@ -1375,14 +1374,6 @@ ${langInstruction}
           ) : (
             /* LLM Exporter Tab */
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {/* BM-17: In-App AI Story Generator with Key & Direct Browser Call */}
-              <InAppAIGenerator
-                prompt={llmPrompt}
-                promptLang={promptLang}
-                onSetPromptLang={setPromptLang}
-                isWeeklyDigest={isWeeklyDigest}
-                onToggleWeeklyDigest={setIsWeeklyDigest}
-              />
               <div
                 style={{
                   background: '#161b22',
@@ -1394,13 +1385,47 @@ ${langInstruction}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                   <div>
                     <h3 style={{ fontSize: 14, margin: 0, color: '#e6edf3', fontWeight: 700 }}>
-                      {t('history.tabs.ai')} Generation Prompt
+                      {t('history.aiTitle')}
                     </h3>
                     <p style={{ fontSize: 11, color: '#8b949e', margin: '4px 0 0' }}>
-                      Rich, day-by-day historical chronicle with specific clan wars, conquests, successions, and miracles ready for ChatGPT, Claude, or Gemini.
+                      {t('history.aiDesc')}
                     </p>
-                    {/* Live style badge — proves the dropdown took effect */}
-                    <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    {/* Controls Row: Language, Weekly Digest, Style Badge */}
+                    <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ fontSize: 10.5, color: '#8b949e', fontWeight: 600 }}>Lang:</span>
+                        {(['en', 'vi', 'fr'] as const).map((lang) => (
+                          <button
+                            key={lang}
+                            type="button"
+                            className="chip"
+                            onClick={() => setPromptLang(lang)}
+                            style={{
+                              fontSize: 10,
+                              padding: '2px 7px',
+                              background: promptLang === lang ? '#388bfd' : '#21262d',
+                              color: promptLang === lang ? '#fff' : '#c9d1d9',
+                              borderColor: promptLang === lang ? '#58a6ff' : '#30363d',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              borderRadius: 4,
+                            }}
+                          >
+                            {lang.toUpperCase()}
+                          </button>
+                        ))}
+                      </div>
+
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10.5, color: '#c9d1d9', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={isWeeklyDigest}
+                          onChange={(e) => setIsWeeklyDigest(e.target.checked)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <span>📰 {promptLang === 'vi' ? 'Tuần qua (7 ngày gần nhất)' : promptLang === 'fr' ? '7 derniers jours' : 'This week (last 7 days)'}</span>
+                      </label>
+
                       <span
                         style={{
                           fontSize: 10.5,
@@ -1414,7 +1439,6 @@ ${langInstruction}
                       >
                         {STYLE_LABELS[storyStyle]}
                       </span>
-                      <span style={{ fontSize: 10, color: '#8b949e' }}>instructions applied at the top of the prompt ↓</span>
                     </div>
                   </div>
 
@@ -1467,7 +1491,7 @@ ${langInstruction}
                           textAlign: 'center',
                         }}
                       >
-                        {copied ? '✓ Copied Prompt!' : '📋 Copy Prompt'}
+                        {copied ? (t('history.copied') || '✓ Copied Prompt!') : (t('history.copyPrompt') || '📋 Copy Prompt')}
                       </button>
                       <button
                         onClick={downloadMarkdown}
@@ -1483,9 +1507,9 @@ ${langInstruction}
                           touchAction: 'manipulation',
                           WebkitTapHighlightColor: 'transparent' as any,
                         }}
-                        title="Download Markdown"
+                        title={t('history.downloadMd') || 'Download Markdown'}
                       >
-                        ⬇️ .md
+                        {t('history.downloadMd') || '⬇️ .md'}
                       </button>
                       <button
                         onClick={downloadJSON}
@@ -1501,9 +1525,9 @@ ${langInstruction}
                           touchAction: 'manipulation',
                           WebkitTapHighlightColor: 'transparent' as any,
                         }}
-                        title="Download JSON"
+                        title={t('history.downloadJson') || 'Download JSON'}
                       >
-                        ⬇️ JSON
+                        {t('history.downloadJson') || '⬇️ JSON'}
                       </button>
                     </div>
                   </div>
