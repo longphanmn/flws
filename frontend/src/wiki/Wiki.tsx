@@ -105,6 +105,71 @@ export default function Wiki({ open, onClose }: { open: boolean; onClose: () => 
               <li>{t('wiki.controlsDesc')}</li>
             </ul>
 
+            <h4 style={{ color: '#38bdf8', marginTop: 18, borderBottom: '1px solid #30363d', paddingBottom: 4 }}>
+              🔭 {t('wiki.lensesTitle') || 'Map Lenses & Visual Perspectives'}
+            </h4>
+            <p style={{ margin: '6px 0 10px' }}>
+              {t('wiki.lensesIntro')}
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '10px 0 16px' }}>
+              <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '8px 12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: '#38bdf8', marginBottom: 4 }}>
+                  <span style={{ background: '#38bdf8', color: '#0d1117', borderRadius: 4, padding: '1px 6px', fontSize: 11, fontWeight: 700 }}>1</span>
+                  <span>{t('wiki.lensClassicName')}</span>
+                </div>
+                <div style={{ fontSize: 12, color: '#8b949e', marginBottom: 6 }}>{t('wiki.lensClassicDesc')}</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff70a6' }} /> Women</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f97316' }} /> Soldiers</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#facc15' }} /> Artisans</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ade80' }} /> Gentlemen</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#60a5fa' }} /> Nobles</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#a78bfa' }} /> Priests</span>
+                </div>
+              </div>
+
+              <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '8px 12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: '#f43f5e', marginBottom: 4 }}>
+                  <span style={{ background: '#f43f5e', color: '#0d1117', borderRadius: 4, padding: '1px 6px', fontSize: 11, fontWeight: 700 }}>2</span>
+                  <span>{t('wiki.lensMutantsName')}</span>
+                </div>
+                <div style={{ fontSize: 12, color: '#8b949e', marginBottom: 6 }}>{t('wiki.lensMutantsDesc')}</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#64748b' }} /> Normal (&lt;0.04)</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#06b6d4' }} /> Minor (0.04-0.12)</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#a855f7' }} /> Aberrant (0.12-0.22)</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f43f5e' }} /> Extreme (&ge;0.22)</span>
+                </div>
+              </div>
+
+              <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '8px 12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: '#10b981', marginBottom: 4 }}>
+                  <span style={{ background: '#10b981', color: '#0d1117', borderRadius: 4, padding: '1px 6px', fontSize: 11, fontWeight: 700 }}>3</span>
+                  <span>{t('wiki.lensGenerationsName')}</span>
+                </div>
+                <div style={{ fontSize: 12, color: '#8b949e', marginBottom: 6 }}>{t('wiki.lensGenerationsDesc')}</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#38bdf8' }} /> Genesis (&le;2)</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} /> Pioneer (&lt;10)</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#c084fc' }} /> Dynastic (&lt;25)</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b' }} /> Ancient (&lt;50)</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fef08a' }} /> Millennial (&ge;50)</span>
+                </div>
+              </div>
+
+              <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '8px 12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: '#c084fc', marginBottom: 4 }}>
+                  <span style={{ background: '#c084fc', color: '#0d1117', borderRadius: 4, padding: '1px 6px', fontSize: 11, fontWeight: 700 }}>4</span>
+                  <span>{t('wiki.lensDynastyName')}</span>
+                </div>
+                <div style={{ fontSize: 12, color: '#8b949e', marginBottom: 6 }}>{t('wiki.lensDynastyDesc')}</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#58a6ff' }} /> Clan Sworn (Crest Color)</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#475569' }} /> Clanless / Neutral</span>
+                </div>
+              </div>
+            </div>
+
             <h4 style={{ color: '#e6edf3' }}>{t('wiki.quickstartTitle')}</h4>
             <pre style={{ background: '#161b22', padding: 12, borderRadius: 6, overflow: 'auto', border: '1px solid #30363d' }}><code>{`./run.sh
 # Frontend: http://localhost:5173

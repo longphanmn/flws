@@ -18,6 +18,37 @@
       "safeguard_active": "Sauvegarde active",
       "softcap_active": "Soft-cap actif"
     },
+    "lenses": {
+      "toolbarLabel": "Lentilles Cartographiques",
+      "hintTitle": "Modes de Lentilles de Carte",
+      "hintDesc": "Basculez les perspectives visuelles (raccourcis 1–4) pour révéler les castes biologiques, mutations génétiques, époques généalogiques et allégeances claniques.",
+      "hintWikiLink": "Ouvrir dans le Wiki",
+      "close": "Fermer",
+      "classic": {
+        "label": "Classique",
+        "num": "1",
+        "title": "Lentille de Caste Classique (1)",
+        "hint": "Colore les créatures selon la hiérarchie géométrique d'Edwin A. Abbott : Lignes (Femmes), Triangles (Soldats/Artisans), Carrés (Gentilshommes), Polygones (Nobles) et Cercles (Prêtres)."
+      },
+      "mutants": {
+        "label": "Mutants",
+        "num": "2",
+        "title": "Carte Thermique des Mutants & Aberrations (2)",
+        "hint": "Visualise l'irrégularité morphologique : les citoyens normaux s'estompent, tandis que les mutants brillent du cyan (mineur) au cramoisi incandescent (anomalies sévères)."
+      },
+      "generations": {
+        "label": "Époques",
+        "num": "3",
+        "title": "Lentille des Époques Générationnelles (3)",
+        "hint": "Cohortes généalogiques : colore les créatures par génération, des ancêtres primordiaux (bleu) aux dynasties millénaires (or/jaune)."
+      },
+      "dynasty": {
+        "label": "Dynastie",
+        "num": "4",
+        "title": "Lentille Dynastique des Clans (4)",
+        "hint": "Allégeances de faction : met en valeur les créatures aux couleurs de leur blason clanique, estompant les solitaires pour révéler les frontières territoriales."
+      }
+    },
     "controls": {
       "pause": "Pause (Espace)",
       "resume": "Reprendre (Espace)",
@@ -416,6 +447,16 @@
     "spherePanelDesc": "Panneau de la Sphère (⚖ La Sphère) — Ajustez la capacité limite, la croissance des récoltes, le métabolisme, les maladies et appliquez des préréglages.",
     "inspectorDesc": "Inspecteur de créature — Cliquez sur une créature pour observer ses constantes vitales, sa personnalité, ses outils, ses compétences et son arbre généalogique.",
     "controlsDesc": "Commandes : Espace (pause), S (pas à pas), R (nouvelle graine), F (ajuster caméra), +/- (zoom), glisser pour déplacer.",
+    "lensesTitle": "Modes de Lentilles Cartographiques",
+    "lensesIntro": "La simulation propose 4 lentilles visuelles spécialisées (activables via la barre inférieure gauche ou les touches 1 à 4), modifiant dynamiquement le rendu des entités pour mettre en lumière différentes dimensions de l'écosystème :",
+    "lensClassicName": "1. Lentille de Caste Classique (Touche 1)",
+    "lensClassicDesc": "Conforme à la hiérarchie géométrique originelle d'Edwin A. Abbott. Les entités portent leurs couleurs de caste sociale : Femmes (lignes roses), Soldats (triangles isocèles orange), Artisans (triangles équilatéraux jaunes), Gentilshommes (carrés verts), Nobles (polygones bleus) et Prêtres (cercles violets incandescents).",
+    "lensMutantsName": "2. Carte Thermique des Mutants & Aberrations (Touche 2)",
+    "lensMutantsDesc": "Révèle l'irrégularité morphologique et les dérives génétiques polar K∈[3,24]. Les citoyens réguliers s'effacent dans un gris discret, tandis que les mutants irradient selon la gravité de leur anomalie : Cyan (déviation légère <0,12), Violet intense (aberration marquée <0,22) et Cramoisi pourpre (mutants sévères ≥0,22).",
+    "lensGenerationsName": "3. Lentille des Époques Générationnelles (Touche 3)",
+    "lensGenerationsDesc": "Cartographie la profondeur temporelle et le renouvellement démographique à travers les générations : Fondateurs primordiaux (bleu azur, gén ≤2), pionniers d'expansion (vert émeraude, gén <10), dynasties établies (lavande, gén <25), aînés vénérables (or ambré, gén <50) et lignées millénaires (jaune solaire vif, gén ≥50).",
+    "lensDynastyName": "4. Lentille Dynastique & Territoriale des Clans (Touche 4)",
+    "lensDynastyDesc": "Met en évidence les allégeances géopolitiques et la domination spatiale. Les créatures inféodées à un clan rayonnent aux couleurs sacrées de leur blason, tandis que les vagabonds isolés deviennent gris neutre, découvrant instantanément les frontières claniques et les tensions territoriales à travers le monde.",
     "quickstartTitle": "Démarrage rapide",
     "docsTitle": "Liens de documentation",
     "docWiki": "Wiki vivant du backend (/wiki) — Documentation exhaustive avec préréglages & bac à sable curl",

@@ -84,6 +84,7 @@ export default function App() {
   const [loadingOlder, setLoadingOlder] = useState(false)
   const [noMoreHistory, setNoMoreHistory] = useState(false)
   const [lensMode, setLensMode] = useState<LensMode>('classic')
+  const [lensHintOpen, setLensHintOpen] = useState(false)
 
   /** §Y clan display name from live state, falling back to bare #id. */
   const clanLabel = (id?: number | null): string => {
@@ -767,7 +768,7 @@ export default function App() {
         <div
           className="lens-switcher-toolbar"
           role="toolbar"
-          aria-label="Map Lenses"
+          aria-label={t('app.lenses.toolbarLabel') || 'Map Lenses'}
           style={{
             position: 'absolute',
             top: 'auto',
@@ -788,39 +789,166 @@ export default function App() {
             type="button"
             className={`lens-btn ${lensMode === 'classic' ? 'active' : ''}`}
             onClick={() => setLensMode('classic')}
-            title="Classic Caste Lens (1)"
+            title={`${t('app.lenses.classic.title') || 'Classic Caste Lens (1)'} — ${t('app.lenses.classic.hint') || ''}`}
+            aria-label={t('app.lenses.classic.title') || 'Classic Caste Lens (1)'}
           >
             <span className="lens-num">1</span>
-            <span className="lens-label">Classic</span>
+            <span className="lens-label">{t('app.lenses.classic.label') || 'Classic'}</span>
           </button>
           <button
             type="button"
             className={`lens-btn ${lensMode === 'mutants' ? 'active' : ''}`}
             onClick={() => setLensMode('mutants')}
-            title="Mutant & Aberration Heatmap (2)"
+            title={`${t('app.lenses.mutants.title') || 'Mutant & Aberration Heatmap (2)'} — ${t('app.lenses.mutants.hint') || ''}`}
+            aria-label={t('app.lenses.mutants.title') || 'Mutant & Aberration Heatmap (2)'}
           >
             <span className="lens-num">2</span>
-            <span className="lens-label">Mutants</span>
+            <span className="lens-label">{t('app.lenses.mutants.label') || 'Mutants'}</span>
           </button>
           <button
             type="button"
             className={`lens-btn ${lensMode === 'generations' ? 'active' : ''}`}
             onClick={() => setLensMode('generations')}
-            title="Generational Epochs Lens (3)"
+            title={`${t('app.lenses.generations.title') || 'Generational Epochs Lens (3)'} — ${t('app.lenses.generations.hint') || ''}`}
+            aria-label={t('app.lenses.generations.title') || 'Generational Epochs Lens (3)'}
           >
             <span className="lens-num">3</span>
-            <span className="lens-label">Epochs</span>
+            <span className="lens-label">{t('app.lenses.generations.label') || 'Epochs'}</span>
           </button>
           <button
             type="button"
             className={`lens-btn ${lensMode === 'dynasty' ? 'active' : ''}`}
             onClick={() => setLensMode('dynasty')}
-            title="Clan Dynasty Lens (4)"
+            title={`${t('app.lenses.dynasty.title') || 'Clan Dynasty Lens (4)'} — ${t('app.lenses.dynasty.hint') || ''}`}
+            aria-label={t('app.lenses.dynasty.title') || 'Clan Dynasty Lens (4)'}
           >
             <span className="lens-num">4</span>
-            <span className="lens-label">Dynasty</span>
+            <span className="lens-label">{t('app.lenses.dynasty.label') || 'Dynasty'}</span>
+          </button>
+          <button
+            type="button"
+            className={`lens-btn lens-hint-btn ${lensHintOpen ? 'active' : ''}`}
+            onClick={() => setLensHintOpen(o => !o)}
+            title={t('app.lenses.hintTitle') || 'Map Lens Modes'}
+            aria-label={t('app.lenses.hintTitle') || 'Map Lens Modes'}
+          >
+            ?
           </button>
         </div>
+
+        {lensHintOpen && (
+          <div
+            className="lens-hint-popover"
+            role="dialog"
+            aria-label={t('app.lenses.hintTitle') || 'Map Lens Modes'}
+            style={{
+              left: !isMobile && (selectedId !== null || selectedClanId !== null) ? 406 : (isMobile ? 8 : 14),
+              bottom: isMobile ? 38 : 44,
+            }}
+          >
+            <div className="lens-hint-header">
+              <span className="lens-hint-title">
+                <span>🔭</span> {t('app.lenses.hintTitle') || 'Map Lens Modes'}
+              </span>
+              <button
+                type="button"
+                className="lens-hint-close"
+                onClick={() => setLensHintOpen(false)}
+                aria-label={t('common.close') || 'Close'}
+              >
+                ×
+              </button>
+            </div>
+            <p className="lens-hint-desc">{t('app.lenses.hintDesc')}</p>
+            <div className="lens-hint-list">
+              <div
+                className={`lens-hint-item ${lensMode === 'classic' ? 'active' : ''}`}
+                onClick={() => { setLensMode('classic'); setLensHintOpen(false); }}
+                role="button"
+                tabIndex={0}
+              >
+                <div className="lens-hint-item-head">
+                  <span className="lens-hint-badge classic">1</span>
+                  <b>{t('app.lenses.classic.label') || 'Classic'}</b>
+                  <span className="lens-hint-swatches">
+                    <span style={{ background: '#ff70a6' }} title="Women" />
+                    <span style={{ background: '#f97316' }} title="Soldiers" />
+                    <span style={{ background: '#facc15' }} title="Artisans" />
+                    <span style={{ background: '#4ade80' }} title="Gentlemen" />
+                    <span style={{ background: '#60a5fa' }} title="Nobles" />
+                    <span style={{ background: '#a78bfa' }} title="Priests" />
+                  </span>
+                </div>
+                <div className="lens-hint-item-body">{t('app.lenses.classic.hint')}</div>
+              </div>
+
+              <div
+                className={`lens-hint-item ${lensMode === 'mutants' ? 'active' : ''}`}
+                onClick={() => { setLensMode('mutants'); setLensHintOpen(false); }}
+                role="button"
+                tabIndex={0}
+              >
+                <div className="lens-hint-item-head">
+                  <span className="lens-hint-badge mutants">2</span>
+                  <b>{t('app.lenses.mutants.label') || 'Mutants'}</b>
+                  <span className="lens-hint-swatches">
+                    <span style={{ background: '#64748b' }} title="Normal" />
+                    <span style={{ background: '#06b6d4' }} title="Minor" />
+                    <span style={{ background: '#a855f7' }} title="Aberrant" />
+                    <span style={{ background: '#f43f5e' }} title="Extreme" />
+                  </span>
+                </div>
+                <div className="lens-hint-item-body">{t('app.lenses.mutants.hint')}</div>
+              </div>
+
+              <div
+                className={`lens-hint-item ${lensMode === 'generations' ? 'active' : ''}`}
+                onClick={() => { setLensMode('generations'); setLensHintOpen(false); }}
+                role="button"
+                tabIndex={0}
+              >
+                <div className="lens-hint-item-head">
+                  <span className="lens-hint-badge generations">3</span>
+                  <b>{t('app.lenses.generations.label') || 'Epochs'}</b>
+                  <span className="lens-hint-swatches">
+                    <span style={{ background: '#38bdf8' }} title="Genesis" />
+                    <span style={{ background: '#10b981' }} title="Pioneer" />
+                    <span style={{ background: '#c084fc' }} title="Dynastic" />
+                    <span style={{ background: '#f59e0b' }} title="Ancient" />
+                    <span style={{ background: '#fef08a' }} title="Millennial" />
+                  </span>
+                </div>
+                <div className="lens-hint-item-body">{t('app.lenses.generations.hint')}</div>
+              </div>
+
+              <div
+                className={`lens-hint-item ${lensMode === 'dynasty' ? 'active' : ''}`}
+                onClick={() => { setLensMode('dynasty'); setLensHintOpen(false); }}
+                role="button"
+                tabIndex={0}
+              >
+                <div className="lens-hint-item-head">
+                  <span className="lens-hint-badge dynasty">4</span>
+                  <b>{t('app.lenses.dynasty.label') || 'Dynasty'}</b>
+                  <span className="lens-hint-swatches">
+                    <span style={{ background: '#58a6ff' }} title="Clan Sworn" />
+                    <span style={{ background: '#475569' }} title="Clanless" />
+                  </span>
+                </div>
+                <div className="lens-hint-item-body">{t('app.lenses.dynasty.hint')}</div>
+              </div>
+            </div>
+            <div className="lens-hint-foot">
+              <button
+                type="button"
+                className="lens-hint-wiki-btn"
+                onClick={() => { setLensHintOpen(false); setWikiOpen(true); }}
+              >
+                📖 {t('app.lenses.hintWikiLink') || 'Open in Wiki'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {(isSafeguardActive || isSoftcapActive) && (
           <div

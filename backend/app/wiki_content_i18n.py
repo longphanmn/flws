@@ -47,6 +47,13 @@ Sex: polygons male, lines female (`entities.py:137`). Sons `sides = father.sides
 ## Geometric Physics (Morphology Engine, K∈[3,24])
 Polar genomes $K\in[3,24]$ SoA `morph_radii/morph_angles/morph_k/physical_traits (A,P,I_{zz},\theta_{\min},asym,Dmult)` — vectorized `morphology_engine.py` `KMAX 24` (`morphology.py` shim). $\lambda(g)=morph\_lambda\_override ?? clamp(1-(g-g_{start})/g_{decay})$ (`g_start 50` `g_decay 150`, `override -1.0` = auto). Baking $E_{\max}\cdot clamp(A/A_{ref},0.5,2.5)$ $decay\cdot clamp(P/P_{ref},0.7,2.0)$ $steer\Delta\theta$ $D_{mult}$ $asym$→$irregularity$ with `safeguard_morph_mercy` ($\eta>0.3$ suspends euthanasia), SAT broadphase $r_{\max}$ + circle fallback ($K\ge24$ & $asym<0.05$) + edge normals + $D_{mult}$ impulse. Telemetry `/api/metrics/morphology` and `/api/metrics/safeguards` (`N,\eta,tier,miracles,mercy`) live.
 
+## Map Lenses & Visual Perspectives (§BK-8)
+Flatland provides 4 real-time map lenses (switched via hotkeys `1`–`4` or the bottom-left canvas toolbar) that dynamically transform entity rendering to expose different ecological and societal dimensions:
+- **1. Classic Caste Lens (`classic`)**: The canonical Abbott social hierarchy. Entities are rendered with caste-specific colors: Women (pink lines), Soldiers (orange isosceles triangles), Artisans (golden equilateral triangles), Gentlemen (emerald green squares), Nobles (sapphire blue pentagons/hexagons), and Priests (radiant violet circles).
+- **2. Mutant & Aberration Heatmap (`mutants`)**: Real-time divergence heatmap based on polar morphological irregularity ($irr$). Standard regular citizens fade to dim slate ($<0.04$), while irregular mutants glow with chromatic intensity: Cyan ($0.04 \le irr < 0.12$, minor divergence), Purple ($0.12 \le irr < 0.22$, noticeable aberration), and fiery Crimson Rose ($irr \ge 0.22$, extreme mutants).
+- **3. Generational Epochs Lens (`generations`)**: Temporal demographic depth cohort coloring based on genealogical generation ($gen$). Shows evolutionary antiquity: Genesis founders (sky blue, $gen \le 2$), early expansion pioneers (emerald green, $gen < 10$), established dynastic lines (lavender purple, $gen < 25$), ancient elder houses (amber gold, $gen < 50$), and millennial lineages (radiant solar yellow, $gen \ge 50$).
+- **4. Clan Dynasty & Territory Lens (`dynasty`)**: Geopolitical faction allegiance view. Creatures sworn to an active clan shine in their sacred clan crest color with rich saturation, while clanless wanderers and unaffiliated nomads are dimmed to neutral slate, exposing territorial borders and tribal clusters across the world.
+
 ## Irregularity & caste (§C)
 Mutated children's `irregularity` judged at `adult_age`: `≥euthanasia_threshold` → consumed (`euthanasia`), else demoted to Soldier. `CASTE_TRAITS` (`entities.py:39`) gives lifespan/speed/sight_mult/fertility. BC maps $asymmetry$ → $irregularity$ for same gate.
 
@@ -154,6 +161,13 @@ Giới tính: đa giác là giống đực, đoạn thẳng một chiều là gi
 ## Động cơ hình thái & Hình học cực (K∈[3,24])
 Bộ gen cực $K\in[3,24]$ lưu trữ cấu trúc SoA gồm bán kính, góc, diện tích, chu vi, mômen quán tính $I_{zz}$, góc nhỏ nhất $\theta_{\min}$ và hệ số bất đối xứng $asym$. Tự động điều chỉnh dung lượng năng lượng, lực đẩy và tính sát thương va chạm. Có cơ chế cứu rỗi (`safeguard_morph_mercy`) tạm hoãn thanh lọc dị hình khi dân số suy kiệt.
 
+## Chế độ Thấu kính Bản đồ & Góc nhìn Trực quan (§BK-8)
+Flatland cung cấp 4 chế độ thấu kính bản đồ trực tiếp (chuyển đổi qua phím số `1`–`4` hoặc thanh công cụ góc dưới bên trái canvas) giúp biến đổi màu sắc thực thể để soi rọi các chiều kích sinh thái và xã hội:
+- **1. Thấu kính Đẳng cấp Cổ điển (`classic`)**: Trật tự đẳng cấp Abbott nguyên bản. Thực thể mang màu sắc giai tầng xã hội: Nữ giới (đoạn thẳng hồng), Binh sĩ (tam giác cân cam), Thợ thủ công (tam giác đều vàng), Quý tộc (hình vuông lục, đa giác lam) và Giáo sĩ (hình tròn tím phát quang).
+- **2. Bản đồ Nhiệt Đột biến & Dị dạng (`mutants`)**: Bản đồ nhiệt trực quan hóa độ bất đối xứng cực ($irr$). Công dân chuẩn tắc mờ đi thành màu xám tối ($<0.04$), trong khi các cá thể đột biến rực sáng theo mức độ sai lệch: Lục lam ($0.04 \le irr < 0.12$, lệch nhẹ), Tím ($0.12 \le irr < 0.22$, dị dạng rõ) và Đỏ thẫm ($irr \ge 0.22$, đột biến nặng).
+- **3. Thấu kính Kỷ nguyên Thế hệ (`generations`)**: Phân loại dòng dõi theo thế hệ sinh sản ($gen$), thể hiện chiều sâu nhân khẩu học: Tổ phụ khai thiên (lam da trời, $gen \le 2$), thế hệ định cư tiên phong (lục bảo, $gen < 10$), dòng dõi hưng thịnh (oải hương tím, $gen < 25$), trưởng lão cổ xưa (hổ phách vàng, $gen < 50$) và huyết mạch nghìn năm (hoàng kim rực rỡ, $gen \ge 50$).
+- **4. Thấu kính Vương triều & Lãnh thổ Thị tộc (`dynasty`)**: Góc nhìn liên minh địa chính trị. Sinh vật quy thuộc gia tộc sẽ bừng sáng theo màu cờ hiệu đặc trưng của thị tộc, trong khi các cá thể lang thang không gia tộc mờ đi thành màu xám, phơi bày rõ ràng biên giới thị tộc và các nhóm bang hội khắp bản đồ.
+
 ## Phân cấp đẳng cấp & Dị hình (§C)
 Đến tuổi trưởng thành, nếu mức độ bất đối xứng vượt ngưỡng (`euthanasia_threshold`), sinh vật sẽ bị xã hội đào thải tiêu hủy; nếu nhẹ hơn sẽ bị giáng cấp làm Binh lính thường. Bảng `CASTE_TRAITS` quy định tuổi thọ, tốc độ, tầm nhìn và độ màu mỡ của từng đẳng cấp.
 
@@ -234,6 +248,13 @@ Dimorphisme : les polygones sont mâles, les segments de droite sont femelles. L
 
 ## Moteur de morphologie & Physique géométrique (K∈[3,24])
 Génome sous forme vectorisée SoA comprenant rayons polaires, angles, superficie, périmètre, moment d'inertie $I_{zz}$ et asymétrie. Les attributs physiques modulent la capacité énergétique, l'impulsion motrice et la force de frappe lors des collisions SAT. Le protocole de clémence (`safeguard_morph_mercy`) suspend l'euthanasie lorsque la population s'effondre.
+
+## Modes de Lentilles Cartographiques (§BK-8)
+Flatland propose 4 lentilles cartographiques en temps réel (accessibles via les raccourcis `1` à `4` ou la barre inférieure gauche du canevas), métamorphosant le rendu visuel des entités pour révéler diverses dimensions écologiques et politiques :
+- **1. Lentille de Caste Classique (`classic`)** : La hiérarchie sociale canonique d'Abbott. Les entités portent les couleurs de leur caste : Femmes (lignes roses), Soldats (triangles isocèles orange), Artisans (triangles équilatéraux jaunes), Gentilshommes (carrés verts), Nobles (polygones bleus) et Prêtres (cercles violets incandescents).
+- **2. Carte Thermique des Mutants & Aberrations (`mutants`)** : Carte thermique basée sur l'irrégularité morphologique ($irr$). Les citoyens réguliers s'estompent dans un gris discret ($<0,04$), tandis que les mutants irradient selon la gravité de leur déviation : Cyan ($0,04 \le irr < 0,12$, déviation mineure), Violet ($0,12 \le irr < 0,22$, aberration notable) et Rouge cramoisi ($irr \ge 0,22$, mutation sévère).
+- **3. Lentille des Époques Générationnelles (`generations`)** : Visualisation de la profondeur généalogique selon la génération ($gen$). Les créatures sont colorées sur une échelle temporelle : Fondateurs de la Genèse (bleu ciel, $gen \le 2$), pionniers d'expansion (vert émeraude, $gen < 10$), dynasties établies (lavande, $gen < 25$), anciens vénérables (or ambré, $gen < 50$) et lignées millénaires (jaune solaire vif, $gen \ge 50$).
+- **4. Lentille Dynastique & Territoriale des Clans (`dynasty`)** : Perspective des allégeances géopolitiques. Les créatures inféodées à un clan rayonnent aux couleurs sacrées de leur blason clanique, tandis que les solitaires sans clan deviennent gris neutre, traçant les frontières territoriales et les clans à travers le monde.
 
 ## Hiérarchie des castes & Irrégularité (§C)
 À l'âge adulte, toute créature dont l'asymétrie excède le seuil de conformité est bannie ou euthanasiée pour préserver l'ordre géométrique d'Abbott. Les déviations légères entraînent une rétrogradation dans la caste militaire des Soldats.
