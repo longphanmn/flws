@@ -2129,7 +2129,8 @@ select {
 .god-slider-zones .z-strained-left, .god-slider-zones .z-strained-right { background: #d29922; opacity: 0.45; flex: 0.18; }
 .god-slider-zones .z-safe { background: #3fb950; opacity: 0.5; flex: 0.2; }
 .god-slider-fill { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, rgba(88,166,255,0.9), rgba(88,166,255,0.55)); border-radius: 4px 0 0 4px; pointer-events: none; }
-.god-baseline-marker { position: absolute; top: 50%; width: 2px; height: 14px; background: #e6edf3; border: 1px solid #0d1117; border-radius: 1px; transform: translate(-50%, -50%); box-shadow: 0 0 4px rgba(255,255,255,0.6); pointer-events: none; }
+.god-baseline-marker { position: absolute; top: 50%; width: 3px; height: 16px; background: #e6edf3; border: 1px solid #0d1117; border-radius: 2px; transform: translate(-50%, -50%); box-shadow: 0 0 5px rgba(255,255,255,0.7); cursor: pointer; z-index: 2; transition: transform .12s, background .12s; }
+.god-baseline-marker:hover { transform: translate(-50%, -50%) scale(1.35); background: #58a6ff; }
 .god-range { -webkit-appearance: none; appearance: none; width: 100%; height: 18px; background: transparent; position: relative; z-index: 1; cursor: pointer; margin: 0; }
 .god-range::-webkit-slider-runnable-track { height: 8px; background: transparent; }
 .god-range::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #e6edf3; border: 2px solid #0d1117; box-shadow: 0 1px 4px rgba(0,0,0,0.5); margin-top: -4px; cursor: pointer; }
@@ -2138,13 +2139,216 @@ select {
 .god-number-pill.zone-safe { border-color: #238636; }
 .god-number-pill.zone-strained { border-color: #9e6a03; }
 .god-number-pill.zone-extreme { border-color: #f85149; box-shadow: 0 0 6px rgba(248,81,73,0.25); }
-.god-pill-step { width: 26px; height: 28px; background: #21262d; border: none; color: #e6edf3; font-size: 14px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+.god-pill-step { width: 26px; height: 28px; background: #21262d; border: none; color: #e6edf3; font-size: 14px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0; user-select: none; }
 .god-pill-step:hover { background: #30363d; }
+.god-pill-step:active { background: #388bfd; color: #fff; }
 .god-pill-input { width: 64px; text-align: center; background: #0d1117 !important; color: #e6edf3 !important; border: none !important; border-left: 1px solid #21262d !important; border-right: 1px solid #21262d !important; border-radius: 0 !important; font-size: 13px !important; font-weight: 600 !important; padding: 4px 2px !important; }
 .god-baseline-row { display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #8b949e; margin-top: 4px; }
-.god-baseline-text { font-style: italic; }
+.god-baseline-text { font-style: italic; cursor: pointer; text-decoration: underline dotted #484f58; }
+.god-baseline-text:hover { color: #58a6ff; text-decoration-color: #58a6ff; }
 .god-range-labels { display: inline-flex; gap: 8px; font-variant-numeric: tabular-nums; opacity: 0.6; }
 .god-toggle-row { border-radius: 4px; }
+
+/* §BN New UI Styles */
+.god-panic-btn {
+  background: rgba(248, 81, 73, 0.15) !important;
+  border: 1px solid #f85149 !important;
+  color: #ff7b72 !important;
+  font-weight: 700 !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 6px 12px;
+  transition: all .15s ease;
+}
+.god-panic-btn:hover {
+  background: #f85149 !important;
+  color: #fff !important;
+  box-shadow: 0 0 10px rgba(248, 81, 73, 0.5);
+}
+
+.god-draft-banner {
+  background: rgba(227, 179, 65, 0.12);
+  border: 1px solid #d29922;
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: #e6edf3;
+  margin-bottom: 6px;
+}
+.god-draft-btn {
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.god-gated-disabled {
+  opacity: 0.45;
+  filter: grayscale(0.5);
+  background: rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+.god-gated-disabled .god-range,
+.god-gated-disabled .god-pill-input,
+.god-gated-disabled .god-pill-step {
+  pointer-events: none;
+}
+.god-gated-badge {
+  font-size: 10px;
+  color: #8b949e;
+  background: #21262d;
+  border: 1px dashed #484f58;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.god-master-toggle {
+  background: #161b22;
+  border: 1.5px solid #30363d;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+}
+.god-master-toggle.active {
+  border-color: #2ea043;
+  background: rgba(46, 160, 67, 0.08);
+  box-shadow: 0 0 10px rgba(46, 160, 67, 0.15);
+}
+.god-master-toggle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.god-master-toggle-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #e6edf3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.god-master-toggle-desc {
+  font-size: 11px;
+  color: #8b949e;
+  line-height: 1.35;
+}
+
+.god-advanced-accordion {
+  margin-top: 8px;
+  border: 1px dashed #30363d;
+  border-radius: 8px;
+  background: rgba(13, 17, 23, 0.6);
+  overflow: hidden;
+}
+.god-advanced-accordion summary {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #58a6ff;
+  cursor: pointer;
+  user-select: none;
+  background: #161b22;
+  transition: background .12s;
+}
+.god-advanced-accordion summary:hover {
+  background: #21262d;
+}
+.god-advanced-accordion[open] summary {
+  border-bottom: 1px dashed #30363d;
+}
+
+.god-log-badge {
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: #21262d;
+  color: #8b949e;
+  border: 1px solid #30363d;
+  margin-left: 4px;
+}
+
+.god-history-popover {
+  position: absolute;
+  top: 48px;
+  right: 12px;
+  width: 320px;
+  max-height: 280px;
+  overflow-y: auto;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  padding: 10px;
+  z-index: 10;
+  font-size: 11px;
+}
+.god-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid #21262d;
+}
+.god-history-item:last-child {
+  border-bottom: none;
+}
+
+.god-composite-card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.god-composite-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.god-pill-select-group {
+  display: inline-flex;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.god-pill-select-btn {
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #21262d;
+  color: #c9d1d9;
+  border: none;
+  border-right: 1px solid #30363d;
+  cursor: pointer;
+  transition: background .12s;
+}
+.god-pill-select-btn:last-child {
+  border-right: none;
+}
+.god-pill-select-btn.active {
+  background: #1f6feb;
+  color: #fff;
+}
+.god-pill-select-btn:hover:not(.active) {
+  background: #30363d;
+}
 
 /* BD.7 Overview compact enhancements */
 .overview-progress-strip {

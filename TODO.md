@@ -234,50 +234,50 @@ Legend: [P0] foundational · [P1] core Flatland identity · [P2] flavor/observab
 
 ## §BN God Panel UX & Law Cleanup — Backlog
 
-> **Context**: `GodPanel.tsx` (1,487 lines) exposes ~80 numeric + ~30 boolean parameters across 6 macro domains → 28 sub-groups. The `GodLaws` TypeScript type has ~52 additional fields that are internal/backend-only and never shown, creating dead weight. This roadmap cleans up the parameter surface, merges fragmented groups, redesigns controls, and adds power-user features.
+> **Context**: `GodPanel.tsx` exposes ~80 numeric + ~30 boolean parameters across 6 macro domains. The parameter surface has been cleaned up, fragmented groups merged (28 → 13), controls redesigned with log-scale sliders and loud master pills, and power-user features added (Panic button, localStorage draft, JSON export/import, undo/redo, session change history).
 
-### Phase 1: Parameter Cleanup — Remove, Combine & Hide [P1] — ⬜ Open
+### Phase 1: Parameter Cleanup — Remove, Combine & Hide [P1] — ✅ Complete
 
-- [ ] [P1] **BN-1 Remove 5 internal numeric params from UI** — Drop `hungry_ratio` ("NN slot 0", confusing), `starving_ratio` (internal NN signal), `eat_radius` (physics constant), `door_clearance` (physics constant), `nutrient_cycle_rate` (invisible second-order effect). Remove from `NUMBER_LAWS` and `LAW_HINTS`.
-- [ ] [P1] **BN-2 Combine 3 soft-cap knobs → "Carrying pressure" slider** — Replace `damping_steepness` + `crowding_stress_mult` + `resource_strain_mult` with a single **"Carrying pressure"** 0–10 intensity slider that sets all three proportionally. Reduces 3 expert controls to 1 intuitive dial.
-- [ ] [P1] **BN-3 Combine morphology annealing → "Speciation speed"** — Replace `annealing_start_generation` + `annealing_decay_generations` with a **"Speciation speed"** selector (Slow / Normal / Fast / Custom) mapping to sensible generation-count pairs. Keep `morph_lambda_override` as an "Advanced" expert control.
-- [ ] [P1] **BN-4 Combine vertex + angle jitter → "Shape jitter σ"** — Merge `vertex_mutation_std` + `angle_mutation_std` into one **"Shape jitter σ"** slider (always tuned together).
-- [ ] [P1] **BN-5 Simplify Extinction Safeguards to 1 slider** — Expose only `safeguard_critical_pop` (the meaningful threshold); hide `safeguard_relief_ratio` and `safeguard_genesis_batch` in an "Advanced" collapsed accordion.
-- [ ] [P2] **BN-6 Combine disease params → "Plague severity"** — Replace `disease_outbreak_rate` + `disease_rate` + `disease_lethality` with a **"Plague severity"** selector (Mild / Moderate / Lethal) that sets all three proportionally. Show raw values in Advanced accordion.
-- [ ] [P2] **BN-7 Split `GodLaws` type into public + internal** — Move the ~52 hidden fields (`beast_ratio`, `diet_strictness`, `wander_turn`, `hungry_perceive_mult`, `desperate_perceive_mult`, `desperate_speed_mult`, `food_giveup_ticks`, `mate_radius`, `mate_energy_min`, `birth_energy_cost`, `reproduction_cooldown`, `disease_radius`, `recovery_rate`, `fog_sight_mult`, `rain_speed_mult`, `storm_wander_bonus`, `sleep_energy_mult`, `rain_growth_mult`, `fog_mushroom_mult`, `storm_plant_damage`, `chill_rate`, `chill_threshold`, `wet_disease_mult`, `hearths_enabled`, `rubble_blocking_enabled`, `signal_speed`, `house_claim_enabled`, `signal_radius`, `food_call_rate`, `alarm_call_rate`, `knowledge_ttl`, `knowledge_share_rate`, `help_call_enabled`, `help_radius`, `defense_weight`, `trait_mutation_rate`, `fire_spread_rate`, `coalition_min_size`, `aid_rate`, `tribute_enabled`, `betrayal_enabled`, `defection_enabled`, `cannibalism_hunger_ratio`, `eat_enemy_enabled`, `kin_stigma`, `exile_on_kin_eat`, `soil_depletion_enabled`, `banquets_enabled`, `vocalizations_enabled`, `scent_enabled`, `envoys_enabled`, `markets_enabled`, `omens_enabled`, `dialect_drift_enabled`, `house_min_size`, `house_max_size`, `bite_cooldown`, `attack_radius`, `cohesion_weight`, `alignment_weight`, `separation_weight`, `flock_radius`, `relation_drift_rate`, `alliance_threshold`, `rivalry_threshold`, `nn_inference_hz`) into a `_GodLawsInternal` type. Cleans TypeScript autocomplete and signals they are not user-facing.
-- [ ] [P2] **BN-8 "Advanced" collapsed accordion for Neuroevolution + Morphology** — Move all 8 expert params (`mutation_sigma`, `crossover_rate`, `morph_lambda_override`, `vertex_mutation_std`, `angle_mutation_std`, `topological_mutation_rate`, `annealing_start_generation`, `annealing_decay_generations`) behind a collapsible "⚙️ Advanced Evolution" section, closed by default. Removes the most intimidating wall of jargon from the Biology domain.
+- [x] [P1] **BN-1 Remove 5 internal numeric params from UI** — Dropped `hungry_ratio`, `starving_ratio`, `eat_radius`, `door_clearance`, `nutrient_cycle_rate`. Removed from `NUMBER_LAWS` and `LAW_HINTS`.
+- [x] [P1] **BN-2 Combine 3 soft-cap knobs → "Carrying pressure" slider** — Replaced `damping_steepness` + `crowding_stress_mult` + `resource_strain_mult` with a single **"Carrying pressure"** 0–10 intensity slider that sets all three proportionally. Raw dials kept in Advanced accordion.
+- [x] [P1] **BN-3 Combine morphology annealing → "Speciation speed"** — Replaced `annealing_start_generation` + `annealing_decay_generations` with a **"Speciation speed"** selector (Slow / Normal / Fast / Immediate) with custom overrides in Advanced accordion.
+- [x] [P1] **BN-4 Combine vertex + angle jitter → "Shape jitter σ"** — Merged `vertex_mutation_std` + `angle_mutation_std` into one **"Shape jitter σ"** composite slider.
+- [x] [P1] **BN-5 Simplify Extinction Safeguards to 1 slider** — Exposed only `safeguard_critical_pop` in the primary view; placed `safeguard_relief_ratio` and `safeguard_genesis_batch` in the Advanced accordion.
+- [x] [P2] **BN-6 Combine disease params → "Plague severity"** — Added **"Plague severity"** selector (Mild / Moderate / Lethal) that sets outbreak rate, contagion chance, and lethality proportionally. Raw dials accessible in Advanced accordion.
+- [x] [P2] **BN-7 Split `GodLaws` type into public + internal** — Moved the ~52 hidden dials into `GodLawsInternal`, keeping `GodLaws` clean with autocomplete while maintaining full API backwards compatibility.
+- [x] [P2] **BN-8 "Advanced" collapsed accordion for Neuroevolution + Morphology** — Placed all 8 expert dials behind a collapsible `⚙️ Advanced Evolution` drawer, collapsed by default.
 
-### Phase 2: Group & Section Consolidation [P1] — ⬜ Open
+### Phase 2: Group & Section Consolidation [P1] — ✅ Complete
 
-- [ ] [P1] **BN-9 Merge Food groups → "Food & Agriculture"** — Combine `Food & Energy` + `Food Decay` + `Agriculture` + `Hunger & Sight` into one section. Master toggles at top. Reduces 4 groups → 1.
-- [ ] [P1] **BN-10 Merge Climate groups → "Climate & Shelter"** — Combine `Sky & Seasons` + `Weather Sickness` + `Shelter` into one section with master `weather_enabled` at top. Reduces 3 groups → 1.
-- [ ] [P1] **BN-11 Merge Population groups → "Population Safety"** — Combine `Extinction Safeguards` + `Density Soft-Cap Damping` into one section with a single "Carrying pressure" slider (from BN-2). Reduces 2 groups → 1.
-- [ ] [P1] **BN-12 Merge Evolution groups → "Evolution Engine"** — Combine `Neuroevolution` + `Morphology` into one section with the Advanced accordion from BN-8. Reduces 2 groups → 1.
-- [ ] [P2] **BN-13 Merge Combat groups → "Combat & Survival"** — Combine `Clan War` + `Predation` + `Desperation` into one section. Reduces 3 groups → 1.
-- [ ] [P2] **BN-14 Merge Governance groups → "Society & Governance"** — Combine `Territory` + `Clan` + `Rebellion` + `Politics` into one section. Reduces 4 groups → 1.
-- [ ] [P2] **BN-15 Collapse Physics sub-groups** — Combine `Rivers` + `Terrain` + `Seismic & Waves` + `Electrostatics` + `Cosmology` + `Bodies & Houses` + `Materials` into 2–3 sub-groups instead of 7. Net result: 28 sub-groups → ~12.
+- [x] [P1] **BN-9 Merge Food groups → "Food & Agriculture"** — Combined `Food & Energy` + `Food Decay` + `Agriculture` + `Hunger & Sight` into one section with master toggles at top.
+- [x] [P1] **BN-10 Merge Climate groups → "Climate & Shelter"** — Combined `Sky & Seasons` + `Weather Sickness` + `Shelter` into one section with master `weather_enabled` toggle card at top.
+- [x] [P1] **BN-11 Merge Population groups → "Population Safety"** — Combined `Extinction Safeguards` + `Density Soft-Cap Damping` into one section with the single "Carrying pressure" slider and master toggle cards.
+- [x] [P1] **BN-12 Merge Evolution groups → "Evolution Engine"** — Combined `Neuroevolution` + `Morphology` into one section with Speciation speed, Shape jitter, and the Advanced accordion.
+- [x] [P2] **BN-13 Merge Combat groups → "Combat & Survival"** — Combined `Clan War` + `Predation` + `Desperation` into one unified section.
+- [x] [P2] **BN-14 Merge Governance groups → "Society & Governance"** — Combined `Territory` + `Clan` + `Rebellion` + `Politics` into one section.
+- [x] [P2] **BN-15 Collapse Physics sub-groups** — Combined 7 physics sub-groups into 2 consolidated groups (`Landscape & Elements`, `Cosmology & Disasters`). Net result: 28 sub-groups → 13.
 
-### Phase 3: Control UI/UX Redesign [P1] — ⬜ Open
+### Phase 3: Control UI/UX Redesign [P1] — ✅ Complete
 
-- [ ] [P1] **BN-16 Logarithmic-scale sliders for huge-range params** — Switch to log-scale for `food_lifespan_ticks` (100–100,000), `age_length` (100–1,000,000), `day_length` (4–20,000), `house_decay_ticks` (100–100,000), `season_length` (4–100,000). Linear sliders at these ranges are effectively unusable — most of the useful range is crammed into 10% of the slider travel.
-- [ ] [P1] **BN-17 Master-feature toggles as loud colored pills** — Redesign `theology_enabled`, `war_enabled`, `disease_enabled`, `predation_enabled` as prominent emoji pill buttons (color-coded ON=green / OFF=red-muted) to visually distinguish them from minor toggles like `succession_enabled`. They control entire subsystems.
-- [ ] [P1] **BN-18 Gray-out gated params instead of hiding** — When a gate toggle (e.g. `disease_enabled`) is OFF, show its child sliders in-place at 40% opacity with `pointer-events: none`. Currently they appear from nowhere when the toggle turns ON — very disorienting. A grayed preview reveals the full scope before enabling.
-- [ ] [P2] **BN-19 Rename zone pills to plain language** — Rename `safe` → `✓ balanced`, `strained` → `⚠ pushed`, `extreme` → `🔴 risk`. Alternatively replace the text pill with a compact colored dot (green / amber / red) to reclaim row width.
-- [ ] [P2] **BN-20 Click baseline marker to revert** — Clicking the baseline marker triangle on the slider track reverts that param instantly, eliminating the separate `↺ Revert` button in the row header.
-- [ ] [P2] **BN-21 Mobile: replace slider with large stepper + long-press repeat** — On mobile (`width ≤ 768px`), replace the thumb slider with wide `−` / `+` buttons where holding repeats. Sliders are notoriously hard to use precisely on touch screens. Desktop keeps slider as primary.
+- [x] [P1] **BN-16 Logarithmic-scale sliders for huge-range params** — Switched to log-scale for `food_lifespan_ticks`, `age_length`, `day_length`, `house_decay_ticks`, and `season_length`.
+- [x] [P1] **BN-17 Master-feature toggles as loud colored pills** — Prominent `.god-master-toggle` cards with icons, descriptions, and active green glow for major subsystem switches.
+- [x] [P1] **BN-18 Gray-out gated params instead of hiding** — Gated parameters stay visible at 45% opacity with disabled interactions and a clear `(Disabled by [Gate])` badge.
+- [x] [P2] **BN-19 Rename zone pills to plain language** — Renamed `safe` → `✓ balanced`, `strained` → `⚠ pushed`, `extreme` → `🔴 risk`.
+- [x] [P2] **BN-20 Click baseline marker to revert** — Baseline markers and baseline text on the track are directly clickable to revert that individual parameter.
+- [x] [P2] **BN-21 Mobile: large stepper + long-press repeat** — Added pointer down/up hold intervals for rapid increment/decrement stepping on mobile and desktop.
 
-### Phase 4: Quick-Action Features [P1] — ⬜ Open
+### Phase 4: Quick-Action Features [P1] — ✅ Complete
 
-- [ ] [P1] **BN-22 "Panic" rescue button in footer** — One-click: max `food_count` + disable `disease_enabled` + disable `disaster_enabled` + enable `safeguard_enabled`. For when the population is collapsing. Rendered as a distinct red 🆘 button in the footer.
-- [ ] [P1] **BN-23 Persist unsaved draft to `localStorage`** — Law changes are lost if the user refreshes before clicking Apply. Auto-save the in-progress draft to `localStorage` and restore on reopen with a "⚠ Unsaved changes from [time]" restore banner.
-- [ ] [P2] **BN-24 Export / Import laws as JSON** — "📋 Copy JSON" and "📥 Import JSON" buttons in the Laws footer. Enables sharing exact law configurations between users or saving named snapshots outside the preset system.
-- [ ] [P2] **BN-25 Law change log in session** — Show the last 5 modifications (param name, old → new, tick timestamp) at the top of the Laws tab. Stored in `sessionStorage`. Enables quick auditing of recent changes.
-- [ ] [P2] **BN-26 Undo/redo stack** — `Ctrl/Cmd+Z` reverts the last single-param change; `Ctrl+Shift+Z` redoes it. Requires a change-history array in React state (cap at 50 entries).
+- [x] [P1] **BN-22 "Panic" rescue button in footer** — Added `🆘 Panic Rescue` button in footer: sets food to 600, activates emergency safeguards, and turns off plagues & disasters with confirmation.
+- [x] [P1] **BN-23 Persist unsaved draft to `localStorage`** — Unsaved modifications automatically save to `localStorage` (`fl_god_laws_draft`) with restore/discard banner on reopen.
+- [x] [P2] **BN-24 Export / Import laws as JSON** — Added `📋 Export JSON` and `📥 Import JSON` with modal parser and validation.
+- [x] [P2] **BN-25 Law change log in session** — Session history drawer tracking modifications with timestamps and old → new values.
+- [x] [P2] **BN-26 Undo/redo stack** — `Cmd/Ctrl+Z` undo and `Cmd/Ctrl+Shift+Z` / `Ctrl+Y` redo with toolbar buttons.
 
-### Phase 5: Search & Filter Improvements [P2] — ⬜ Open
+### Phase 5: Search & Filter Improvements [P2] — ✅ Complete
 
-- [ ] [P2] **BN-27 Cross-tab search** — Querying "food" in the Laws search bar also highlights matching preset cards in the Presets tab. Currently the two tabs are completely isolated from search.
-- [ ] [P2] **BN-28 Filter by zone** — Add a "🔴 Risk only" filter chip in the search bar to instantly show only params in the `extreme` zone. Enables fast danger audits without scanning every row.
+- [x] [P2] **BN-27 Cross-tab search** — Search query simultaneously filters presets and laws, showing match counts on tab pills and clickable preset chips.
+- [x] [P2] **BN-28 Filter by zone** — Added `🔴 Risk only` toggle chip in search bar to isolate parameters in the `extreme` risk zone.
 
 ---
 

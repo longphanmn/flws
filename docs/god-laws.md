@@ -14,7 +14,28 @@ In Flatland, God (The Sphere) sets **universal laws of nature**, never interveni
 
 The God Panel is organized into two primary top-level sections:
 1. **`🎯 Presets` (Curated Worlds)**: Instant one-click simulation profiles (`⚖️ Balance`, `🌿 Sustainable`, `🔮 Theocracy`, `⚔️ Warlords`, `🔥 Chaos`, `💀 Extinction`, `🚀 Boom`) with Live Apply and World Reset options.
-2. **`⚖️ Laws of Nature` (Macro Domains)**: Direct fine-tuning across 6 high-level ecological domains with real-time baseline comparison, instant search, modified-only filtering, interactive `?` hints, and dual slider controls.
+2. **`⚖️ Laws of Nature` (Macro Domains)**: Direct fine-tuning across 6 high-level ecological domains consolidated into **13 unified groups** with real-time baseline comparison, instant cross-tab search, modified-only & risk-only filtering, interactive `?` hints, and dual slider controls.
+
+### §BN Modernized Controls & Power Features
+- **Consolidated 13 Groups**: Reduced from 28 fragmented sub-groups down to 13 intuitive categories (Food & Agriculture, Ecosystem & Flora, Movement & Lifespan, Reproduction & Caste, Population Safety, Evolution Engine, Disease & Plague, Climate & Shelter, Combat & Survival, Society & Governance, Theology & Avatars, Landscape & Elements, Cosmology & Disasters).
+- **Composite Dials**:
+  - **Carrying pressure** (0–10 intensity): Proportionally tunes damping steepness, crowding stress, and resource strain in one intuitive dial.
+  - **Speciation speed** (Slow / Normal / Fast / Immediate / Custom): Sets morphology start and decay generation milestones.
+  - **Shape jitter σ** (0.005–0.20): Simultaneously scales radial ($\sigma_r$) and angular ($\sigma_\phi$) geometric mutation rates.
+  - **Plague severity** (Mild / Moderate / Lethal / Custom): Sets outbreak frequency, contagion probability, and lethality.
+- **Advanced Accordions**: Collapsible `⚙️ Advanced` drawers keep raw expert parameters out of the way for standard play while remaining fully accessible.
+- **Logarithmic-Scale Sliders**: Exponential parameters (`food_lifespan_ticks`, `age_length`, `day_length`, `house_decay_ticks`, `season_length`) use logarithmic curves so fine adjustments at lower ranges are responsive and precise.
+- **Master Feature Toggle Cards**: Major subsystem switches (`birth_enabled`, `morphology_annealing_enabled`, `disease_enabled`, `weather_enabled`, `safeguard_enabled`, `theology_enabled`, `war_enabled`, `predation_enabled`) are displayed as loud, prominent status cards with green active glow.
+- **Grayed-Out Gated Preview**: Child parameters whose parent feature is disabled remain visible at 45% opacity with clear status badges, ensuring discoverability rather than abruptly vanishing.
+- **Plain-Language Zone Badges**: Renamed to `✓ balanced` (green), `⚠ pushed` (amber), and `🔴 risk` (red).
+- **Clickable Baseline Markers & Values**: Clicking on the slider baseline marker or default label immediately reverts that specific law back to its baseline.
+- **Touch Steppers with Long-Press Repeat**: On touch and desktop, holding down `−` or `+` repeatedly steps values for quick adjustments.
+- **Emergency `🆘 Panic Rescue`**: One-click footer button that restores generous food abundance, turns on emergency safeguards, and quells all active plagues, wildfires, and natural disasters.
+- **Draft Auto-Save**: In-progress modifications are automatically saved to `localStorage` (`fl_god_laws_draft`); an interactive banner allows restoring or discarding previous sessions.
+- **JSON Export & Import**: One-click clipboard export and validated JSON import to share and back up custom law configurations.
+- **Session Change Log**: In-session audit drawer tracking all parameter modifications with timestamps and old $\rightarrow$ new values.
+- **Undo / Redo Stack**: Multi-level undo/redo via toolbar buttons or keyboard shortcuts (`Cmd/Ctrl+Z`, `Cmd/Ctrl+Shift+Z` / `Ctrl+Y`).
+- **Cross-Tab Search & Risk Filter**: Searching queries both presets and laws simultaneously; a dedicated `🔴 Risk only` chip filters directly for parameters pushed to extreme values.
 
 > [!NOTE]
 > **Understanding Defaults vs. Balance Preset:**

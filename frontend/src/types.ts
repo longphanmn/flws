@@ -307,49 +307,105 @@ export interface ControlMessage {
 }
 
 /** Laws of nature god may set — never per-creature interventions. */
-export interface GodLaws {
-  boundary?: 'wrap' | 'clamp'
-  food_count?: number
-  plant_growth_rate?: number
-  plant_spread_rate?: number
-  nutrient_cycle_rate?: number
-  plant_variants_enabled?: boolean
-  poison_rate?: number
+// §BN-7: Internal, legacy, or simulation-derived dials not directly shown in the primary God Panel UI
+export interface GodLawsInternal {
   beast_ratio?: number
   diet_strictness?: number
-  territory_enabled?: boolean
-  territory_radius?: number
-  trespass_decay?: number
-  totems_enabled?: boolean
-  succession_enabled?: boolean
-  max_clans?: number
-  energy_max?: number
-  energy_decay_per_tick?: number
-  energy_from_food?: number
   hungry_ratio?: number
   starving_ratio?: number
-  perceive_radius?: number
   eat_radius?: number
   wander_turn?: number
-  steer_turn?: number
   hungry_perceive_mult?: number
   desperate_perceive_mult?: number
   desperate_speed_mult?: number
   food_giveup_ticks?: number
-  lifespan_mult?: number
-
-  // Reproduction & inheritance (Nature's Law)
-  birth_enabled?: boolean
-  adult_age?: number
   mate_radius?: number
   mate_energy_min?: number
+  birth_energy_cost?: number
+  reproduction_cooldown?: number
+  nutrient_cycle_rate?: number
+  door_clearance?: number
+  disease_radius?: number
+  recovery_rate?: number
+  fog_sight_mult?: number
+  rain_speed_mult?: number
+  storm_wander_bonus?: number
+  sleep_energy_mult?: number
+  rain_growth_mult?: number
+  fog_mushroom_mult?: number
+  storm_plant_damage?: number
+  chill_rate?: number
+  chill_threshold?: number
+  wet_disease_mult?: number
+  hearths_enabled?: boolean
+  rubble_blocking_enabled?: boolean
+  signal_speed?: number
+  house_claim_enabled?: boolean
+  signal_radius?: number
+  food_call_rate?: number
+  alarm_call_rate?: number
+  knowledge_ttl?: number
+  knowledge_share_rate?: number
+  help_call_enabled?: boolean
+  help_radius?: number
+  defense_weight?: number
+  trait_mutation_rate?: number
+  fire_spread_rate?: number
+  schism_min_pop?: number
+  coalition_min_size?: number
+  aid_rate?: number
+  tribute_enabled?: boolean
+  betrayal_enabled?: boolean
+  defection_enabled?: boolean
+  cannibalism_hunger_ratio?: number
+  eat_enemy_enabled?: boolean
+  kin_stigma?: number
+  exile_on_kin_eat?: boolean
+  soil_depletion_enabled?: boolean
+  banquets_enabled?: boolean
+  vocalizations_enabled?: boolean
+  scent_enabled?: boolean
+  envoys_enabled?: boolean
+  markets_enabled?: boolean
+  omens_enabled?: boolean
+  dialect_drift_enabled?: boolean
+  house_min_size?: number
+  house_max_size?: number
+  bite_cooldown?: number
+  attack_radius?: number
+  cohesion_weight?: number
+  alignment_weight?: number
+  separation_weight?: number
+  flock_radius?: number
+  relation_drift_rate?: number
+  alliance_threshold?: number
+  rivalry_threshold?: number
+  nn_inference_hz?: number
+}
+
+// User-facing active God Laws (inherits internal properties as optional for full API backwards-compatibility)
+export interface GodLaws extends GodLawsInternal {
+  boundary?: 'wrap' | 'clamp'
+  food_count?: number
+  plant_growth_rate?: number
+  plant_spread_rate?: number
+  plant_variants_enabled?: boolean
+  poison_rate?: number
+  energy_max?: number
+  energy_decay_per_tick?: number
+  energy_from_food?: number
+  perceive_radius?: number
+  steer_turn?: number
+  lifespan_mult?: number
+
+  // Reproduction & inheritance
+  birth_enabled?: boolean
+  adult_age?: number
   birth_rate?: number
   sex_ratio?: number
   mutation_rate?: number
   mutation_heritability?: number
   max_sides?: number
-  birth_energy_cost?: number
-  reproduction_cooldown?: number
   carrying_capacity?: number
   max_population?: number
   euthanasia_threshold?: number
@@ -358,9 +414,7 @@ export interface GodLaws {
   disease_enabled?: boolean
   disease_outbreak_rate?: number
   disease_rate?: number
-  disease_radius?: number
   disease_energy_drain?: number
-  recovery_rate?: number
   disease_lethality?: number
 
   // Environment: sky, seasons, weather
@@ -370,141 +424,83 @@ export interface GodLaws {
   night_sight_mult?: number
   weather_enabled?: boolean
   weather_change_rate?: number
-  fog_sight_mult?: number
-  rain_speed_mult?: number
-  storm_wander_bonus?: number
   sleep_enabled?: boolean
-  sleep_energy_mult?: number
-  rain_growth_mult?: number
-  fog_mushroom_mult?: number
-  storm_plant_damage?: number
   weather_sickness_enabled?: boolean
-  chill_rate?: number
-  chill_threshold?: number
   chill_drain?: number
-  wet_disease_mult?: number
 
-  // Shelter — roofs against the sky
+  // Shelter
   shelter_enabled?: boolean
-  hearths_enabled?: boolean
   rivers_enabled?: boolean
   river_count?: number
   relief_enabled?: boolean
   structural_enabled?: boolean
-  rubble_blocking_enabled?: boolean
   earthquake_enabled?: boolean
   earthquake_rate?: number
-  signal_speed?: number
   lightning_enabled?: boolean
   lightning_strike_rate?: number
   anomaly_count?: number
   exposure_drain?: number
   house_capacity?: number
-  house_claim_enabled?: boolean
   rest_recovery_mult?: number
   house_decay_ticks?: number
 
+  // Communication & Memory
   communication_enabled?: boolean
-  signal_radius?: number
-  food_call_rate?: number
-  alarm_call_rate?: number
-
-  // Communication II — knowledge, teaching & mobbing (§X)
   knowledge_enabled?: boolean
-  knowledge_ttl?: number
-  knowledge_share_rate?: number
-  help_call_enabled?: boolean
-  help_radius?: number
-  defense_weight?: number
+
+  // Culture & Epochs
   age_enabled?: boolean
   age_length?: number
   culture_enabled?: boolean
   culture_spread_rate?: number
-  trait_mutation_rate?: number
   wildfire_enabled?: boolean
   fire_rate?: number
-  fire_spread_rate?: number
   disaster_enabled?: boolean
   disaster_rate?: number
 
+  // Territory & Society
+  territory_enabled?: boolean
+  territory_radius?: number
+  trespass_decay?: number
+  totems_enabled?: boolean
+  succession_enabled?: boolean
+  max_clans?: number
   schism_enabled?: boolean
   schism_threshold?: number
-  schism_min_pop?: number
 
-  // Politics (§AB) — coalitions, leaders, resources, betrayal
+  // Politics
   coalitions_enabled?: boolean
   coalition_threshold?: number
-  coalition_min_size?: number
   leader_decisions_enabled?: boolean
   resource_sharing_enabled?: boolean
   larder_capacity?: number
-  aid_rate?: number
-  tribute_enabled?: boolean
-  betrayal_enabled?: boolean
-  defection_enabled?: boolean
 
-  // Desperation cannibalism (§AC)
+  // Combat & Survival
   cannibalism_enabled?: boolean
-  cannibalism_hunger_ratio?: number
   cannibalism_energy?: number
-  eat_enemy_enabled?: boolean
   eat_kin_enabled?: boolean
-  kin_stigma?: number
-  exile_on_kin_eat?: boolean
-
-  // Food decay (§AE)
-  food_decay_enabled?: boolean
-  food_lifespan_ticks?: number
-
-  // Unified Theology (§AP) — shrines, tithes & the clan faith pool
-  theology_enabled?: boolean
-  tithe_rate?: number
-  temple_faith_cost?: number
-
-  // Agriculture (§AM) — sowing, farm plots, granaries, soil & feasts
-  agriculture_enabled?: boolean
-  granaries_enabled?: boolean
-  granary_capacity?: number
-  soil_depletion_enabled?: boolean
-  banquets_enabled?: boolean
-
-  // Communication, language & diplomacy (§AN)
-  vocalizations_enabled?: boolean
-  scent_enabled?: boolean
-  envoys_enabled?: boolean
-  markets_enabled?: boolean
-  omens_enabled?: boolean
-  dialect_drift_enabled?: boolean
-
-  door_clearance?: number
-  house_min_size?: number
-  house_max_size?: number
-
-  // Predation (§I)
   predation_enabled?: boolean
   predator_ratio?: number
   hunt_radius?: number
   bite_damage?: number
-  bite_cooldown?: number
   energy_from_prey?: number
   fear_radius?: number
-
-  // Clan war (§I)
   war_enabled?: boolean
-  attack_radius?: number
   attack_damage?: number
 
-  // Society — interaction
-  cohesion_weight?: number
-  alignment_weight?: number
-  separation_weight?: number
-  flock_radius?: number
-  relation_drift_rate?: number
-  alliance_threshold?: number
-  rivalry_threshold?: number
+  // Food Decay & Agriculture
+  food_decay_enabled?: boolean
+  food_lifespan_ticks?: number
+  agriculture_enabled?: boolean
+  granaries_enabled?: boolean
+  granary_capacity?: number
 
-  // Neuroevolution (BA) — always on, 295 fixed
-  nn_inference_hz?: number
+  // Unified Theology
+  theology_enabled?: boolean
+  tithe_rate?: number
+  temple_faith_cost?: number
+
+  // Neuroevolution
   mutation_sigma?: number
   crossover_rate?: number
 

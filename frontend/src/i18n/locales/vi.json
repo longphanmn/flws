@@ -15,8 +15,8 @@
       "live": "trực tiếp",
       "reconnecting": "đang kết nối lại…",
       "paused": "TẠM DỪNG",
-      "safeguard_active": "Bảo hộ kích hoạt",
-      "softcap_active": "Hãm mật độ kích hoạt"
+      "safeguard_active": "Thần tích",
+      "softcap_active": "Kiềm hãm"
     },
     "lenses": {
       "toolbarLabel": "Thấu kính Bản đồ",
@@ -259,7 +259,20 @@
       "electrostatics": "Sấm sét & Tĩnh điện",
       "cosmology": "Vũ trụ luận",
       "neuroevolution": "Mạng Nơ-ron & Tiến hóa Não bộ",
-      "morphology": "Hình thái học & Đột biến"
+      "morphology": "Hình thái học & Đột biến",
+      "foodAgriculture": "Nông nghiệp & Lương thực",
+      "ecosystemFlora": "Hệ sinh thái & Thực vật",
+      "movementLifespan": "Vận động & Tuổi thọ",
+      "reproductionCaste": "Sinh sản & Đẳng cấp",
+      "populationSafety": "An toàn dân số",
+      "evolutionEngine": "Động cơ tiến hóa",
+      "diseasePlague": "Dịch bệnh & Ôn dịch",
+      "climateShelter": "Khí hậu & Trú ẩn",
+      "combatSurvival": "Chiến đấu & Sinh tồn",
+      "societyGovernance": "Xã hội & Thống trị",
+      "theologyAvatars": "Thần học & Đồ đằng",
+      "landscapeElements": "Địa hình & Sông ngòi",
+      "cosmologyDisasters": "Vũ trụ & Thiên tai"
     },
     "edge": {
       "edgeOfWorld": "Ranh giới thế giới",
@@ -305,9 +318,9 @@
       "laws_count": "{{count}} thiên luật",
       "groups_sections": "{{groups}} nhóm · {{sections}} phân mục",
       "zones": {
-        "safe": "an toàn",
-        "strained": "căng thẳng",
-        "extreme": "cực hạn"
+        "safe": "✓ cân bằng",
+        "strained": "⚠ căng thẳng",
+        "extreme": "🔴 rủi ro"
       },
       "zone_distance": "vùng {{zone}} — độ lệch so với chuẩn",
       "edge_hint_title": "Cuộn vòng (thế giới xuyến) vs Tường chắn (biên giới cứng)",
@@ -318,7 +331,28 @@
         "neuroevolution": "⚡ Động cơ Não bộ Micro-RNN: 16 đầu vào cảm giác (sinh hiệu, tia quét, âm thanh, mùi hương, độ dốc) liên tục điều khiển 7 bộ truyền động (lực đẩy, bẻ lái, tiếng gọi, tương tác).",
         "cosmology": "Vùng dị thường thay đổi vật lý cục bộ — đất đai trù phú, trọng lực nặng, tĩnh lặng. Thợ hái lượm tinh tường sẽ khám phá ra chúng.",
         "theology_avatars": "8 Đồ đằng Thiêng liêng: ⭕ Sung túc · ⚡ Thịnh nộ · 👁️ Toàn tri · 🛡️ Trường tồn · 🌿 Tái sinh · ⚖️ Cân bằng · 🌀 Thăng hoa · 🕯️ Thánh sở"
-      }
+      },
+      "carryingPressure": "Áp lực giới hạn dân số",
+      "carryingPressureDesc": "Lực cản nhân khẩu học tổng thể làm giảm tỉ lệ sinh và tăng áp lực chuyển hóa khi dân số chạm ngưỡng sức chứa.",
+      "speciationSpeed": "Tốc độ biệt hóa loài",
+      "shapeJitter": "Độ biến thiên hình thái σ",
+      "plagueSeverity": "Mức độ dịch bệnh",
+      "panicBtn": "Cứu nguy khẩn cấp",
+      "panicConfirm": "Kích hoạt cứu nguy khẩn cấp? Tăng thức ăn lên 600, bật bảo hộ diệt vong, và tắt dịch bệnh cùng thiên tai.",
+      "exportJson": "Xuất JSON",
+      "importJson": "Nhập JSON",
+      "undo": "Hoàn tác",
+      "redo": "Làm lại",
+      "changeLog": "Lịch sử",
+      "draftBanner": "Bạn có các thay đổi chưa lưu từ phiên trước.",
+      "draftRestore": "Khôi phục bản nháp",
+      "draftDiscard": "Hủy bỏ",
+      "disabledBy": "Đang tắt (bật {{gate}} để mở khóa)",
+      "advancedEvolution": "⚙️ Tùy chỉnh nâng cao: Tiến hóa & Hình thái",
+      "advancedSafeguards": "⚙️ Tùy chỉnh nâng cao: Bảo hộ & Giảm chấn",
+      "advancedPlague": "⚙️ Tùy chỉnh nâng cao: Dịch bệnh học",
+      "matchingPresets": "Mẫu phù hợp:",
+      "riskOnly": "Chỉ rủi ro"
     },
     "curatedPresetsTitle": "Các Mẫu Thiết Lập Tuyển Chọn",
     "lawsOfNatureTitle": "Quy Luật Tự Nhiên",
