@@ -342,6 +342,7 @@
       "panicConfirm": "Kích hoạt cứu nguy khẩn cấp? Tăng thức ăn lên 600, bật bảo hộ diệt vong, và tắt dịch bệnh cùng thiên tai.",
       "exportJson": "Xuất JSON",
       "importJson": "Nhập JSON",
+      "copied": "Đã sao chép!",
       "undo": "Hoàn tác",
       "redo": "Làm lại",
       "changeLog": "Lịch sử",

@@ -488,6 +488,7 @@ function GodPanelInner({ open, onClose }: Props) {
   const [showImportModal, setShowImportModal] = useState(false)
   const [importText, setImportText] = useState('')
   const [importError, setImportError] = useState<string | null>(null)
+  const [exportedCopied, setExportedCopied] = useState(false)
 
   // §BN-25: Session Change Log
   const [changeLog, setChangeLog] = useState<ChangeEntry[]>([])
@@ -911,7 +912,8 @@ function GodPanelInner({ open, onClose }: Props) {
     try {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(jsonStr)
-        alert('✓ Copied laws configuration JSON to clipboard!')
+        setExportedCopied(true)
+        setTimeout(() => setExportedCopied(false), 2200)
       } else {
         throw new Error('no clipboard')
       }
@@ -1261,92 +1263,99 @@ function GodPanelInner({ open, onClose }: Props) {
   }
 
   const foot = (
-    <footer
-      className="god-foot"
-      style={{
-        display: 'flex',
-        gap: 6,
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        position: 'sticky',
-        bottom: 0,
-        background: '#0d1117',
-        padding: '10px 0 max(10px, env(safe-area-inset-bottom))',
-        borderTop: '1px solid #21262d',
-        zIndex: 1,
-      }}
-    >
-      {error && <span className="god-error">{error}</span>}
-      {!error && saved && <span className="god-saved">{t('god.presets.saved')}</span>}
-      {!error && !saved && submitting && <span className="god-note" style={{ color: '#d29922' }}>{t('god.presets.applying')}</span>}
+    <footer className="god-foot">
+      {/* Feedback / Status Alert Pill */}
+      {(error || saved || submitting) && (
+        <div className="god-foot-status-bar" role="status" aria-live="polite">
+          {error && (
+            <div className="god-foot-status-pill god-status-error">
+              <span className="god-status-icon">⚠️</span>
+              <span className="god-status-text">{error}</span>
+            </div>
+          )}
+          {!error && saved && (
+            <div className="god-foot-status-pill god-status-success">
+              <span className="god-status-icon">✓</span>
+              <span className="god-status-text">{t('god.presets.saved') || 'Laws active'}</span>
+            </div>
+          )}
+          {!error && !saved && submitting && (
+            <div className="god-foot-status-pill god-status-pending">
+              <span className="god-status-spinner" />
+              <span className="god-status-text">{t('god.presets.applying') || 'Applying…'}</span>
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* §BN-22: Panic Rescue button */}
-      <button
-        type="button"
-        className="god-panic-btn"
-        disabled={submitting}
-        onClick={handlePanicRescue}
-        title={t('god.ui.panicConfirm')}
-      >
-        {t('god.ui.panicBtn')}
-      </button>
+      {/* Auxiliary Row: Panic Rescue & Data Tools */}
+      <div className="god-foot-aux-row">
+        <button
+          type="button"
+          className="god-panic-btn god-foot-panic"
+          disabled={submitting}
+          onClick={handlePanicRescue}
+          title={t('god.ui.panicConfirm')}
+        >
+          <span className="god-foot-btn-icon">🚨</span>
+          <span className="god-foot-btn-label">{t('god.ui.panicBtn') || 'Panic Rescue'}</span>
+        </button>
 
-      <div style={{ flex: 1 }} />
+        <div className="god-foot-tools-group">
+          <button
+            type="button"
+            className="god-foot-tool-btn"
+            onClick={handleExportJSON}
+            title="Copy laws as JSON to clipboard"
+          >
+            <span className="god-foot-btn-icon">{exportedCopied ? '✓' : '📤'}</span>
+            <span className="god-foot-btn-label">{exportedCopied ? (t('god.ui.copied') || 'Copied!') : (t('god.ui.exportJson') || 'Export JSON')}</span>
+          </button>
+          <button
+            type="button"
+            className="god-foot-tool-btn"
+            onClick={() => setShowImportModal(true)}
+            title="Import laws from JSON"
+          >
+            <span className="god-foot-btn-icon">📥</span>
+            <span className="god-foot-btn-label">{t('god.ui.importJson') || 'Import JSON'}</span>
+          </button>
+        </div>
+      </div>
 
-      {/* §BN-24: Export / Import JSON */}
-      <button
-        type="button"
-        onClick={handleExportJSON}
-        title="Copy laws as JSON to clipboard"
-        style={{ padding: '6px 10px', background: '#21262d', border: '1px solid #30363d', borderRadius: 6, color: '#c9d1d9', fontSize: 11, cursor: 'pointer' }}
-      >
-        {t('god.ui.exportJson')}
-      </button>
-      <button
-        type="button"
-        onClick={() => setShowImportModal(true)}
-        title="Import laws from JSON"
-        style={{ padding: '6px 10px', background: '#21262d', border: '1px solid #30363d', borderRadius: 6, color: '#c9d1d9', fontSize: 11, cursor: 'pointer' }}
-      >
-        {t('god.ui.importJson')}
-      </button>
-
-      <button
-        onClick={apply}
-        disabled={submitting}
-        title={t('god.footer.applyDesc')}
-        style={{ minHeight: isMobile ? 44 : undefined, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' as any }}
-      >
-        {t('god.footer.apply')}
-      </button>
-      <button
-        onClick={save}
-        disabled={submitting}
-        title={t('god.footer.saveDesc')}
-        className="god-save"
-        style={{ minHeight: isMobile ? 44 : undefined, touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' as any }}
-      >
-        {t('god.footer.save')}
-      </button>
-      <button
-        onClick={applyAndReset}
-        disabled={submitting}
-        title={t('god.footer.applyResetDesc')}
-        style={{
-          background: '#238636',
-          borderColor: '#2ea043',
-          color: '#fff',
-          fontWeight: 600,
-          padding: isMobile ? '10px 12px' : '4px 10px',
-          borderRadius: 6,
-          cursor: 'pointer',
-          minHeight: isMobile ? 44 : undefined,
-          touchAction: 'manipulation',
-          WebkitTapHighlightColor: 'transparent' as any,
-        }}
-      >
-        {t('god.footer.applyReset')}
-      </button>
+      {/* Primary Action Dock */}
+      <div className="god-foot-main-row">
+        <button
+          type="button"
+          className="god-foot-action-btn god-foot-apply"
+          onClick={apply}
+          disabled={submitting}
+          title={t('god.footer.applyDesc')}
+        >
+          <span className="god-foot-btn-icon">⚡</span>
+          <span className="god-foot-btn-label">{t('god.footer.apply')}</span>
+        </button>
+        <button
+          type="button"
+          className="god-foot-action-btn god-foot-save god-save"
+          onClick={save}
+          disabled={submitting}
+          title={t('god.footer.saveDesc')}
+        >
+          <span className="god-foot-btn-icon">💾</span>
+          <span className="god-foot-btn-label">{t('god.footer.save')}</span>
+        </button>
+        <button
+          type="button"
+          className="god-foot-action-btn god-foot-apply-reset"
+          onClick={applyAndReset}
+          disabled={submitting}
+          title={t('god.footer.applyResetDesc')}
+        >
+          <span className="god-foot-btn-icon">🔄</span>
+          <span className="god-foot-btn-label">{t('god.footer.applyReset').replace(/^🔄\s*/, '')}</span>
+        </button>
+      </div>
     </footer>
   )
 

@@ -342,6 +342,7 @@
       "panicConfirm": "Trigger Panic Rescue? Sets food to 600, activates emergency safeguards, and turns off plagues & disasters.",
       "exportJson": "Export JSON",
       "importJson": "Import JSON",
+      "copied": "Copied!",
       "undo": "Undo",
       "redo": "Redo",
       "changeLog": "History",

@@ -342,6 +342,7 @@
       "panicConfirm": "Déclencher le sauvetage d'urgence ? Règle la nourriture à 600, active les sauvegardes et désactive pestes et catastrophes.",
       "exportJson": "Exporter JSON",
       "importJson": "Importer JSON",
+      "copied": "Copié !",
       "undo": "Annuler",
       "redo": "Rétablir",
       "changeLog": "Journal",

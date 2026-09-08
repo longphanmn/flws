@@ -1810,23 +1810,263 @@ select {
   outline: 1px solid #e3b341;
 }
 
+/* ==========================================================================
+   §BN Modern God Action Dock
+   ========================================================================== */
+
 .god-foot {
   margin-top: auto;
-  padding-top: 12px;
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  border-top: 1px solid #21262d;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(13, 17, 23, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid #30363d;
+  padding: 10px 0 max(8px, env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45);
 }
 
-.god-foot button {
-  border-color: #7e6325;
+/* Status & Feedback Banner */
+.god-foot-status-bar {
+  width: 100%;
+  animation: godFootFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes godFootFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.god-foot-status-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.god-foot-status-pill.god-status-error {
+  background: rgba(248, 81, 73, 0.15);
+  border: 1px solid rgba(248, 81, 73, 0.45);
+  color: #ff7b72;
+}
+
+.god-foot-status-pill.god-status-success {
+  background: rgba(46, 160, 67, 0.15);
+  border: 1px solid rgba(46, 160, 67, 0.45);
+  color: #3fb950;
+}
+
+.god-foot-status-pill.god-status-pending {
+  background: rgba(227, 179, 65, 0.15);
+  border: 1px solid rgba(227, 179, 65, 0.45);
   color: #e3b341;
 }
 
-.god-foot button:hover {
-  background: #2d2408;
+.god-status-icon {
+  font-size: 13px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.god-status-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.god-status-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(227, 179, 65, 0.3);
+  border-top-color: #e3b341;
+  border-radius: 50%;
+  animation: godSpin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes godSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Row 1: Auxiliary Tools & Panic Safeguard */
+.god-foot-aux-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.god-foot-panic {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(248, 81, 73, 0.1) !important;
+  border: 1px solid rgba(248, 81, 73, 0.35) !important;
+  color: #ff7b72 !important;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 28px;
+  user-select: none;
+}
+
+.god-foot-panic:hover:not(:disabled) {
+  background: rgba(248, 81, 73, 0.22) !important;
+  border-color: #f85149 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 12px rgba(248, 81, 73, 0.4);
+}
+
+.god-foot-panic:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.god-foot-tools-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.god-foot-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #8b949e;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 28px;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.god-foot-tool-btn:hover:not(:disabled) {
+  background: #30363d;
+  border-color: #484f58;
+  color: #f0f6fc;
+}
+
+.god-foot-tool-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Row 2: Primary Actions Dock */
+.god-foot-main-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.god-foot-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 12px;
+  min-height: 35px;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: center;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  min-width: 0;
+}
+
+.god-foot-btn-icon {
+  font-size: 13px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.god-foot-btn-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.god-foot-action-btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.99);
+}
+
+.god-foot-action-btn:disabled,
+.god-foot-panic:disabled,
+.god-foot-tool-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* 1. Apply Live */
+.god-foot-action-btn.god-foot-apply {
+  flex: 1;
+  background: rgba(227, 179, 65, 0.08);
+  border: 1px solid rgba(227, 179, 65, 0.35);
+  color: #e3b341;
+}
+
+.god-foot-action-btn.god-foot-apply:hover:not(:disabled) {
+  background: rgba(227, 179, 65, 0.18);
+  border-color: #e3b341;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(227, 179, 65, 0.25);
+}
+
+/* 2. Save */
+.god-foot-action-btn.god-foot-save {
+  flex: 1;
+  background: #21262d;
+  border: 1px solid #38414a;
+  color: #c9d1d9;
+}
+
+.god-foot-action-btn.god-foot-save:hover:not(:disabled) {
+  background: #30363d;
+  border-color: #58a6ff;
+  color: #58a6ff;
+  box-shadow: 0 0 12px rgba(88, 166, 255, 0.15);
+}
+
+/* 3. Apply & Reset */
+.god-foot-action-btn.god-foot-apply-reset {
+  flex: 1.35;
+  background: #238636;
+  border: 1px solid #2ea043;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.god-foot-action-btn.god-foot-apply-reset:hover:not(:disabled) {
+  background: #2ea043;
+  border-color: #3fb950;
+  box-shadow: 0 0 16px rgba(46, 160, 67, 0.4);
 }
 
 .god-error {
@@ -1878,11 +2118,35 @@ select {
 .god-screen .god-row select { font-size: 14px; padding: 6px 10px; width: 116px; }
 .god-screen .god-foot {
   margin: 0;
-  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  padding: 10px 16px max(14px, env(safe-area-inset-bottom));
   border-top: 1px solid #30363d;
-  background: #161b22;
+  background: rgba(22, 27, 34, 0.98);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+  gap: 10px;
 }
-.god-screen .god-foot button { min-height: 44px; flex: 1; font-size: 15px; font-weight: 600; }
+.god-screen .god-foot-aux-row {
+  min-height: 32px;
+}
+.god-screen .god-foot-panic {
+  min-height: 32px;
+  padding: 5px 12px;
+  font-size: 12px;
+}
+.god-screen .god-foot-tool-btn {
+  min-height: 32px;
+  padding: 5px 12px;
+  font-size: 12px;
+}
+.god-screen .god-foot-main-row {
+  gap: 8px;
+}
+.god-screen .god-foot-action-btn {
+  min-height: 44px;
+  font-size: 13.5px;
+  padding: 8px 10px;
+}
 .god-screen .god-head {
   padding: 12px 14px;
   margin: 0;
@@ -2906,7 +3170,7 @@ select {
   .god-panel .god-group[style*="flex"]{ flex-direction: column !important; }
   .god-panel .god-group[style*="flex"] button{ width: 100% !important; flex: none !important; }
   /* larger touch targets for primary actions only — compact pills stay small */
-  .mobile-thumb-bar button, .god-foot button, .god-preset-apply, .god-preset-reset,
+  .mobile-thumb-bar button, .god-foot-action-btn, .god-preset-apply, .god-preset-reset,
   .clan-details-panel footer button, .world-end-panel button { min-height: 38px; }
   select{ min-height: 34px; }
   .chronicle-controls-pill-row button,
