@@ -234,7 +234,35 @@ def _on_event(e) -> None:
             born_tick=e.tick,
         )
     elif e.type == "death":
-        DB.log_death(wid, e.entity_id, e.tick)
+        p = e.payload or {}
+        DB.log_death(
+            wid,
+            e.entity_id,
+            e.tick,
+            personal_name=p.get("personal_name"),
+            title=p.get("title"),
+            kill_count=int(p.get("kills") or p.get("kill_count") or 0),
+        )
+    elif e.type == "clan_extinction":
+        p = e.payload or {}
+        cid = int(p.get("clan_id") or 0)
+        c_name = str(p.get("clan_name") or f"Clan #{cid}")
+        DB.record_clan_epitaph(
+            world_id=wid,
+            clan_id=cid,
+            name=c_name,
+            totem=p.get("totem"),
+            color=p.get("color"),
+            founded_tick=int(p.get("born_tick") or 0),
+            extinct_tick=e.tick,
+            peak_population=int(p.get("peak_population") or 0),
+            peak_tick=int(p.get("peak_tick") or 0),
+            wars_fought=int(p.get("wars_fought") or 0),
+            battles_won=int(p.get("battles_won") or 0),
+            temples_built=int(p.get("temples_built") or 0),
+            schisms_caused=int(p.get("schisms_caused") or 0),
+            extinction_cause=str(p.get("cause") or "eradication"),
+        )
 
 
 def parse_range_minutes(range_str: str | None, default_minutes: int | None = None) -> int | None:
@@ -3048,12 +3076,14 @@ async def get_history(
     major: bool = False,
     entity_id: int | None = None,
     clan_id: int | None = None,
+    q: str | None = None,
 ) -> dict:
     """The durable chronicle for the current world (paginated by event id).
 
     §AT-1: `clan_id=N` filters at the SQL level — events whose payload names
     the clan (a/b/clan_id/conquest/schism/takeover pairs) stay queryable even
     after they rolled off the in-memory chronicle.
+    BM-25: `q=...` performs text search across event type, caste, cause, and payload.
     AZ Phase 1 P1: read-your-writes from RAM instead of forcing a flush."""
     limit = max(1, min(limit, 2000))
     types_list = None
@@ -3074,6 +3104,7 @@ async def get_history(
         types_filter=types_list,
         entity_id=entity_id,
         clan_id=clan_id,
+        q=q,
     ) if RT.world_id else []
     # AZ Phase 1 P1: merge pending RAM events without flushing
     if RT.world_id and DB.pending:
@@ -3090,6 +3121,11 @@ async def get_history(
                     continue
                 if clan_id is not None:
                     if not any(ev["payload"].get(k) == clan_id for k in CLAN_PAYLOAD_KEYS):
+                        continue
+                if q:
+                    ql = q.lower()
+                    text_blob = f"{ev['type']} {ev.get('caste') or ''} {ev.get('cause') or ''} {json.dumps(ev.get('payload', {}))}".lower()
+                    if ql not in text_blob:
                         continue
                 if since and ev["id"] and ev["id"] >= since:
                     # pending has id 0, so skip since check for pending
@@ -3122,6 +3158,284 @@ async def get_history(
         "total_deaths": total,
         "clan_names": clan_names,
         "events": db_events,
+    }
+
+
+@app.get("/api/history/summary")
+async def get_history_summary(granularity: str = "day") -> dict:
+    """BM-22: Server-side day-aggregated chronicle summary.
+    1 Day = 1200 ticks. Pre-aggregates major events into day buckets."""
+    if not RT.world_id:
+        return {"days": [], "total_days": 0, "current_tick": 0}
+
+    current_tick = RT.sim.tick if hasattr(RT, "sim") and hasattr(RT.sim, "tick") else 0
+    max_day = max(0, current_tick // 1200)
+
+    events = DB.history(RT.world_id, limit=2000, types_filter=list(MAJOR_EVENT_TYPES))
+
+    days_dict: dict[int, dict[str, Any]] = {}
+    for d in range(max_day + 1):
+        days_dict[d] = {
+            "day": d,
+            "start_tick": d * 1200,
+            "end_tick": (d + 1) * 1200 - 1,
+            "wars": 0,
+            "casualties": 0,
+            "conquests": 0,
+            "outbreaks": 0,
+            "schisms": 0,
+            "regicides": 0,
+            "extinctions": 0,
+            "faith_events": 0,
+            "disasters": 0,
+            "primary_icon": "🌱",
+            "summary_line": "",
+        }
+
+    for ev in events:
+        d = ev["tick"] // 1200
+        if d not in days_dict:
+            days_dict[d] = {
+                "day": d,
+                "start_tick": d * 1200,
+                "end_tick": (d + 1) * 1200 - 1,
+                "wars": 0,
+                "casualties": 0,
+                "conquests": 0,
+                "outbreaks": 0,
+                "schisms": 0,
+                "regicides": 0,
+                "extinctions": 0,
+                "faith_events": 0,
+                "disasters": 0,
+                "primary_icon": "🌱",
+                "summary_line": "",
+            }
+        rec = days_dict[d]
+        t = ev["type"]
+        p = ev.get("payload") or {}
+        if t == "war":
+            rec["wars"] += 1
+            if p.get("lethal"):
+                rec["casualties"] += 1
+        elif t in ("conquest", "takeover"):
+            rec["conquests"] += 1
+        elif t == "outbreak":
+            rec["outbreaks"] += 1
+        elif t == "schism":
+            rec["schisms"] += 1
+        elif t == "regicide":
+            rec["regicides"] += 1
+            rec["casualties"] += 1
+        elif t in ("clan_extinction", "extinction"):
+            rec["extinctions"] += 1
+        elif t in ("temple", "miracle", "epiphany", "synod"):
+            rec["faith_events"] += 1
+        elif t in ("disaster", "fire", "ruin", "anomaly"):
+            rec["disasters"] += 1
+
+    for d, rec in days_dict.items():
+        if rec["extinctions"] > 0:
+            rec["primary_icon"] = "💀"
+            rec["summary_line"] = f"{rec['extinctions']} Clan Extinction(s)"
+        elif rec["regicides"] > 0:
+            rec["primary_icon"] = "👑"
+            rec["summary_line"] = "Royal Assassination & Dynastic Upheaval"
+        elif rec["disasters"] > 0:
+            rec["primary_icon"] = "🌋"
+            rec["summary_line"] = "Cataclysm & Natural Anomaly"
+        elif rec["outbreaks"] > 0:
+            rec["primary_icon"] = "☣️"
+            rec["summary_line"] = f"{rec['outbreaks']} Disease Outbreak(s)"
+        elif rec["casualties"] > 0 or rec["conquests"] > 0:
+            rec["primary_icon"] = "⚔️"
+            rec["summary_line"] = f"Warfare ({rec['casualties']} dead, {rec['conquests']} conquered)"
+        elif rec["faith_events"] > 0:
+            rec["primary_icon"] = "🏛️"
+            rec["summary_line"] = f"Divine Revelation & Temple Rites"
+        elif rec["schisms"] > 0:
+            rec["primary_icon"] = "🌿"
+            rec["summary_line"] = f"Clan Schism & Tribal Birth"
+        else:
+            rec["primary_icon"] = "🌱"
+            rec["summary_line"] = "Peaceful Era & Foraging"
+
+    days_list = [days_dict[d] for d in sorted(days_dict.keys())]
+    return {
+        "days": days_list,
+        "total_days": len(days_list),
+        "current_tick": current_tick,
+    }
+
+
+@app.get("/api/annals")
+async def get_annals() -> dict:
+    """BM-26: Structured world lore highlights and era milestones for chronicle and LLM prompts."""
+    if not RT.world_id:
+        return {"world_id": None, "current_tick": 0, "total_days": 0, "milestones": {}, "notables": {}, "clan_epitaphs": []}
+
+    current_tick = RT.sim.tick if hasattr(RT, "sim") and hasattr(RT.sim, "tick") else 0
+    total_days = max(1, (current_tick // 1200) + 1)
+
+    events = DB.history(RT.world_id, limit=2000, types_filter=list(MAJOR_EVENT_TYPES))
+
+    day_casualties: dict[int, int] = {}
+    day_outbreaks: dict[int, int] = {}
+    first_temple: dict[str, Any] | None = None
+    first_miracle: dict[str, Any] | None = None
+    first_extinction: dict[str, Any] | None = None
+
+    creature_kills: dict[int, dict[str, Any]] = {}
+    creature_betrayals: dict[int, dict[str, Any]] = {}
+
+    for ev in events:
+        tick = ev["tick"]
+        d = tick // 1200
+        p = ev.get("payload") or {}
+        t = ev["type"]
+
+        if t == "war" and p.get("lethal"):
+            day_casualties[d] = day_casualties.get(d, 0) + 1
+            wid = p.get("winner_id")
+            if wid:
+                if wid not in creature_kills:
+                    creature_kills[wid] = {"kills": 0, "name": p.get("winner_name")}
+                creature_kills[wid]["kills"] += 1
+        elif t == "outbreak":
+            day_outbreaks[d] = day_outbreaks.get(d, 0) + 1
+        elif t == "temple" and not first_temple:
+            first_temple = {"tick": tick, "day": d, "clan_id": p.get("clan_id"), "clan_name": p.get("clan_name")}
+        elif t == "miracle" and not first_miracle:
+            first_miracle = {"tick": tick, "day": d, "clan_id": p.get("clan_id"), "clan_name": p.get("clan_name")}
+        elif t in ("clan_extinction", "extinction") and not first_extinction:
+            first_extinction = {"tick": tick, "day": d, "clan_id": p.get("clan_id"), "clan_name": p.get("name") or p.get("clan_name")}
+        elif t in ("betrayal", "regicide", "coup"):
+            cid = ev.get("entity_id") or p.get("assassin_id") or p.get("traitor_id")
+            if cid:
+                if cid not in creature_betrayals:
+                    creature_betrayals[cid] = {"count": 0, "name": p.get("traitor_name") or p.get("assassin_name")}
+                creature_betrayals[cid]["count"] += 1
+
+    bloodiest_day = max(day_casualties.items(), key=lambda x: x[1]) if day_casualties else None
+    worst_plague_day = max(day_outbreaks.items(), key=lambda x: x[1]) if day_outbreaks else None
+
+    top_hero = max(creature_kills.items(), key=lambda x: x[1]["kills"]) if creature_kills else None
+    top_villain = max(creature_betrayals.items(), key=lambda x: x[1]["count"]) if creature_betrayals else None
+
+    epitaphs = DB.clan_epitaphs(RT.world_id, limit=50)
+
+    return {
+        "world_id": RT.world_id,
+        "current_tick": current_tick,
+        "total_days": total_days,
+        "milestones": {
+            "bloodiest_day": {"day": bloodiest_day[0], "casualties": bloodiest_day[1]} if bloodiest_day else None,
+            "worst_plague_day": {"day": worst_plague_day[0], "outbreaks": worst_plague_day[1]} if worst_plague_day else None,
+            "first_temple": first_temple,
+            "first_miracle": first_miracle,
+            "first_extinction": first_extinction,
+        },
+        "notables": {
+            "hero": {"id": top_hero[0], "kills": top_hero[1]["kills"], "name": top_hero[1]["name"]} if top_hero else None,
+            "villain": {"id": top_villain[0], "betrayals": top_villain[1]["count"], "name": top_villain[1]["name"]} if top_villain else None,
+        },
+        "clan_epitaphs": epitaphs,
+    }
+
+
+@app.get("/api/clan/{clan_id}/biography")
+async def get_clan_biography(clan_id: int) -> dict:
+    """BM-12: Full biography of a clan (live or extinct) for the clan history panel."""
+    if not RT.world_id:
+        return {"error": "No active world"}
+
+    live_clan = None
+    with RT.lock:
+        if hasattr(RT.sim, "clans") and clan_id in RT.sim.clans:
+            c = RT.sim.clans[clan_id]
+            live_clan = {
+                "id": clan_id,
+                "name": c.get("name") or f"Clan {clan_id}",
+                "totem": c.get("totem"),
+                "color": c.get("color"),
+                "founder_id": c.get("founder_id"),
+                "founded_tick": c.get("founded_tick", 0),
+                "peak_population": c.get("peak_population", len(c.get("members", []))),
+                "current_population": len(c.get("members", [])),
+                "active": True,
+            }
+
+    epitaph = DB.clan_epitaph(RT.world_id, clan_id)
+    events = DB.history(RT.world_id, clan_id=clan_id, limit=200)
+
+    rivalries: dict[str, int] = {}
+    wars_count = 0
+    wars_won = 0
+    schisms_count = 0
+    temples_count = 0
+    villain_candidate = None
+
+    for ev in events:
+        t = ev["type"]
+        p = ev.get("payload") or {}
+        if t == "war":
+            wars_count += 1
+            other = p.get("b_name") if p.get("a") == clan_id else p.get("a_name")
+            if other:
+                rivalries[other] = rivalries.get(other, 0) + 1
+            if p.get("winner_clan_id") == clan_id or (p.get("a") == clan_id and p.get("winner") == "a") or (p.get("b") == clan_id and p.get("winner") == "b"):
+                wars_won += 1
+        elif t == "schism":
+            schisms_count += 1
+        elif t == "temple":
+            temples_count += 1
+        elif t in ("regicide", "betrayal", "coup") and not villain_candidate:
+            villain_candidate = {
+                "id": ev.get("entity_id") or p.get("assassin_id") or p.get("traitor_id"),
+                "name": p.get("traitor_name") or p.get("assassin_name") or f"Creature #{ev.get('entity_id')}",
+                "deed": t,
+            }
+
+    top_rival = max(rivalries.items(), key=lambda x: x[1])[0] if rivalries else None
+    notables_db = DB.clan_notables(RT.world_id, clan_id)
+    notables = {
+        "hero": notables_db.get("hero"),
+        "villain": villain_candidate,
+    }
+
+    founded_tick = live_clan.get("founded_tick", 0) if live_clan else (epitaph.get("founded_tick", 0) if epitaph else 0)
+    extinct_tick = epitaph.get("extinct_tick") if epitaph else None
+    is_active = live_clan is not None
+
+    return {
+        "clan": live_clan or (epitaph and {
+            "id": clan_id,
+            "name": epitaph.get("clan_name") or f"Clan {clan_id}",
+            "totem": epitaph.get("totem"),
+            "color": epitaph.get("color"),
+            "founder_id": epitaph.get("founder_id"),
+            "founded_tick": epitaph.get("founded_tick", 0),
+            "peak_population": epitaph.get("peak_population", 0),
+            "current_population": 0,
+            "active": False,
+        }) or {"id": clan_id, "name": f"Clan {clan_id}", "active": False},
+        "epitaph": epitaph,
+        "lifespan": {
+            "founded_day": founded_tick // 1200,
+            "extinct_day": (extinct_tick // 1200) if extinct_tick is not None else None,
+            "active": is_active,
+        },
+        "stats": {
+            "wars_fought": wars_count or (epitaph.get("wars_fought", 0) if epitaph else 0),
+            "wars_won": wars_won or (epitaph.get("battles_won", 0) if epitaph else 0),
+            "schisms": schisms_count or (epitaph.get("schisms_caused", 0) if epitaph else 0),
+            "temples_built": temples_count or (epitaph.get("temples_built", 0) if epitaph else 0),
+            "top_rival": top_rival,
+            "peak_population": (epitaph.get("peak_population") if epitaph else None) or (live_clan.get("peak_population", 0) if live_clan else 0),
+            "extinction_cause": epitaph.get("extinction_cause") if epitaph else None,
+        },
+        "notables": notables,
+        "recent_events": events[:20],
     }
 
 
@@ -3170,6 +3484,35 @@ async def get_clan(clan_id: int) -> dict:
 
 def _clan_details(clan_id: int) -> dict:
     if clan_id not in RT.sim.clans:
+        if RT.world_id:
+            ep = DB.clan_epitaph(RT.world_id, clan_id)
+            if ep:
+                return {
+                    "id": clan_id,
+                    "name": ep.get("clan_name") or f"Clan {clan_id}",
+                    "color": ep.get("color") or "#888888",
+                    "totem": ep.get("totem"),
+                    "founder_id": ep.get("founder_id") or 0,
+                    "leader_id": ep.get("last_leader_id"),
+                    "born_tick": ep.get("founded_tick", 0),
+                    "founded_day": (ep.get("founded_tick", 0) or 0) // 1200,
+                    "dead_count": ep.get("total_members", 0),
+                    "population": 0,
+                    "house": None,
+                    "houses": [],
+                    "war_wins": ep.get("battles_won", 0),
+                    "war_losses": max(0, (ep.get("wars_fought", 0) or 0) - (ep.get("battles_won", 0) or 0)),
+                    "territory_radius": None,
+                    "specialization": None,
+                    "culture": None,
+                    "members": [],
+                    "events": [],
+                    "extinct": True,
+                    "extinct_tick": ep.get("extinct_tick"),
+                    "extinct_day": (ep.get("extinct_tick", 0) or 0) // 1200,
+                    "cause_of_extinction": ep.get("extinction_cause"),
+                    "peak_population": ep.get("peak_population", 0),
+                }
         raise HTTPException(404, "clan not found")
     info = RT.sim.clans[clan_id]
     # members — AZ Phase 1 P1: use cached creatures + direct imports (no __import__ per member)

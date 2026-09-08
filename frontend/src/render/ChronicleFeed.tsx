@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from 'react'
+import { memo, useMemo, useState, useRef } from 'react'
 import type { HistoryEvent } from '../types'
 import { useI18n } from '../i18n'
 
@@ -151,6 +151,106 @@ function ChronicleFeed({
   const [category, setCategory] = useState<EventCategory>('all')
   const [search, setSearch] = useState('')
   const [visibleLimit, setVisibleLimit] = useState(maxDisplay)
+  const [jumpTickInput, setJumpTickInput] = useState('')
+  const listRef = useRef<HTMLUListElement>(null)
+
+  // BM-1: Compute top 5 dramatic moments across events (day buckets)
+  const majorMoments = useMemo(() => {
+    const dayMap = new Map<number, { day: number; startTick: number; wars: number; casualties: number; disasters: number; outbreaks: number; schisms: number; extinctions: number; score: number }>()
+    for (const ev of events) {
+      const d = Math.floor(ev.tick / 1200)
+      let cur = dayMap.get(d)
+      if (!cur) {
+        cur = { day: d, startTick: d * 1200, wars: 0, casualties: 0, disasters: 0, outbreaks: 0, schisms: 0, extinctions: 0, score: 0 }
+        dayMap.set(d, cur)
+      }
+      const p = (ev.payload ?? {}) as Record<string, any>
+      const evType = String(ev.type)
+      if (evType === 'war' || evType === 'battle') {
+        cur.wars++
+        cur.score += 4
+        if (p.lethal) {
+          cur.casualties++
+          cur.score += 3
+        }
+      } else if (evType === 'death' && (ev.cause === 'combat' || ev.cause === 'war' || ev.cause === 'predation')) {
+        cur.casualties++
+        cur.score += 2
+      } else if (evType === 'conquest' || evType === 'takeover') {
+        cur.score += 5
+      } else if (evType === 'schism' || evType === 'regicide' || evType === 'coup') {
+        cur.schisms++
+        cur.score += 4
+      } else if (evType === 'disaster' || evType === 'fire' || evType === 'earthquake') {
+        cur.disasters++
+        cur.score += 5
+      } else if (evType === 'outbreak') {
+        cur.outbreaks++
+        cur.score += 3
+      } else if (evType === 'clan_extinction' || evType === 'extinction') {
+        cur.extinctions++
+        cur.score += 6
+      }
+    }
+
+    const sorted = Array.from(dayMap.values())
+      .filter((m) => m.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+
+    return sorted.map((m) => {
+      let icon = '⚡'
+      let typeLabel = 'Strife'
+      if (m.extinctions > 0) {
+        icon = '💀'
+        typeLabel = 'Extinction'
+      } else if (m.disasters > 0) {
+        icon = '🌋'
+        typeLabel = 'Disaster'
+      } else if (m.wars > 0 || m.casualties > 0) {
+        icon = '⚔️'
+        typeLabel = m.wars > 1 ? `${m.wars} Wars` : 'War'
+      } else if (m.outbreaks > 0) {
+        icon = '☣️'
+        typeLabel = 'Plague'
+      } else if (m.schisms > 0) {
+        icon = '👑'
+        typeLabel = 'Schism'
+      }
+      return {
+        day: m.day,
+        startTick: m.startTick,
+        label: `${icon} Day ${m.day} ${typeLabel}`,
+        score: m.score,
+      }
+    })
+  }, [events])
+
+  const handleJumpToTick = (targetTick: number) => {
+    if (isNaN(targetTick) || events.length === 0) return
+    let bestIdx = 0
+    let bestDiff = Infinity
+    for (let i = 0; i < filtered.length; i++) {
+      const diff = Math.abs(filtered[i].tick - targetTick)
+      if (diff < bestDiff) {
+        bestDiff = diff
+        bestIdx = i
+      }
+    }
+    if (bestIdx >= visibleLimit) {
+      setVisibleLimit(bestIdx + 40)
+    }
+    setTimeout(() => {
+      const targetEv = filtered[bestIdx]
+      if (!targetEv) return
+      const el = listRef.current?.querySelector(`[data-tick="${targetEv.tick}"]`) as HTMLElement | null
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el.classList.add('chronicle-highlight-pulse')
+        setTimeout(() => el.classList.remove('chronicle-highlight-pulse'), 2000)
+      }
+    }, 60)
+  }
 
   const filtered = useMemo(() => {
     return events.filter(
@@ -171,6 +271,48 @@ function ChronicleFeed({
         </p>
       )}
 
+      {/* BM-1: Major Moments Jump Chips */}
+      {majorMoments.length > 0 && (
+        <div
+          className="chronicle-major-moments"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            overflowX: 'auto',
+            padding: '2px 4px',
+            scrollbarWidth: 'none',
+            flexShrink: 0,
+          }}
+        >
+          <span style={{ fontSize: 10, color: '#8b949e', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 700, flex: 'none' }}>
+            ⚡ {t('chronicle.moments') || 'Moments'}:
+          </span>
+          {majorMoments.map((m) => (
+            <button
+              key={m.day}
+              type="button"
+              className="chip"
+              onClick={() => handleJumpToTick(m.startTick)}
+              style={{
+                fontSize: 10.5,
+                padding: '2px 7px',
+                borderRadius: 10,
+                background: 'rgba(56, 139, 253, 0.12)',
+                border: '1px solid rgba(56, 139, 253, 0.35)',
+                color: '#58a6ff',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                flex: 'none',
+              }}
+              title={`Jump to Day ${m.day} (tick ${m.startTick})`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Filter Controls Bar */}
       <div
         className="chronicle-controls"
@@ -184,11 +326,67 @@ function ChronicleFeed({
           padding: '6px 8px',
         }}
       >
-        {/* compact inline search */}
+        {/* compact inline search + BM-6 Jump to Tick */}
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', minWidth: 0 }}>
           <span style={{ fontSize: 12, color: '#8b949e', flex: 'none' }}>🔍</span>
-          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('chronicleEvents.searchPlaceholder')} className="chronicle-search-input" style={{ flex: '1 1 auto', minWidth: 0 }} />
-          {search && <button type="button" onClick={() => setSearch('')} style={{ background: 'transparent', border: 'none', color: '#8b949e', fontSize: 12, cursor: 'pointer', padding: '2px 6px', minHeight: 28 }} title="Clear search">✕</button>}
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('chronicleEvents.searchPlaceholder')}
+            className="chronicle-search-input"
+            style={{ flex: '1 1 auto', minWidth: 0 }}
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              style={{ background: 'transparent', border: 'none', color: '#8b949e', fontSize: 12, cursor: 'pointer', padding: '2px 6px', minHeight: 28 }}
+              title="Clear search"
+            >
+              ✕
+            </button>
+          )}
+
+          {/* BM-6: Jump to tick input */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 'none' }}>
+            <input
+              type="number"
+              placeholder="Tick #"
+              value={jumpTickInput}
+              onChange={(e) => setJumpTickInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && jumpTickInput) {
+                  handleJumpToTick(parseInt(jumpTickInput, 10))
+                }
+              }}
+              style={{
+                width: 62,
+                fontSize: 11,
+                padding: '2px 6px',
+                background: '#0d1117',
+                border: '1px solid #30363d',
+                borderRadius: 4,
+                color: '#e6edf3',
+              }}
+              title={t('chronicle.jumpToTickTooltip') || 'Jump to tick number'}
+            />
+            <button
+              type="button"
+              className="chip"
+              onClick={() => jumpTickInput && handleJumpToTick(parseInt(jumpTickInput, 10))}
+              style={{
+                padding: '2px 6px',
+                fontSize: 10.5,
+                background: '#21262d',
+                border: '1px solid #30363d',
+                cursor: 'pointer',
+                color: '#c9d1d9',
+              }}
+            >
+              {t('chronicle.jump') || 'Go'}
+            </button>
+          </div>
         </div>
 
         {/* single-row horizontal scroll category pills */}
@@ -281,6 +479,7 @@ function ChronicleFeed({
         </p>
       ) : (
         <ul
+          ref={listRef}
           className="chronicle-feed-list"
           style={{ margin: 0, padding: 0, listStyle: 'none', flex: '1 1 0', overflowY: 'auto', minHeight: 0 }}
         >
@@ -296,7 +495,7 @@ function ChronicleFeed({
               const nm = p.personal_name ?? ev.caste
               const gl = p.glyph ? ` ${p.glyph}` : ''
               return (
-                <li key={key} className={"ev-birth " + accentCls}>
+                <li key={key} data-tick={ev.tick} className={"ev-birth " + accentCls}>
                   <button className="chronicle-name" onClick={() => onSelectCreature(ev.entity_id)} title="show profile">
                     <b>{nm}{gl}</b> #{ev.entity_id}
                   </button>{' '}
@@ -308,7 +507,7 @@ function ChronicleFeed({
             if (ev.type === 'promotion') {
               const nm = p.personal_name ? `${p.personal_name} ` : ''
               return (
-                <li key={key} className={"ev-promo " + accentCls}>
+                <li key={key} data-tick={ev.tick} className={"ev-promo " + accentCls}>
                   <button className="chronicle-name" onClick={() => onSelectCreature(ev.entity_id)} title="show profile">
                     <b>{nm}#{ev.entity_id}</b>
                   </button>{' '}
@@ -321,7 +520,7 @@ function ChronicleFeed({
               const nm = p.personal_name ?? ev.caste
               const gl = p.glyph ? ` ${p.glyph}` : ''
               return (
-                <li key={key} className={"ev-demote " + accentCls}>
+                <li key={key} data-tick={ev.tick} className={"ev-demote " + accentCls}>
                   <button className="chronicle-name" onClick={() => onSelectCreature(ev.entity_id)} title="show profile">
                     <b>{nm}{gl}</b> #{ev.entity_id}
                   </button>{' '}
@@ -334,7 +533,7 @@ function ChronicleFeed({
               const nm = p.personal_name ?? ev.caste
               const gl = p.glyph ? ` ${p.glyph}` : ''
               return (
-                <li key={key} className={"ev-predation " + accentCls}>
+                <li key={key} data-tick={ev.tick} className={"ev-predation " + accentCls}>
                   <button className="chronicle-name" onClick={() => onSelectCreature(ev.entity_id)} title="show predator">
                     <b>{nm}{gl}</b> #{ev.entity_id}
                   </button>{' '}
@@ -347,7 +546,7 @@ function ChronicleFeed({
               const nm = p.personal_name ?? ev.caste
               const gl = p.glyph ? ` ${p.glyph}` : ''
               return (
-                <li key={key} className={"ev-war " + accentCls}>
+                <li key={key} data-tick={ev.tick} className={"ev-war " + accentCls}>
                   <button className="chronicle-name" onClick={() => onSelectCreature(ev.entity_id)} title="show fallen">
                     <b>{nm}{gl}</b> #{ev.entity_id}
                   </button>{' '}
@@ -358,7 +557,7 @@ function ChronicleFeed({
 
             if (ev.type === 'alliance' || ev.type === 'rivalry') {
               return (
-                <li key={key} className={(ev.type === 'alliance' ? 'ev-alliance' : 'ev-rivalry') + ' ' + accentCls}>
+                <li key={key} data-tick={ev.tick} className={(ev.type === 'alliance' ? 'ev-alliance' : 'ev-rivalry') + ' ' + accentCls}>
                   {t('chronicleEvents.clansAlliance', { a: clanLabel(p.a), b: clanLabel(p.b), type: ev.type, score: p.score, tick: ev.tick })}
                 </li>
               )
@@ -366,7 +565,7 @@ function ChronicleFeed({
 
             if (ev.type === 'schism') {
               return (
-                <li key={key} className={"ev-schism " + accentCls}>
+                <li key={key} data-tick={ev.tick} className={"ev-schism " + accentCls}>
                   {t('chronicleEvents.schismBreak', { parent: p.parent_name ?? clanLabel(p.parent), child: p.new_name ?? clanLabel(p.new_clan), count: (p.members as number[])?.length ?? 0, tick: ev.tick })}
                 </li>
               )
@@ -374,7 +573,7 @@ function ChronicleFeed({
 
             if (ev.type === 'conquest') {
               return (
-                <li key={key} className={"ev-war " + accentCls}>
+                <li key={key} data-tick={ev.tick} className={"ev-war " + accentCls}>
                   {t('chronicleEvents.conquestHouse', { winner: clanLabel(p.winner_clan), house: p.house_id, loser: clanLabel(p.loser_clan), tick: ev.tick })}
                 </li>
               )
@@ -382,7 +581,7 @@ function ChronicleFeed({
 
             if (ev.type === 'takeover') {
               return (
-                <li key={key} className={"ev-war " + accentCls}>
+                <li key={key} data-tick={ev.tick} className={"ev-war " + accentCls}>
                   {t('chronicleEvents.takeoverHouse', { invader: p.invader_name ?? clanLabel(p.invader_clan), house: p.house_id, victim: p.victim_name ?? clanLabel(p.victim_clan), tick: ev.tick })}
                 </li>
               )
@@ -395,7 +594,7 @@ function ChronicleFeed({
                   ? `${p.reason ?? 'dissolved'} —`
                   : t('chronicleEvents.coalitionFounded', { clan: clanLabel(p.leader_clan) })
               return (
-                <li key={key} className={"ev-alliance " + accentCls} style={{ color: '#7ee787' }}>
+                <li key={key} data-tick={ev.tick} className={"ev-alliance " + accentCls} style={{ color: '#7ee787' }}>
                   {t('chronicleEvents.coalitionLine', { formed: ev.type === 'coalition_formed' ? 'coalition: ' : '', who, name: String(p.name ?? `coalition #${p.coalition}`), count: (p.members as number[] | undefined)?.length ?? 0, tick: ev.tick })}
                 </li>
               )
@@ -403,7 +602,7 @@ function ChronicleFeed({
 
             if (ev.type === 'peace') {
               return (
-                <li key={key} className={"ev-alliance " + accentCls}>
+                <li key={key} data-tick={ev.tick} className={"ev-alliance " + accentCls}>
                   {t('chronicleEvents.peaceArms', { a: clanLabel(p.a), b: clanLabel(p.b), tick: ev.tick })}
                 </li>
               )
@@ -411,7 +610,7 @@ function ChronicleFeed({
 
             if (ev.type === 'tribute') {
               return (
-                <li key={key} className={"ev-alliance " + accentCls}>
+                <li key={key} data-tick={ev.tick} className={"ev-alliance " + accentCls}>
                   {t('chronicleEvents.tributePay', { from: clanLabel(p.from), amount: p.amount ?? '?', to: clanLabel(p.to), tick: ev.tick })}
                 </li>
               )
@@ -419,7 +618,7 @@ function ChronicleFeed({
 
             if (ev.type === 'betrayal') {
               return (
-                <li key={key} className={"ev-war " + accentCls}>
+                <li key={key} data-tick={ev.tick} className={"ev-war " + accentCls}>
                   {t('chronicleEvents.betrayalTurn', { a: clanLabel(p.a), b: clanLabel(p.b), tick: ev.tick })}
                 </li>
               )
@@ -427,7 +626,7 @@ function ChronicleFeed({
 
             if (ev.type === 'defection') {
               return (
-                <li key={key} className={"ev-schism " + accentCls}>
+                <li key={key} data-tick={ev.tick} className={"ev-schism " + accentCls}>
                   {t('chronicleEvents.defectionLeave', { id: ev.entity_id, from: clanLabel(p.from), to: clanLabel(p.to), tick: ev.tick })}
                 </li>
               )
@@ -435,7 +634,7 @@ function ChronicleFeed({
 
             if (ev.type === 'cannibalism') {
               return (
-                <li key={key} className={"ev-predation " + accentCls}>
+                <li key={key} data-tick={ev.tick} className={"ev-predation " + accentCls}>
                   {t('chronicleEvents.cannibalismEat', { caste: ev.caste ?? 'Creature', id: ev.entity_id, kin: p.kin ? 'kin' : 'enemy', preyCaste: p.prey_caste ?? 'Creature', prey: p.prey ?? '?', tick: ev.tick })}
                 </li>
               )
@@ -443,7 +642,7 @@ function ChronicleFeed({
 
             if (ev.type === 'exile') {
               return (
-                <li key={key} className={"ev-demote " + accentCls}>
+                <li key={key} data-tick={ev.tick} className={"ev-demote " + accentCls}>
                   {t('chronicleEvents.exileCast', { name: String(p.personal_name ?? '') + String(p.glyph ?? ''), id: ev.entity_id, clan: p.former_name ?? clanLabel(p.former_clan), tick: ev.tick })}
                 </li>
               )
@@ -451,7 +650,7 @@ function ChronicleFeed({
 
             if (ev.type === 'miracle') {
               return (
-                <li key={key} className={"ev-bloom " + accentCls} style={{ color: '#7ee787' }}>
+                <li key={key} data-tick={ev.tick} className={"ev-bloom " + accentCls} style={{ color: '#7ee787' }}>
                   {t('chronicleEvents.miracleBounty', { avatar: String(p.avatar ?? 'avatar'), clan: p.clan_name ?? clanLabel(p.clan_id), tick: ev.tick })}
                 </li>
               )
@@ -459,7 +658,7 @@ function ChronicleFeed({
 
             if (ev.type === 'sermon') {
               return (
-                <li key={key} className={"ev-alliance " + accentCls} style={{ color: '#d2a8ff' }}>
+                <li key={key} data-tick={ev.tick} className={"ev-alliance " + accentCls} style={{ color: '#d2a8ff' }}>
                   {t('chronicleEvents.sermonLaw', { caste: ev.caste ?? 'Priest', id: ev.entity_id, clan: p.clan_name ?? clanLabel(p.clan_id), text: String(p.text ?? ''), tick: ev.tick })}
                 </li>
               )
@@ -467,7 +666,7 @@ function ChronicleFeed({
 
             if (ev.type === 'synod') {
               return (
-                <li key={key} className={"ev-alliance " + accentCls} style={{ color: '#e3b341' }}>
+                <li key={key} data-tick={ev.tick} className={"ev-alliance " + accentCls} style={{ color: '#e3b341' }}>
                   {t('chronicleEvents.synodSphere', { count: (p.clans as number[] | undefined)?.length ?? '?', age: String(p.age ?? 'crisis'), tick: ev.tick })}
                 </li>
               )
@@ -475,7 +674,7 @@ function ChronicleFeed({
 
             if (ev.type === 'temple') {
               return (
-                <li key={key} className={"ev-settlement " + accentCls} style={{ color: '#e3b341' }}>
+                <li key={key} data-tick={ev.tick} className={"ev-settlement " + accentCls} style={{ color: '#e3b341' }}>
                   {t('chronicleEvents.templeRaise', { clan: p.clan_name ?? clanLabel(p.clan_id), avatar: String(p.avatar ?? 'avatar'), tick: ev.tick })}
                 </li>
               )
@@ -483,7 +682,7 @@ function ChronicleFeed({
 
             if (ev.type === 'epiphany') {
               return (
-                <li key={key} className={"ev-miracle " + accentCls} style={{ color: '#bc8cff' }}>
+                <li key={key} data-tick={ev.tick} className={"ev-miracle " + accentCls} style={{ color: '#bc8cff' }}>
                   {t('chronicleEvents.epiphanyBehold', { name: String(p.personal_name ?? '') + String(p.glyph ?? ''), id: ev.entity_id, tick: ev.tick })}
                 </li>
               )
@@ -491,7 +690,7 @@ function ChronicleFeed({
 
             if (ev.type === 'resonance') {
               return (
-                <li key={key} className={"ev-alliance " + accentCls} style={{ color: '#e3b341' }}>
+                <li key={key} data-tick={ev.tick} className={"ev-alliance " + accentCls} style={{ color: '#e3b341' }}>
                   {t('chronicleEvents.resonanceChimes', { laws: String(((p.laws as string[]) ?? []).join(', ') || 'the laws'), chimes: String(p.chimes ?? 0), sermons: String(p.sermons ?? 0), tick: ev.tick })}
                 </li>
               )
@@ -500,7 +699,7 @@ function ChronicleFeed({
             if (ev.type === 'settlement') {
               const byClan = p.clan_id ? t('chronicleEvents.settlementByClan', { clan: clanLabel(p.clan_id) }) : ''
               return (
-                <li key={key} className={"ev-bloom " + accentCls}>
+                <li key={key} data-tick={ev.tick} className={"ev-bloom " + accentCls}>
                   {t('chronicleEvents.settlementFounded', { byClan, x: Math.round(ev.x), y: Math.round(ev.y), tick: ev.tick })}
                 </li>
               )
@@ -508,7 +707,7 @@ function ChronicleFeed({
 
             if (ev.type === 'succession') {
               return (
-                <li key={key} className={"ev-promo " + accentCls}>
+                <li key={key} data-tick={ev.tick} className={"ev-promo " + accentCls}>
                   {t('chronicleEvents.successionLeader', { clan: p.clan_name ?? clanLabel(p.clan_id), newLeader: p.new_leader ?? '?', prevLeader: p.prev_leader ?? '?', tick: ev.tick })}
                 </li>
               )
@@ -516,7 +715,7 @@ function ChronicleFeed({
 
             if (ev.type === 'culture') {
               return (
-                <li key={key} className={"ev-bloom " + accentCls}>
+                <li key={key} data-tick={ev.tick} className={"ev-bloom " + accentCls}>
                   {t('chronicleEvents.cultureEmbrace', { clan: clanLabel(p.clan_id), culture: p.culture, tick: ev.tick })}
                 </li>
               )
@@ -524,7 +723,7 @@ function ChronicleFeed({
 
             if (ev.type === 'bloom' || ev.type === 'wither') {
               return (
-                <li key={key} className={(ev.type === 'bloom' ? 'ev-bloom' : 'ev-wither') + ' ' + accentCls} style={{ color: ev.type === 'bloom' ? '#3fb950' : '#8b949e' }}>
+                <li key={key} data-tick={ev.tick} className={(ev.type === 'bloom' ? 'ev-bloom' : 'ev-wither') + ' ' + accentCls} style={{ color: ev.type === 'bloom' ? '#3fb950' : '#8b949e' }}>
                   {ev.type} at ({Math.round(ev.x)}, {Math.round(ev.y)}) tick {ev.tick}
                 </li>
               )
@@ -534,7 +733,7 @@ function ChronicleFeed({
               const nm = p.personal_name ?? ev.caste
               const gl = p.glyph ? ` ${p.glyph}` : ''
               return (
-                <li key={key} className={(ev.type === 'outbreak' ? 'ev-outbreak' : 'ev-recovery') + ' ' + accentCls}>
+                <li key={key} data-tick={ev.tick} className={(ev.type === 'outbreak' ? 'ev-outbreak' : 'ev-recovery') + ' ' + accentCls}>
                   <button className="chronicle-name" onClick={() => onSelectCreature(ev.entity_id)} title="show creature">
                     <b>{nm}{gl}</b> #{ev.entity_id}
                   </button>{' '}
@@ -545,14 +744,14 @@ function ChronicleFeed({
 
             if (ev.type === 'raid') {
               return (
-                <li key={key} className={accentCls} style={{ color: '#f85149' }}>
+                <li key={key} data-tick={ev.tick} className={accentCls} style={{ color: '#f85149' }}>
                   {t('chronicleEvents.raidGranary', { a: p.a_name ?? clanLabel(p.a), b: p.b_name ?? clanLabel(p.b), loot: p.loot ?? '?', tick: ev.tick })}
                 </li>
               )
             }
             if (ev.type === 'banquet') {
               return (
-                <li key={key} className={accentCls} style={{ color: '#e3b341' }}>
+                <li key={key} data-tick={ev.tick} className={accentCls} style={{ color: '#e3b341' }}>
                   {t('chronicleEvents.banquetFeast', { clan: p.clan_name ?? clanLabel(p.clan_id), tick: ev.tick })}
                 </li>
               )
@@ -560,49 +759,49 @@ function ChronicleFeed({
             if (ev.type === 'compost') {
               const nm = p.personal_name ?? ev.caste
               return (
-                <li key={key} className={accentCls} style={{ color: '#3fb950' }}>
+                <li key={key} data-tick={ev.tick} className={accentCls} style={{ color: '#3fb950' }}>
                   {t('chronicleEvents.compostFields', { name: nm, id: ev.entity_id, clan: p.clan_name ?? clanLabel(p.clan_id), tick: ev.tick })}
                 </li>
               )
             }
             if (ev.type === 'hospitality') {
               return (
-                <li key={key} className={accentCls} style={{ color: '#79c0ff' }}>
+                <li key={key} data-tick={ev.tick} className={accentCls} style={{ color: '#79c0ff' }}>
                   {t('chronicleEvents.hospitalityBread', { a: p.a_name ?? clanLabel(p.a), b: p.b_name ?? clanLabel(p.b), tick: ev.tick })}
                 </li>
               )
             }
             if (ev.type === 'peace_envoy') {
               return (
-                <li key={key} className={accentCls} style={{ color: '#d2a8ff' }}>
+                <li key={key} data-tick={ev.tick} className={accentCls} style={{ color: '#d2a8ff' }}>
                   {t('chronicleEvents.peaceEnvoyTerms', { a: p.a_name ?? clanLabel(p.a), b: p.b_name ?? clanLabel(p.b), tick: ev.tick })}
                 </li>
               )
             }
             if (ev.type === 'market') {
               return (
-                <li key={key} className={accentCls} style={{ color: '#e3b341' }}>
+                <li key={key} data-tick={ev.tick} className={accentCls} style={{ color: '#e3b341' }}>
                   {t('chronicleEvents.marketOpen', { a: p.a_name ?? clanLabel(p.a), b: p.b_name ?? clanLabel(p.b), tick: ev.tick })}
                 </li>
               )
             }
             if (ev.type === 'caravan') {
               return (
-                <li key={key} className={accentCls} style={{ color: '#8b949e' }}>
+                <li key={key} data-tick={ev.tick} className={accentCls} style={{ color: '#8b949e' }}>
                   {t('chronicleEvents.caravanTrade', { a: p.a_name ?? clanLabel(p.a), b: p.b_name ?? clanLabel(p.b), tick: ev.tick })}
                 </li>
               )
             }
             if (ev.type === 'regicide') {
               return (
-                <li key={key} className={accentCls} style={{ color: '#f85149' }}>
+                <li key={key} data-tick={ev.tick} className={accentCls} style={{ color: '#f85149' }}>
                   {t('chronicleEvents.regicideMurder', { assassin: p.assassin ?? 'assassin', clanA: p.assassin_clan_name ?? clanLabel(p.assassin_clan), victim: p.victim ?? '?', clanB: p.victim_clan_name ?? clanLabel(p.victim_clan), tick: ev.tick })}
                 </li>
               )
             }
             if (ev.type === 'herald') {
               return (
-                <li key={key} className={accentCls} style={{ color: '#8b949e' }}>
+                <li key={key} data-tick={ev.tick} className={accentCls} style={{ color: '#8b949e' }}>
                   {t('chronicleEvents.heraldTerms', { a: p.a_name ?? clanLabel(p.a), b: p.b_name ?? clanLabel(p.b), tick: ev.tick })}
                 </li>
               )
@@ -610,7 +809,7 @@ function ChronicleFeed({
             if (ev.type === 'omen') {
               const nm = p.personal_name ?? ev.caste
               return (
-                <li key={key} className={accentCls} style={{ color: '#e3b341' }}>
+                <li key={key} data-tick={ev.tick} className={accentCls} style={{ color: '#e3b341' }}>
                   {t('chronicleEvents.omenBehold', { name: nm, clan: p.clan_name ?? clanLabel(p.clan_id), season: String(p.season), tick: ev.tick })}
                 </li>
               )
@@ -619,7 +818,7 @@ function ChronicleFeed({
             if (ev.type === 'disaster') {
               const kind = p.kind === 'river_flood' ? 'river flood' : p.kind === 'flash_flood' ? 'flash flood' : (p.kind ?? 'disaster')
               return (
-                <li key={key} className={"ev-war " + accentCls} style={{ color: '#f85149' }}>
+                <li key={key} data-tick={ev.tick} className={"ev-war " + accentCls} style={{ color: '#f85149' }}>
                   {t('chronicleEvents.disasterEvent', { kind, x: Math.round(ev.x), y: Math.round(ev.y), tick: ev.tick })}
                 </li>
               )
@@ -628,35 +827,35 @@ function ChronicleFeed({
               const cName = p.clan_name ?? clanLabel(p.clan_id)
               const days = p.lifespan_days ?? (p.lifespan_ticks ? Math.round(p.lifespan_ticks / 1200) : 0)
               return (
-                <li key={key} className={"ev-demote " + accentCls} style={{ color: '#f85149', fontWeight: 600 }}>
+                <li key={key} data-tick={ev.tick} className={"ev-demote " + accentCls} style={{ color: '#f85149', fontWeight: 600 }}>
                   {t('chronicleEvents.clanExtinction', { clan: cName, days, tick: ev.tick })}
                 </li>
               )
             }
             if (ev.type === 'extinction') {
               return (
-                <li key={key} className={"ev-war " + accentCls} style={{ color: '#f85149', fontWeight: 700 }}>
+                <li key={key} data-tick={ev.tick} className={"ev-war " + accentCls} style={{ color: '#f85149', fontWeight: 700 }}>
                   {t('chronicleEvents.extinctionWorld', { tick: ev.tick })}
                 </li>
               )
             }
             if (ev.type === 'fire') {
               return (
-                <li key={key} className={"ev-war " + accentCls} style={{ color: '#f0883e' }}>
+                <li key={key} data-tick={ev.tick} className={"ev-war " + accentCls} style={{ color: '#f0883e' }}>
                   {t('chronicleEvents.fireEvent', { kind: String(p.kind ?? 'wildfire'), x: Math.round(ev.x), y: Math.round(ev.y), tick: ev.tick })}
                 </li>
               )
             }
             if (ev.type === 'ruin') {
               return (
-                <li key={key} className={"ev-wither " + accentCls} style={{ color: '#8b949e' }}>
+                <li key={key} data-tick={ev.tick} className={"ev-wither " + accentCls} style={{ color: '#8b949e' }}>
                   {t('chronicleEvents.ruinEvent', { id: ev.entity_id, x: Math.round(ev.x), y: Math.round(ev.y), tick: ev.tick })}
                 </li>
               )
             }
             if (ev.type === 'anomaly') {
               return (
-                <li key={key} className={"ev-miracle " + accentCls} style={{ color: '#bc8cff' }}>
+                <li key={key} data-tick={ev.tick} className={"ev-miracle " + accentCls} style={{ color: '#bc8cff' }}>
                   {t('chronicleEvents.anomalyEvent', { x: Math.round(ev.x), y: Math.round(ev.y), tick: ev.tick })}
                 </li>
               )
@@ -666,7 +865,7 @@ function ChronicleFeed({
             const nm = p.personal_name ?? ev.caste
             const gl = p.glyph ? ` ${p.glyph}` : ''
             return (
-              <li key={key} className={accentCls}>
+              <li key={key} data-tick={ev.tick} className={accentCls}>
                 {t('chronicleEvents.deathEvent', { name: `${nm}${gl}`, id: ev.entity_id, cause: ev.cause ?? 'unknown', tick: ev.tick, x: Math.round(ev.x), y: Math.round(ev.y) })}
               </li>
             )

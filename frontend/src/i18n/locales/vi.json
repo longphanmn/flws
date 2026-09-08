@@ -172,7 +172,8 @@
       "age": "siêu chu kỳ Hoàng Kim/Băng Hà/Hỗn Thoát/Dịch Bệnh xoay chuyển sản lượng tài nguyên, đột biến và dịch tễ",
       "overview": "biểu đồ sinh tồn + tháp dinh dưỡng + Bảng Thị tộc + Sự kiện; Nhật ký bên dưới ghi lại lịch sử",
       "tapCreature": "chạm ở bất kỳ tỷ lệ thu phóng nào (bán kính 44px) để mở hồ sơ bên trái, hào quang vàng và ký tự danh tính",
-      "controls": "Phím cách: Tạm dừng, S: Từng nhịp, R: Đặt lại, F: Vừa khung, +/-: Thu phóng, kéo rê chuột để lia bản đồ"
+      "controls": "Phím cách: Tạm dừng, S: Từng nhịp, R: Đặt lại, F: Vừa khung, +/-: Thu phóng, kéo rê chuột để lia bản đồ",
+      "historyChronicle": "Phím H hoặc biểu tượng cuốn sách mở Biên niên sử Lịch sử thế giới với dòng thời gian kỷ nguyên, bảng kỷ lục, ma trận thù địch và trợ lý AI viết truyện."
     }
   },
   "god": {
@@ -363,6 +364,9 @@
     "subtitle": "Seed {{seed}} · {{days}} Ngày · {{alive}} cá thể sống",
     "tabs": {
       "timeline": "📅 Nhật ký theo ngày ({{count}})",
+      "records": "🏆 Kỷ lục & Huyền thoại",
+      "analytics": "📊 Phân tích & Ma trận",
+      "llm": "✨ Trợ lý AI viết truyện",
       "ai": "🤖 Viết truyện bằng AI",
       "all": "Toàn bộ",
       "war": "Chiến sự",
@@ -653,7 +657,27 @@
     "tabAnnals": "Biên niên",
     "tabAnnalsShort": "Biên niên",
     "aliveShort": "sống",
-    "diplomaticIntel": "Tình báo Ngoại giao"
+    "diplomaticIntel": "Tình báo Ngoại giao",
+    "tabBiography": "Tiểu sử & Di sản Bộ tộc",
+    "tabBioShort": "Tiểu sử",
+    "loadingBio": "Đang tải tiểu sử bộ tộc...",
+    "activeClan": "Bộ tộc Đang Tồn tại",
+    "extinctClan": "Bộ tộc Đã Diệt vong",
+    "extinctionCause": "Nguyên nhân diệt vong",
+    "peakPop": "Dân số Đỉnh cao",
+    "warfareRecord": "Hồ sơ Chiến sự",
+    "schismsSplits": "Ly khai & Chia rẽ",
+    "templesFounded": "Đền thờ Thành lập",
+    "topRival": "Kình địch Truyền kiếp",
+    "noRival": "Chưa ghi nhận",
+    "hallOfNotables": "Điện Danh nhân & Huyền thoại",
+    "champion": "Dũng sĩ",
+    "noChampion": "Dũng sĩ: Chưa có chiến binh vang danh",
+    "antagonist": "Kẻ phản nghịch",
+    "noAntagonist": "Kẻ phản nghịch: Không có thích khách hay phản đồ",
+    "genStoryPrompt": "📖 Tạo Prompt Biên niên Bộ tộc cho AI",
+    "historicalEvents": "Sự kiện Lịch sử",
+    "noBioData": "Chưa có dữ liệu tiểu sử."
   },
   "inspector": {
     "creature": "Cá thể",

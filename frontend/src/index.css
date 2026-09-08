@@ -2984,3 +2984,26 @@ select {
 @media (max-width: 768px){
   .inspector-handle{ display:block; }
 }
+
+@keyframes chroniclePulse {
+  0% {
+    background-color: rgba(56, 139, 253, 0.45);
+    box-shadow: 0 0 14px rgba(56, 139, 253, 0.8);
+    transform: scale(1.02);
+  }
+  50% {
+    background-color: rgba(56, 139, 253, 0.25);
+    box-shadow: 0 0 8px rgba(56, 139, 253, 0.4);
+    transform: scale(1.01);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: none;
+    transform: scale(1);
+  }
+}
+
+.chronicle-highlight-pulse {
+  animation: chroniclePulse 2.4s ease-out forwards;
+  border-radius: 4px;
+}

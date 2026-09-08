@@ -172,7 +172,8 @@
       "age": "super-saison Doré/Glace/Chaos/Peste modifiant nourriture/mutations/maladies",
       "overview": "courbe vivants + graphes castes/trophiques + panneau de clan + intrigues ; Chronique ci-dessous réservée à l'histoire",
       "tapCreature": "fonctionne à tout niveau de zoom (rayon 44px), affiche le dossier à gauche, halo doré + glyphe",
-      "controls": "espace pause, S pas, R réinit, F cadrer, +/- zoom, glisser panoramique, pincer zoom"
+      "controls": "espace pause, S pas, R réinit, F cadrer, +/- zoom, glisser panoramique, pincer zoom",
+      "historyChronicle": "Touche H ou icône livre ouvre l'Histoire du Monde avec frise d'époques, panthéon des records, matrice des rivalités et génération de récits IA."
     }
   },
   "god": {
@@ -363,6 +364,9 @@
     "subtitle": "Graine {{seed}} · {{days}} Jours · {{alive}} vivants",
     "tabs": {
       "timeline": "📅 Chronique quotidienne ({{count}})",
+      "records": "🏆 Records & Légendes",
+      "analytics": "📊 Statistiques & Matrice",
+      "llm": "✨ Rédacteur IA intégré",
       "ai": "🤖 Récit IA",
       "all": "Tous les jours",
       "war": "Jours de guerre",
@@ -653,7 +657,27 @@
     "tabAnnals": "Annales",
     "tabAnnalsShort": "Annales",
     "aliveShort": "vivants",
-    "diplomaticIntel": "Renseignement diplomatique"
+    "diplomaticIntel": "Renseignement diplomatique",
+    "tabBiography": "Biographie & Héritage du clan",
+    "tabBioShort": "Bio",
+    "loadingBio": "Chargement de la biographie...",
+    "activeClan": "Clan Actif",
+    "extinctClan": "Clan Éteint",
+    "extinctionCause": "Cause d'extinction",
+    "peakPop": "Population Maximale",
+    "warfareRecord": "Bilan des Guerres",
+    "schismsSplits": "Schismes & Scissions",
+    "templesFounded": "Temples Érigés",
+    "topRival": "Clan Archirival",
+    "noRival": "Aucun enregistré",
+    "hallOfNotables": "Panthéon des Notables",
+    "champion": "Champion",
+    "noChampion": "Champion: Aucun guerrier célèbre enregistré",
+    "antagonist": "Antagoniste",
+    "noAntagonist": "Antagoniste: Aucun traître ni assassin connu",
+    "genStoryPrompt": "📖 Générer l'invite d'histoire de clan pour l'IA",
+    "historicalEvents": "Événements Historiques",
+    "noBioData": "Aucune donnée biographique disponible."
   },
   "inspector": {
     "creature": "Créature",

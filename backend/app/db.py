@@ -92,9 +92,28 @@ CREATE TABLE IF NOT EXISTS settings (
     value TEXT NOT NULL,
     created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS clan_epitaphs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    world_id INTEGER NOT NULL,
+    clan_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    totem TEXT,
+    color TEXT,
+    founded_tick INTEGER,
+    extinct_tick INTEGER,
+    peak_population INTEGER,
+    peak_tick INTEGER,
+    wars_fought INTEGER,
+    battles_won INTEGER,
+    temples_built INTEGER,
+    schisms_caused INTEGER,
+    extinction_cause TEXT,
+    created_at TEXT NOT NULL
+);
 CREATE INDEX IF NOT EXISTS idx_events_world ON events(world_id, id);
 CREATE INDEX IF NOT EXISTS idx_events_world_entity ON events(world_id, entity_id, id DESC);
 CREATE INDEX IF NOT EXISTS idx_creatures_world ON creatures(world_id, entity_id);
+CREATE INDEX IF NOT EXISTS idx_clan_epitaphs_world ON clan_epitaphs(world_id, clan_id);
 """
 
 
@@ -157,6 +176,20 @@ class Database:
             self._conn.execute("CREATE INDEX IF NOT EXISTS idx_creatures_world_mother ON creatures(world_id, mother_id)")
             self._conn.execute("CREATE INDEX IF NOT EXISTS idx_creatures_world_father ON creatures(world_id, father_id)")
             self._conn.execute("CREATE INDEX IF NOT EXISTS idx_law_changes_world ON law_changes(world_id)")
+            self._conn.execute("CREATE INDEX IF NOT EXISTS idx_clan_epitaphs_world ON clan_epitaphs(world_id, clan_id)")
+        except Exception:
+            pass
+        # BM-24: creature details on death (guarded column migrations)
+        try:
+            self._conn.execute("ALTER TABLE creatures ADD COLUMN personal_name TEXT")
+        except Exception:
+            pass
+        try:
+            self._conn.execute("ALTER TABLE creatures ADD COLUMN title TEXT")
+        except Exception:
+            pass
+        try:
+            self._conn.execute("ALTER TABLE creatures ADD COLUMN kill_count INTEGER DEFAULT 0")
         except Exception:
             pass
         self._start_writer()
@@ -262,8 +295,16 @@ class Database:
         if len(self._pending) >= FLUSH_MAX_OPS:
             self._wake.set()
 
-    def log_death(self, world_id: int, entity_id: int, died_tick: int) -> None:
-        self._pending.append(("death", (world_id, entity_id, died_tick)))
+    def log_death(
+        self,
+        world_id: int,
+        entity_id: int,
+        died_tick: int,
+        personal_name: str | None = None,
+        title: str | None = None,
+        kill_count: int = 0,
+    ) -> None:
+        self._pending.append(("death", (world_id, entity_id, died_tick, personal_name, title, kill_count)))
         self._bump_high_water()
         if len(self._pending) >= FLUSH_MAX_OPS:
             self._wake.set()
@@ -302,15 +343,23 @@ class Database:
                         [(wid, eid, caste, clan_id, gen, mid or None, fid or None, bt) for wid, eid, caste, clan_id, gen, mid, fid, bt in births],
                     )
                 if deaths:
-                    for wid, eid, dt in deaths:
+                    for d_tuple in deaths:
+                        wid = d_tuple[0]
+                        eid = d_tuple[1]
+                        dt = d_tuple[2]
+                        p_name = d_tuple[3] if len(d_tuple) > 3 else None
+                        title = d_tuple[4] if len(d_tuple) > 4 else None
+                        kc = d_tuple[5] if len(d_tuple) > 5 else 0
                         cur = conn.execute(
-                            "UPDATE creatures SET died_tick=? WHERE world_id=? AND entity_id=? AND died_tick IS NULL",
-                            (dt, wid, eid),
+                            "UPDATE creatures SET died_tick=?, personal_name=COALESCE(?, personal_name), "
+                            "title=COALESCE(?, title), kill_count=MAX(?, COALESCE(kill_count, 0)) "
+                            "WHERE world_id=? AND entity_id=? AND died_tick IS NULL",
+                            (dt, p_name, title, kc, wid, eid),
                         )
                         if cur.rowcount == 0:
                             conn.execute(
-                                "INSERT INTO creatures(world_id,entity_id,born_tick,died_tick) VALUES (?,?,NULL,?)",
-                                (wid, eid, dt),
+                                "INSERT INTO creatures(world_id,entity_id,born_tick,died_tick,personal_name,title,kill_count) VALUES (?,?,NULL,?,?,?,?)",
+                                (wid, eid, dt, p_name, title, kc),
                             )
             return len(ops)
         except sqlite3.Error:
@@ -458,6 +507,7 @@ class Database:
         types_filter: Sequence[str] | None = None,
         entity_id: int | None = None,
         clan_id: int | None = None,
+        q: str | None = None,
     ) -> list[dict[str, Any]]:
         conditions = ["world_id=?"]
         params: list[Any] = [world_id]
@@ -481,6 +531,11 @@ class Database:
             )
             conditions.append(f"({ors})")
             params.extend([clan_id] * len(CLAN_PAYLOAD_KEYS))
+        if q:
+            # BM-25: Search query across type, caste, cause, and payload
+            conditions.append("(type LIKE ? OR caste LIKE ? OR cause LIKE ? OR payload LIKE ?)")
+            pattern = f"%{q}%"
+            params.extend([pattern, pattern, pattern, pattern])
         params.append(limit)
 
         query = f"SELECT * FROM events WHERE {' AND '.join(conditions)} ORDER BY id DESC LIMIT ?"
@@ -585,19 +640,85 @@ class Database:
                  mother_id or None, father_id or None, born_tick),
             )
 
-    def mark_death(self, world_id: int, entity_id: int, died_tick: int) -> None:
+    def mark_death(
+        self,
+        world_id: int,
+        entity_id: int,
+        died_tick: int,
+        personal_name: str | None = None,
+        title: str | None = None,
+        kill_count: int = 0,
+    ) -> None:
         with self._lock:
             cur = self._require().execute(
-                "UPDATE creatures SET died_tick=? WHERE world_id=? AND entity_id=?"
-                " AND died_tick IS NULL",
-                (died_tick, world_id, entity_id),
+                "UPDATE creatures SET died_tick=?, personal_name=COALESCE(?, personal_name), "
+                "title=COALESCE(?, title), kill_count=MAX(?, COALESCE(kill_count, 0)) "
+                "WHERE world_id=? AND entity_id=?",
+                (died_tick, personal_name, title, kill_count, world_id, entity_id),
             )
             if cur.rowcount == 0:  # founder with no birth record: insert minimal row
                 self._require().execute(
-                    "INSERT INTO creatures(world_id,entity_id,born_tick,died_tick)"
-                    " VALUES (?,?,NULL,?)",
-                    (world_id, entity_id, died_tick),
+                    "INSERT INTO creatures(world_id,entity_id,born_tick,died_tick,personal_name,title,kill_count)"
+                    " VALUES (?,?,NULL,?,?,?,?)",
+                    (world_id, entity_id, died_tick, personal_name, title, kill_count),
                 )
+
+    # -------------------------------------------------------- clan epitaphs
+    def record_clan_epitaph(
+        self,
+        world_id: int,
+        clan_id: int,
+        name: str,
+        totem: str | None = None,
+        color: str | None = None,
+        founded_tick: int = 0,
+        extinct_tick: int = 0,
+        peak_population: int = 0,
+        peak_tick: int = 0,
+        wars_fought: int = 0,
+        battles_won: int = 0,
+        temples_built: int = 0,
+        schisms_caused: int = 0,
+        extinction_cause: str = "eradication",
+    ) -> None:
+        with self._lock:
+            self._require().execute(
+                "INSERT INTO clan_epitaphs(world_id,clan_id,name,totem,color,founded_tick,extinct_tick,"
+                "peak_population,peak_tick,wars_fought,battles_won,temples_built,schisms_caused,extinction_cause,created_at)"
+                " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (
+                    world_id, clan_id, name, totem, color, founded_tick, extinct_tick,
+                    peak_population, peak_tick, wars_fought, battles_won, temples_built, schisms_caused,
+                    extinction_cause, _now(),
+                ),
+            )
+
+    def clan_epitaphs(self, world_id: int, limit: int = 100) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._require().execute(
+                "SELECT * FROM clan_epitaphs WHERE world_id=? ORDER BY extinct_tick DESC LIMIT ?",
+                (world_id, limit),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def clan_epitaph(self, world_id: int, clan_id: int) -> dict[str, Any] | None:
+        with self._lock:
+            row = self._require().execute(
+                "SELECT * FROM clan_epitaphs WHERE world_id=? AND clan_id=? ORDER BY id DESC LIMIT 1",
+                (world_id, clan_id),
+            ).fetchone()
+        return dict(row) if row else None
+
+    def clan_notables(self, world_id: int, clan_id: int) -> dict[str, Any]:
+        with self._lock:
+            hero_row = self._require().execute(
+                "SELECT id, personal_name, title, kill_count FROM creatures "
+                "WHERE world_id=? AND clan_id=? AND kill_count > 0 ORDER BY kill_count DESC, id ASC LIMIT 1",
+                (world_id, clan_id),
+            ).fetchone()
+            return {
+                "hero": dict(hero_row) if hero_row else None,
+            }
 
     # -------------------------------------------------------------- snapshots
     def get_setting(self, key: str) -> str | None:

@@ -2,6 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import type { StateMessage, WorldSummary } from '../types'
 import { totemEmoji } from '../totems'
 import { useI18n } from '../i18n'
+import EpochBar from './EpochBar'
+import PopulationSparkline from './PopulationSparkline'
+import WarArcGraph from './WarArcGraph'
+import RecordsLeaderboard from './RecordsLeaderboard'
+import HistoryAnalytics from './HistoryAnalytics'
+import InAppAIGenerator from './InAppAIGenerator'
+import { generateAndDownloadWorldCard } from './ShareWorldCard'
 
 interface Props {
   open: boolean
@@ -9,6 +16,7 @@ interface Props {
   state: StateMessage | null
   worlds?: WorldSummary[]
   selectedRunId?: number | null
+  initialDay?: number | null
   onSelectCreature?: (id: number) => void
   onSelectClan?: (id: number) => void
 }
@@ -102,17 +110,64 @@ function generateClanName(id: number): string {
   return `Clan of the ${adj} ${noun}`
 }
 
-export default function WorldHistoryModal({ open, onClose, state, selectedRunId }: Props) {
+export default function WorldHistoryModal({
+  open,
+  onClose,
+  state,
+  selectedRunId,
+  initialDay,
+  onSelectCreature,
+  onSelectClan,
+}: Props) {
   const { t } = useI18n()
   const [rawEvents, setRawEvents] = useState<any[]>([])
   const [clans, setClans] = useState<Record<string, any>>({})
   const [clanNames, setClanNames] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<'timeline' | 'llm'>('timeline')
+  const [activeTab, setActiveTab] = useState<'timeline' | 'records' | 'analytics' | 'llm'>('timeline')
   const [category, setCategory] = useState<MajorCategory>('all')
   const [search, setSearch] = useState('')
   const [copied, setCopied] = useState(false)
   const [expandedDay, setExpandedDay] = useState<number | null>(null)
+  const [promptLang, setPromptLang] = useState<'en' | 'vi' | 'fr'>('en')
+  const [isWeeklyDigest, setIsWeeklyDigest] = useState(false)
+  const [miniStoryCopiedDay, setMiniStoryCopiedDay] = useState<number | null>(null)
+  const [copiedDayUrl, setCopiedDayUrl] = useState<number | null>(null)
+
+  // BM-7: Pinned / bookmarked days with notes in localStorage
+  const [pinnedDays, setPinnedDays] = useState<Record<number, string>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('flatland_pinned_days') || '{}')
+    } catch {
+      return {}
+    }
+  })
+
+  const togglePinDay = (day: number) => {
+    setPinnedDays((prev) => {
+      const next = { ...prev }
+      if (next[day] !== undefined) {
+        delete next[day]
+      } else {
+        next[day] = ''
+      }
+      try {
+        localStorage.setItem('flatland_pinned_days', JSON.stringify(next))
+      } catch {}
+      return next
+    })
+  }
+
+  const setDayNote = (day: number, note: string) => {
+    setPinnedDays((prev) => {
+      const next = { ...prev, [day]: note }
+      try {
+        localStorage.setItem('flatland_pinned_days', JSON.stringify(next))
+      } catch {}
+      return next
+    })
+  }
+
   const [storyStyle, setStoryStyle] = useState<StoryStyle>(() => {
     try {
       const s = sessionStorage.getItem('history-story-style') as StoryStyle | null
@@ -127,6 +182,17 @@ export default function WorldHistoryModal({ open, onClose, state, selectedRunId 
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
+
+  // BM-19: Deep link to specific day
+  useEffect(() => {
+    if (open && initialDay != null) {
+      setExpandedDay(initialDay)
+      setTimeout(() => {
+        const el = document.getElementById(`history-day-${initialDay}`)
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 350)
+    }
+  }, [open, initialDay])
 
   // Persist the chosen writing style across modal reopens
   useEffect(() => {
@@ -545,6 +611,77 @@ export default function WorldHistoryModal({ open, onClose, state, selectedRunId 
     })
   }, [dayRecords, category, search])
 
+  // BM-7: Pinned days floated to top or marked with badge
+  const sortedAndFilteredDays = useMemo(() => {
+    return filteredDays.slice().sort((a, b) => {
+      const aPinned = pinnedDays[a.day] !== undefined ? 1 : 0
+      const bPinned = pinnedDays[b.day] !== undefined ? 1 : 0
+      if (aPinned !== bPinned) return bPinned - aPinned
+      return b.day - a.day
+    })
+  }, [filteredDays, pinnedDays])
+
+  // BM-3: Hero / Villain Auto-Callout
+  const { hero, villain } = useMemo(() => {
+    const kills: Record<string, { id: number; name?: string; caste?: string; clan?: string; count: number }> = {}
+    const betrayals: Record<string, { id: number; name?: string; count: number }> = {}
+
+    for (const ev of rawEvents) {
+      const p = (ev.payload ?? {}) as Record<string, any>
+      if (ev.type === 'war' && p.lethal) {
+        const killerId = p.winner_id ?? p.killer
+        const killerName = p.winner_name ?? p.killer_name
+        if (killerId) {
+          const k = String(killerId)
+          if (!kills[k]) kills[k] = { id: killerId, name: killerName, caste: p.winner_caste, clan: p.winner_clan, count: 0 }
+          kills[k].count++
+        }
+      } else if (ev.type === 'betrayal' || ev.type === 'regicide') {
+        const traitorId = ev.entity_id ?? p.assassin_id ?? p.traitor_id
+        if (traitorId) {
+          const k = String(traitorId)
+          if (!betrayals[k]) betrayals[k] = { id: traitorId, name: p.assassin ?? p.traitor_name, count: 0 }
+          betrayals[k].count++
+        }
+      }
+    }
+
+    const topHero = Object.values(kills).sort((a, b) => b.count - a.count)[0] ?? null
+    const topVillain = Object.values(betrayals).sort((a, b) => b.count - a.count)[0] ?? null
+    return { hero: topHero, villain: topVillain }
+  }, [rawEvents])
+
+  // BM-2: Per-day mini-story button
+  const generateMiniStory = (d: DayRecord) => {
+    const langPrompt =
+      promptLang === 'vi'
+        ? 'Viết toàn bộ câu chuyện bằng Tiếng Việt.'
+        : promptLang === 'fr'
+        ? 'Écrivez l’intégralité de l’histoire en français.'
+        : 'Respond in English.'
+
+    const promptText = `# The Chronicles of Flatland: Day ${d.day}
+
+## Writing Objective:
+You are an epic bard in Flatland. Write a dramatic, atmospheric story describing the pivotal events of **Day ${d.day}** (${d.startTick}–${d.endTick} ticks). ${langPrompt}
+
+## Events on Day ${d.day}:
+- Summary: ${d.summaryLine}
+- Total Casualties: ${d.totalCasualties}
+${d.wars.length > 0 ? `- Battles:\n${d.wars.map((w) => `  * ${w.aName} vs ${w.bName}: ${w.battles} clashes, ${w.casualties} dead`).join('\n')}` : ''}
+${d.conquests.length > 0 ? `- Outpost Conquests:\n${d.conquests.map((c) => `  * ${c.invaderName} captured outpost #${c.houseId} from ${c.victimName}`).join('\n')}` : ''}
+${d.outbreaks.length > 0 ? `- Epidemics:\n${d.outbreaks.map((o) => `  * Outbreak of contagion #${o.diseaseId}`).join('\n')}` : ''}
+${d.dynasties.length > 0 ? `- Dynastic Shifts:\n${d.dynasties.map((dyn) => `  * ${dyn.title}: ${dyn.detail}`).join('\n')}` : ''}
+${d.faiths.length > 0 ? `- Sacred Rites:\n${d.faiths.map((f) => `  * ${f.kind}: ${f.detail}`).join('\n')}` : ''}
+${d.disasters.length > 0 ? `- Cataclysms:\n${d.disasters.map((dis) => `  * ${dis.kind} (${dis.count} occurrences)`).join('\n')}` : ''}
+`
+    try {
+      navigator.clipboard.writeText(promptText)
+      setMiniStoryCopiedDay(d.day)
+      setTimeout(() => setMiniStoryCopiedDay(null), 2500)
+    } catch {}
+  }
+
   // Total stats
   const totalStats = useMemo(() => {
     let wars = 0
@@ -589,18 +726,27 @@ export default function WorldHistoryModal({ open, onClose, state, selectedRunId 
     // Chronological order (Day 0, Day 1, Day 2...)
     const chronologicalDays = [...dayRecords].reverse()
 
-    const dayTimeline = chronologicalDays.map((d) => {
+    // BM-4: This Week in Flatland (last 7 days) vs full chronicle
+    const targetDays = isWeeklyDigest ? chronologicalDays.slice(-7) : chronologicalDays
+
+    const dayTimeline = targetDays.map((d) => {
       return `- **Day ${d.day}**: ${d.summaryLine}`
     }).join('\n')
 
     const styleLabel = STYLE_LABELS[storyStyle]
     const stylePrompt = STYLE_PROMPTS[storyStyle]
 
-    return `# The Chronicles of Flatland: World Seed ${seed}
+    const langInstruction =
+      promptLang === 'vi'
+        ? '\n\n**HƯỚNG DẪN NGÔN NGỮ**: Hãy viết toàn bộ câu chuyện bằng Tiếng Việt sinh động, hấp dẫn, đúng văn phong sử thi.'
+        : promptLang === 'fr'
+        ? '\n\n**INSTRUCTION DE LANGUE**: Rédigez l’intégralité du récit en français avec un ton épique et soigné.'
+        : '\n\n**LANGUAGE INSTRUCTION**: Write the narrative in evocative, epic English prose.'
+
+    return `# The Chronicles of Flatland: World Seed ${seed} ${isWeeklyDigest ? '(Weekly Digest)' : ''}
 
 ## Writing Style — ${styleLabel}
 ${stylePrompt}
-
 
 ## Context & World Lore
 You are an epic historian and bard recording the true history of a simulated 2D world inspired by Edwin A. Abbott's *Flatland*.
@@ -615,22 +761,27 @@ You are an epic historian and bard recording the true history of a simulated 2D 
 - **Mortality Breakdown**: ${Object.entries(deadByCause).map(([k, v]) => `${k}: ${v}`).join(', ') || 'None recorded'}
 - **Major Milestone Tallies**: ${totalStats.wars} Battles (${totalStats.lethalWars} fallen), ${totalStats.outbreaks} Pandemics, ${totalStats.schisms} Rebellions, ${totalStats.temples} Temples Raised, ${totalStats.disasters} Cataclysms.
 
+## Legendary Figures of Renown (BM-3)
+${hero ? `- ⚔️ **Legendary Champion (Hero)**: ${hero.name ? `**${hero.name}** ` : ''}#${hero.id} (${hero.caste ?? 'Warrior'}, ${clanName(hero.clan as any)}) — Vanquished ${hero.count} enemies in mortal combat.` : '- ⚔️ **Legendary Champion**: No prominent slayer identified yet.'}
+${villain ? `- 🗡️ **Infamous Traitor (Villain)**: ${villain.name ? `**${villain.name}** ` : ''}#${villain.id} — Instigator of ${villain.count} betrayals and dynastic coups.` : '- 🗡️ **Infamous Traitor**: No notable treason recorded.'}
+
 ## Clan Roster & Avatars
 ${clanSummary || 'No formal clans recorded.'}
 
-## Detailed Day-by-Day Historical Chronicle (${chronologicalDays.length} Days)
+## Detailed Historical Chronicle (${targetDays.length} Days ${isWeeklyDigest ? '— Past 7 Days' : ''})
 ${dayTimeline || 'No daily records recorded yet.'}
 
 ---
 
 ## Story Writing Instructions for LLM:
 ${stylePrompt}
+${langInstruction}
 
 **Guidelines**:
 1. Follow the chronological day-by-day turning points above with the exact clan names, casualties, and milestones.
 2. Portray the unique geometric nature of Flatland characters (angles, vertex sharpness, fog perception, line speed).
 3. Weave the historical milestones (named wars, house conquests, outbreaks, temples, schisms) into pivotal chapter turns.`
-  }, [state, clans, dayRecords, totalStats, totalDays, storyStyle])
+  }, [state, clans, dayRecords, totalStats, totalDays, storyStyle, hero, villain, isWeeklyDigest, promptLang])
 
   const copyToClipboard = async () => {
     try {
@@ -685,6 +836,25 @@ ${stylePrompt}
   const downloadJSON = () => {
     const blob = new Blob([JSON.stringify({ state, totalStats, clans, dayRecords }, null, 2)], { type: 'application/json' })
     triggerDownload(blob, `flatland_detailed_daily_history_seed_${state?.seed ?? 42}.json`)
+  }
+
+  // BM-21: Generate and download shareable 1200x630 card
+  const handleShareCard = () => {
+    generateAndDownloadWorldCard({
+      seed: state?.seed ?? 42,
+      totalDays: Number(totalDays),
+      currentTick: state?.tick ?? 0,
+      aliveCount: state?.creatures_alive ?? 0,
+      deadCount: state?.creatures_dead ?? 0,
+      wars: totalStats.wars,
+      temples: totalStats.temples,
+      clans: Object.values(clans).map((c: any) => ({
+        name: c.name,
+        color: c.color,
+        totem: c.totem,
+        population: c.population,
+      })),
+    })
   }
 
   if (!open) return null
@@ -760,7 +930,7 @@ ${stylePrompt}
             )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: isMobile ? '100%' : 'auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: isMobile ? '100%' : 'auto', flexWrap: 'wrap' }}>
             <button
               onClick={() => setActiveTab('timeline')}
               className="chip"
@@ -770,13 +940,47 @@ ${stylePrompt}
                 background: activeTab === 'timeline' ? '#238636' : '#21262d',
                 color: activeTab === 'timeline' ? '#fff' : '#c9d1d9',
                 borderColor: activeTab === 'timeline' ? '#2ea043' : '#30363d',
-                padding: isMobile ? '6px 8px' : '6px 12px',
+                padding: isMobile ? '6px 8px' : '6px 10px',
                 cursor: 'pointer',
                 fontWeight: 600,
                 fontSize: isMobile ? 11 : 12,
               }}
             >
-              {t('history.tabs.timeline', { count: filteredDays.length })}
+              📅 {t('history.tabs.timeline', { count: filteredDays.length })}
+            </button>
+            <button
+              onClick={() => setActiveTab('records')}
+              className="chip"
+              style={{
+                flex: isMobile ? 1 : 'none',
+                justifyContent: 'center',
+                background: activeTab === 'records' ? '#d29922' : '#21262d',
+                color: activeTab === 'records' ? '#fff' : '#c9d1d9',
+                borderColor: activeTab === 'records' ? '#e3b341' : '#30363d',
+                padding: isMobile ? '6px 8px' : '6px 10px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: isMobile ? 11 : 12,
+              }}
+            >
+              🏆 Records
+            </button>
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className="chip"
+              style={{
+                flex: isMobile ? 1 : 'none',
+                justifyContent: 'center',
+                background: activeTab === 'analytics' ? '#8957e5' : '#21262d',
+                color: activeTab === 'analytics' ? '#fff' : '#c9d1d9',
+                borderColor: activeTab === 'analytics' ? '#a371f7' : '#30363d',
+                padding: isMobile ? '6px 8px' : '6px 10px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: isMobile ? 11 : 12,
+              }}
+            >
+              📊 Analytics
             </button>
             <button
               onClick={() => setActiveTab('llm')}
@@ -787,19 +991,39 @@ ${stylePrompt}
                 background: activeTab === 'llm' ? '#1f6feb' : '#21262d',
                 color: activeTab === 'llm' ? '#fff' : '#c9d1d9',
                 borderColor: activeTab === 'llm' ? '#388bfd' : '#30363d',
-                padding: isMobile ? '6px 8px' : '6px 12px',
+                padding: isMobile ? '6px 8px' : '6px 10px',
                 cursor: 'pointer',
                 fontWeight: 600,
                 fontSize: isMobile ? 11 : 12,
               }}
             >
-              {t('history.tabs.ai')}
+              ✨ {t('history.tabs.ai')}
             </button>
+
+            {/* BM-21: Share World Card Button */}
+            <button
+              type="button"
+              className="chip"
+              onClick={handleShareCard}
+              style={{
+                background: 'rgba(56, 139, 253, 0.15)',
+                borderColor: 'rgba(56, 139, 253, 0.4)',
+                color: '#58a6ff',
+                cursor: 'pointer',
+                padding: isMobile ? '6px 8px' : '6px 10px',
+                fontSize: isMobile ? 11 : 12,
+                fontWeight: 600,
+              }}
+              title="Generate and download 1200x630 share card PNG (BM-21)"
+            >
+              📸 Share Card
+            </button>
+
             {!isMobile && (
               <button
                 className="god-close"
                 onClick={onClose}
-                style={{ fontSize: 20, cursor: 'pointer', color: '#8b949e', marginLeft: 8 }}
+                style={{ fontSize: 20, cursor: 'pointer', color: '#8b949e', marginLeft: 4 }}
               >
                 ×
               </button>
@@ -848,6 +1072,35 @@ ${stylePrompt}
         <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '10px 12px' : '16px 20px' }}>
           {activeTab === 'timeline' ? (
             <div>
+              {/* BM-8 & BM-10: Horizontal Epoch Bar & Scrubber Slider */}
+              <EpochBar
+                totalDays={dayRecords.length}
+                currentDay={Math.floor((state?.tick ?? 0) / 1200)}
+                selectedDay={expandedDay}
+                onSelectDay={(d) => {
+                  setExpandedDay(d)
+                  setTimeout(() => {
+                    const el = document.getElementById(`history-day-${d}`)
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  }, 60)
+                }}
+                compact={isMobile}
+              />
+
+              {/* BM-9: Population & Conflict Sparkline Overlay */}
+              <PopulationSparkline
+                dayRecords={dayRecords}
+                selectedDay={expandedDay}
+                onSelectDay={(d) => {
+                  setExpandedDay(d)
+                  setTimeout(() => {
+                    const el = document.getElementById(`history-day-${d}`)
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  }, 60)
+                }}
+                currentPopulation={state?.creatures_alive}
+              />
+
               {/* Category Pills & Search */}
               <div
                 style={{
@@ -905,22 +1158,24 @@ ${stylePrompt}
                 <div style={{ textAlign: 'center', padding: 40, color: '#8b949e' }}>
                   {t('history.analyzing')}
                 </div>
-              ) : filteredDays.length === 0 ? (
+              ) : sortedAndFilteredDays.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: 40, color: '#8b949e' }}>
                   {t('history.empty')}
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {filteredDays.map((d) => {
+                  {sortedAndFilteredDays.map((d) => {
                     const isExpanded = expandedDay === d.day
+                    const isPinned = pinnedDays[d.day] !== undefined
                     return (
                       <div
                         key={d.day}
+                        id={`history-day-${d.day}`}
                         onClick={() => setExpandedDay(isExpanded ? null : d.day)}
                         style={{
-                          background: isExpanded ? '#1c2128' : '#161b22',
+                          background: isExpanded ? '#1c2128' : isPinned ? '#161e2e' : '#161b22',
                           border: '1px solid',
-                          borderColor: isExpanded ? '#444c56' : '#21262d',
+                          borderColor: isExpanded ? '#444c56' : isPinned ? '#388bfd' : '#21262d',
                           borderLeft: `4px solid ${d.badgeColor}`,
                           borderRadius: 8,
                           padding: '10px 14px',
@@ -932,11 +1187,32 @@ ${stylePrompt}
                         {/* One-Line Day Row */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 auto', minWidth: 0 }}>
+                            {/* BM-7: Star pin button */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                togglePinDay(d.day)
+                              }}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontSize: 14,
+                                padding: '0 2px',
+                                lineHeight: 1,
+                                flexShrink: 0,
+                              }}
+                              title={isPinned ? 'Unpin day' : 'Pin/bookmark day (BM-7)'}
+                            >
+                              {isPinned ? '⭐' : '☆'}
+                            </button>
+
                             <span
                               className="chip"
                               style={{
-                                background: '#21262d',
-                                color: '#e3b341',
+                                background: isPinned ? 'rgba(56,139,253,0.2)' : '#21262d',
+                                color: isPinned ? '#58a6ff' : '#e3b341',
                                 fontWeight: 700,
                                 fontSize: 11,
                                 padding: '2px 8px',
@@ -982,6 +1258,26 @@ ${stylePrompt}
                             <div style={{ fontWeight: 600, color: '#8b949e', fontSize: 11 }}>
                               {t('history.dossier', { start: d.startTick, end: d.endTick })}
                             </div>
+
+                            {/* BM-7: Note editor if pinned */}
+                            {isPinned && (
+                              <div
+                                style={{ display: 'flex', gap: 6, alignItems: 'center', background: '#0d1117', padding: '4px 8px', borderRadius: 6, border: '1px solid #30363d' }}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <span style={{ fontSize: 11, color: '#e3b341', fontWeight: 600 }}>📌 Note:</span>
+                                <input
+                                  type="text"
+                                  placeholder="Write a custom note for this day..."
+                                  value={pinnedDays[d.day] || ''}
+                                  onChange={(e) => setDayNote(d.day, e.target.value)}
+                                  style={{ flex: 1, background: 'transparent', border: 'none', color: '#e6edf3', fontSize: 11, outline: 'none' }}
+                                />
+                              </div>
+                            )}
+
+                            {/* BM-11: War Arc Connectors */}
+                            {d.wars.length > 0 && <WarArcGraph wars={d.wars} />}
 
                             {/* Wars */}
                             {d.wars.length > 0 && (
@@ -1054,6 +1350,49 @@ ${stylePrompt}
                                 ))}
                               </div>
                             )}
+
+                            {/* BM-2: Per-day mini-story button & BM-19: Share Day link */}
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                className="chip"
+                                onClick={() => {
+                                  const url = `${window.location.origin}${window.location.pathname}?history=${d.day}`
+                                  navigator.clipboard?.writeText(url)
+                                  setCopiedDayUrl(d.day)
+                                  setTimeout(() => setCopiedDayUrl(null), 2000)
+                                }}
+                                style={{
+                                  background: copiedDayUrl === d.day ? '#238636' : 'rgba(255, 255, 255, 0.08)',
+                                  borderColor: copiedDayUrl === d.day ? '#2ea043' : '#30363d',
+                                  color: copiedDayUrl === d.day ? '#fff' : '#c9d1d9',
+                                  cursor: 'pointer',
+                                  fontSize: 11,
+                                  padding: '4px 10px',
+                                  fontWeight: 600,
+                                }}
+                                title="Copy shareable link to this day (BM-19)"
+                              >
+                                {copiedDayUrl === d.day ? '✓ Link Copied!' : `🔗 Share Day ${d.day}`}
+                              </button>
+                              <button
+                                type="button"
+                                className="chip"
+                                onClick={() => generateMiniStory(d)}
+                                style={{
+                                  background: miniStoryCopiedDay === d.day ? '#238636' : 'rgba(56, 139, 253, 0.15)',
+                                  borderColor: miniStoryCopiedDay === d.day ? '#2ea043' : 'rgba(56, 139, 253, 0.4)',
+                                  color: miniStoryCopiedDay === d.day ? '#fff' : '#58a6ff',
+                                  cursor: 'pointer',
+                                  fontSize: 11,
+                                  padding: '4px 10px',
+                                  fontWeight: 600,
+                                }}
+                                title="Generate focused 1-day LLM story prompt and copy to clipboard (BM-2)"
+                              >
+                                {miniStoryCopiedDay === d.day ? '✓ Prompt Copied!' : `📖 Tell me about Day ${d.day} (BM-2)`}
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -1062,9 +1401,31 @@ ${stylePrompt}
                 </div>
               )}
             </div>
+          ) : activeTab === 'records' ? (
+            <RecordsLeaderboard
+              dayRecords={dayRecords}
+              clans={clans}
+              rawEvents={rawEvents}
+              onSelectClan={onSelectClan}
+              onSelectCreature={onSelectCreature}
+            />
+          ) : activeTab === 'analytics' ? (
+            <HistoryAnalytics
+              dayRecords={dayRecords}
+              clans={clans}
+              rawEvents={rawEvents}
+            />
           ) : (
             /* LLM Exporter Tab */
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* BM-17: In-App AI Story Generator with Key & Direct Browser Call */}
+              <InAppAIGenerator
+                prompt={llmPrompt}
+                promptLang={promptLang}
+                onSetPromptLang={setPromptLang}
+                isWeeklyDigest={isWeeklyDigest}
+                onToggleWeeklyDigest={setIsWeeklyDigest}
+              />
               <div
                 style={{
                   background: '#161b22',

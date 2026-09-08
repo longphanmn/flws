@@ -54,6 +54,15 @@ Flatland provides 4 real-time map lenses (switched via hotkeys `1`–`4` or the 
 - **3. Generational Epochs Lens (`generations`)**: Temporal demographic depth cohort coloring based on genealogical generation ($gen$). Shows evolutionary antiquity: Genesis founders (sky blue, $gen \le 2$), early expansion pioneers (emerald green, $gen < 10$), established dynastic lines (lavender purple, $gen < 25$), ancient elder houses (amber gold, $gen < 50$), and millennial lineages (radiant solar yellow, $gen \ge 50$).
 - **4. Clan Dynasty & Territory Lens (`dynasty`)**: Geopolitical faction allegiance view. Creatures sworn to an active clan shine in their sacred clan crest color with rich saturation, while clanless wanderers and unaffiliated nomads are dimmed to neutral slate, exposing territorial borders and tribal clusters across the world.
 
+## World History, Chronicle & AI Storytelling (§BM)
+Flatland features an end-to-end multi-era historiography, timeline analytics, and AI storytelling suite:
+- **Major Moments & Chronicle Jumps**: Top dramatic days (casualties, conquests, schisms) are automatically highlighted as jump chips above the chronicle feed. Users can jump directly to any specific tick timestamp.
+- **Epoch Bar & Population Sparkline**: Interactive temporal navigation with color-coded world epochs (Genesis, Age of Tribes, Feudal Era, Classical Zenith, Era of Ruin) and population curves overlaid with war and plague crisis markers.
+- **Records & Legends Leaderboard**: Hall of fame for Sovereign of War, Deadliest Single Day, Greatest Realm, Divine Architects, Largest Schism, and Hero/Villain notables.
+- **History Analytics**: Clan Rivalry Heatmap Matrix, Mortality Breakdown (combat, famine, disease, age) across 10-day eras, and Faith Devotion Index over time.
+- **In-App AI Story Generator**: Integrated browser-based LLM narrative generator using Google Gemini 1.5 Flash or OpenAI GPT-4o-mini with client-side API keys in localStorage. Supports 4 narrative styles (Saga, Chronicle, Mythos, Tragedy) in EN, VI, and FR.
+- **Deep Linking**: Shareable URLs with `?history=42` to auto-open specific world days or `?clan=7` to auto-open clan biographies.
+
 ## Irregularity & caste (§C)
 Mutated children's `irregularity` judged at `adult_age`: `≥euthanasia_threshold` → consumed (`euthanasia`), else demoted to Soldier. `CASTE_TRAITS` (`entities.py:39`) gives lifespan/speed/sight_mult/fertility. BC maps $asymmetry$ → $irregularity$ for same gate.
 
@@ -168,6 +177,15 @@ Flatland cung cấp 4 chế độ thấu kính bản đồ trực tiếp (chuy�
 - **3. Thấu kính Kỷ nguyên Thế hệ (`generations`)**: Phân loại dòng dõi theo thế hệ sinh sản ($gen$), thể hiện chiều sâu nhân khẩu học: Tổ phụ khai thiên (lam da trời, $gen \le 2$), thế hệ định cư tiên phong (lục bảo, $gen < 10$), dòng dõi hưng thịnh (oải hương tím, $gen < 25$), trưởng lão cổ xưa (hổ phách vàng, $gen < 50$) và huyết mạch nghìn năm (hoàng kim rực rỡ, $gen \ge 50$).
 - **4. Thấu kính Vương triều & Lãnh thổ Thị tộc (`dynasty`)**: Góc nhìn liên minh địa chính trị. Sinh vật quy thuộc gia tộc sẽ bừng sáng theo màu cờ hiệu đặc trưng của thị tộc, trong khi các cá thể lang thang không gia tộc mờ đi thành màu xám, phơi bày rõ ràng biên giới thị tộc và các nhóm bang hội khắp bản đồ.
 
+## Biên niên sử, Lịch sử Thế giới & AI Kể chuyện (§BM)
+Flatland trang bị hệ thống phân tích biên niên sử đa thời kỳ và trợ lý viết truyện AI toàn diện:
+- **Khoảnh khắc Then chốt & Nhảy mốc thời gian**: 5 ngày biến động lớn nhất (thương vong, thôn tính, ly khai) hiển thị dạng chip nhảy nhanh trên bảng biên niên. Cho phép gõ số tick để nhảy tức thì đến thời khắc lịch sử.
+- **Thanh Kỷ nguyên & Đồ thị Dân số**: Điều hướng dòng thời gian với các kỷ nguyên màu sắc (Khởi nguyên, Thời bộ lạc, Kỷ phong kiến, Cực thịnh, Suy vong) cùng biểu đồ dân số đánh dấu khủng hoảng chiến tranh và dịch bệnh.
+- **Bảng Kỷ lục & Huyền thoại**: Vinh danh Bộ tộc hiếu chiến nhất, Ngày đẫm máu nhất, Đế chế đông dân nhất, Kiến trúc sư Thần thánh dựng nhiều đền nhất, Đại biến ly khai và các cá thể Anh hùng / Kẻ phản nghịch tiêu biểu.
+- **Phân tích Lịch sử**: Ma trận Nhiệt Thù địch giữa các bộ tộc, Biểu đồ Nguyên nhân Tử vong theo kỷ nguyên 10 ngày và Chỉ số Đức tin theo dòng thời gian.
+- **Trình Viết truyện AI Tích hợp**: Trực tiếp tạo truyện dạng tiểu thuyết hoặc biên niên sử bằng Gemini 1.5 Flash hoặc OpenAI GPT-4o-mini với khóa API lưu riêng tại trình duyệt người dùng. Hỗ trợ 4 phong cách văn phong (Sử thi, Biên niên, Thần thoại, Bi kịch) bằng cả 3 ngôn ngữ EN, VI, FR.
+- **Liên kết Sâu & Thẻ Chia sẻ**: Hỗ trợ đường dẫn `?history=42` để mở trực tiếp ngày thứ 42 hoặc `?clan=7` để mở tiểu sử bộ tộc #7, cùng nút tải ảnh thẻ xã hội chuẩn 1200×630 PNG.
+
 ## Phân cấp đẳng cấp & Dị hình (§C)
 Đến tuổi trưởng thành, nếu mức độ bất đối xứng vượt ngưỡng (`euthanasia_threshold`), sinh vật sẽ bị xã hội đào thải tiêu hủy; nếu nhẹ hơn sẽ bị giáng cấp làm Binh lính thường. Bảng `CASTE_TRAITS` quy định tuổi thọ, tốc độ, tầm nhìn và độ màu mỡ của từng đẳng cấp.
 
@@ -255,6 +273,15 @@ Flatland propose 4 lentilles cartographiques en temps réel (accessibles via les
 - **2. Carte Thermique des Mutants & Aberrations (`mutants`)** : Carte thermique basée sur l'irrégularité morphologique ($irr$). Les citoyens réguliers s'estompent dans un gris discret ($<0,04$), tandis que les mutants irradient selon la gravité de leur déviation : Cyan ($0,04 \le irr < 0,12$, déviation mineure), Violet ($0,12 \le irr < 0,22$, aberration notable) et Rouge cramoisi ($irr \ge 0,22$, mutation sévère).
 - **3. Lentille des Époques Générationnelles (`generations`)** : Visualisation de la profondeur généalogique selon la génération ($gen$). Les créatures sont colorées sur une échelle temporelle : Fondateurs de la Genèse (bleu ciel, $gen \le 2$), pionniers d'expansion (vert émeraude, $gen < 10$), dynasties établies (lavande, $gen < 25$), anciens vénérables (or ambré, $gen < 50$) et lignées millénaires (jaune solaire vif, $gen \ge 50$).
 - **4. Lentille Dynastique & Territoriale des Clans (`dynasty`)** : Perspective des allégeances géopolitiques. Les créatures inféodées à un clan rayonnent aux couleurs sacrées de leur blason clanique, tandis que les solitaires sans clan deviennent gris neutre, traçant les frontières territoriales et les clans à travers le monde.
+
+## Histoire du Monde, Chroniques & Récits par IA (§BM)
+Flatland propose une suite historiographique, analytique et de génération de récits par IA :
+- **Moments Majeurs & Saut Temporel** : Les 5 jours les plus tumultueux (pertes, conquêtes, schismes) sont mis en avant au-dessus du flux chronologique. Possibilité de sauter instantanément à n'importe quel tick précis.
+- **Barre d'Époques & Courbe Démographique** : Navigation fluide à travers les ères de Flatland (Genèse, Âge des Tribus, Époque Féodale, Zénith Classique, Ère de Ruine) superposée d'indicateurs de conflits et de pandémies.
+- **Panthéon des Records & Légendes** : Classement historique des plus grandes victoires, du jour le plus meurtrier, du royaume le plus peuplé, des architectes divins et des héros/antagonistes célèbres.
+- **Analyses Historiques** : Matrice thermique des rivalités claniques, répartition des causes de mortalité par ères de 10 jours et indice de foi au fil du temps.
+- **Générateur de Récits IA Intégré** : Rédaction directe de sagas littéraires via Gemini 1.5 Flash ou OpenAI GPT-4o-mini avec clés API stockées localement dans le navigateur.
+- **Liens Profonds & Carte de Partage** : URLs partageables avec `?history=42` ou `?clan=7` et exportation de cartes récapitulatives haute résolution 1200×630 au format PNG.
 
 ## Hiérarchie des castes & Irrégularité (§C)
 À l'âge adulte, toute créature dont l'asymétrie excède le seuil de conformité est bannie ou euthanasiée pour préserver l'ordre géométrique d'Abbott. Les déviations légères entraînent une rétrogradation dans la caste militaire des Soldats.

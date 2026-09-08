@@ -433,6 +433,53 @@ export default function Inspector({ id, state, onClose, onNavigate, onSelectClan
   if ((e?.chill ?? 0) >= 12) statusChips.push({ text: t('inspector.chilled', { v: (e?.chill ?? 0).toFixed(1) }), cls: 'st-asleep' })
   if ((e?.scars ?? 0) > 0) statusChips.push({ text: `⚔ Veteran (${e?.scars} ${(e?.scars === 1 ? 'scar' : 'scars')})`, cls: 'st-starving' })
 
+  const [arcCopied, setArcCopied] = useState(false)
+
+  // BM-18: Named creature arc story prompt generator
+  const copyCreatureStoryArc = async () => {
+    if (!e) return
+    const name = e.personal_name ? `"${e.personal_name}"` : `Creature #${id}`
+    const caste = e.caste ?? 'Citizen'
+    const clan = e.clan_name ?? (e.clan_id != null ? `Clan #${e.clan_id}` : 'Independent Realm')
+    const events = (data?.events ?? []).slice()
+    const birthEv = events.find((ev) => ev.type === 'birth')
+    const deathEv = events.find((ev) => ev.type === 'death')
+    const promotions = events.filter((ev) => ev.type === 'promotion')
+    const kills = events.filter((ev) => ev.type === 'war' || ev.type === 'predation')
+    const offspringCount = fam?.children?.length ?? 0
+
+    const promptText = `# The Hero's Journey of ${name} (#${id})
+
+## Writing Objective:
+You are an epic bard in Flatland. Write a moving, dramatic character biography following the life, rise, trials, and legacy of this specific geometric creature.
+
+## Character Dossier:
+- **Identity**: ${name} #${id} ${e.glyph ?? ''} (${caste})
+- **Status**: ${e.alive ? 'Currently Living' : 'Deceased †'}
+- **Sex / Form**: ${e.shape === 'line' || e.sex === 'female' ? 'Woman (Razor-sharp line segment)' : `Man (${e.sides}-sided regular polygon)`}
+- **Dynasty**: ${clan}
+- **Generation**: Gen ${e.generation ?? 0}
+- **Lifespan**: Age ${Math.round(e.age ?? 0)} (Max: ${Math.round(e.lifespan ?? 100)})
+- **Offspring**: ${offspringCount} children
+${birthEv ? `- **Origin**: Born to Mother #${(birthEv.payload as any)?.mother ?? '?'} and Father #${(birthEv.payload as any)?.father ?? '?'} at tick ${birthEv.tick}.` : ''}
+${promotions.length > 0 ? `- **Ascent in Society**: Promoted ${promotions.length} time(s), rising to ${caste}.` : ''}
+${kills.length > 0 ? `- **Martial Exploits**: Involved in ${kills.length} combat/predation engagements.` : ''}
+${deathEv ? `- **Demise**: Died at tick ${deathEv.tick} due to ${deathEv.cause ?? 'unknown causes'}.` : ''}
+
+## Chronicle Milestones:
+${events.map((ev) => `- Tick ${ev.tick}: ${ev.type}${ev.caste ? ` (${ev.caste})` : ''}${ev.cause ? ` [cause: ${ev.cause}]` : ''}`).join('\n') || '- No major milestones recorded.'}
+
+## Writing Instructions:
+1. Portray the character's perspective within Abbott's rigid 2D geometric caste system.
+2. Weave their personal relationships, trials against hunger or frost, battles against rival clans, and their eventual fate into a dramatic narrative arc.
+`
+    try {
+      await navigator.clipboard.writeText(promptText)
+      setArcCopied(true)
+      setTimeout(() => setArcCopied(false), 2500)
+    } catch {}
+  }
+
   return (
     <aside className="inspector" data-snap={snap} onWheel={(e) => e.stopPropagation()}>
       <div
@@ -450,7 +497,27 @@ export default function Inspector({ id, state, onClose, onNavigate, onSelectClan
           {e?.title ? <span style={{ color: '#e3b341', fontSize: '0.85em', fontWeight: 600, background: 'rgba(227,179,65,0.12)', border: '1px solid #e3b341', borderRadius: 4, padding: '1px 5px' }}>{e.title}</span> : null}
           {e?.glyph ? <span title="soul-code glyph" style={{ fontSize: '0.9em' }}>{e.glyph}</span> : null}
         </h2>
-        <button type="button" className="insp-close-btn" onClick={onClose} aria-label={t('common.close')}>×</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {/* BM-18: Story Arc Prompt Copy Button */}
+          <button
+            type="button"
+            className="chip"
+            onClick={copyCreatureStoryArc}
+            style={{
+              background: arcCopied ? '#238636' : 'rgba(56, 139, 253, 0.15)',
+              borderColor: arcCopied ? '#2ea043' : 'rgba(56, 139, 253, 0.4)',
+              color: arcCopied ? '#fff' : '#58a6ff',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: 10.5,
+              padding: '2px 7px',
+            }}
+            title="Generate and copy single-creature Story Arc narrative prompt (BM-18)"
+          >
+            {arcCopied ? '✓ Copied!' : '📖 Story Arc'}
+          </button>
+          <button type="button" className="insp-close-btn" onClick={onClose} aria-label={t('common.close')}>×</button>
+        </div>
       </header>
 
       {e && (

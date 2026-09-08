@@ -172,7 +172,8 @@
       "age": "super-season Golden/Ice/Chaos/Plague bends food/mut/disease",
       "overview": "alive spark + caste/trophic graphs + ClanPanel + Plots; Chronicle below is history only",
       "tapCreature": "works at any zoom (44px hit radius), shows dossier left, gold halo + name glyph",
-      "controls": "space pause, S step, R reset, F fit, +/- zoom, drag pan, pinch zoom"
+      "controls": "space pause, S step, R reset, F fit, +/- zoom, drag pan, pinch zoom",
+      "historyChronicle": "H key or book icon opens World History with epoch timeline, records leaderboard, rivalry matrix, and in-app AI story generation."
     }
   },
   "god": {
@@ -363,6 +364,9 @@
     "subtitle": "Seed {{seed}} · {{days}} Days · {{alive}} alive",
     "tabs": {
       "timeline": "📅 Daily Chronicle ({{count}})",
+      "records": "🏆 Records & Legends",
+      "analytics": "📊 Analytics & Matrix",
+      "llm": "✨ In-App AI Writer",
       "ai": "🤖 AI Story",
       "all": "All Days",
       "war": "War Days",
@@ -653,7 +657,27 @@
     "tabAnnals": "Annals",
     "tabAnnalsShort": "Annals",
     "aliveShort": "alive",
-    "diplomaticIntel": "Diplomatic Intelligence"
+    "diplomaticIntel": "Diplomatic Intelligence",
+    "tabBiography": "Clan Biography & Heritage",
+    "tabBioShort": "Bio",
+    "loadingBio": "Loading clan biography...",
+    "activeClan": "Active Clan",
+    "extinctClan": "Extinct Clan",
+    "extinctionCause": "Extinction Cause",
+    "peakPop": "Peak Population",
+    "warfareRecord": "Warfare Record",
+    "schismsSplits": "Schisms & Splits",
+    "templesFounded": "Temples Founded",
+    "topRival": "Arch-Rival Clan",
+    "noRival": "None recorded",
+    "hallOfNotables": "Hall of Notables",
+    "champion": "Champion",
+    "noChampion": "Champion: No celebrated warrior recorded",
+    "antagonist": "Antagonist",
+    "noAntagonist": "Antagonist: No known traitor or assassin",
+    "genStoryPrompt": "📖 Generate Clan Chronicle Story Prompt",
+    "historicalEvents": "Historical Events",
+    "noBioData": "No biography data available."
   },
   "inspector": {
     "creature": "Creature",

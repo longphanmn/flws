@@ -66,16 +66,67 @@ function Bar({ label, value, max, color }: { label: string; value: number; max: 
   )
 }
 
-type TabKey = 'stronghold' | 'roster' | 'warfare' | 'annals'
+interface ClanBiographyData {
+  clan: {
+    id: number
+    name: string
+    color: string
+    totem: string | null
+    founder_id?: number
+    leader_id?: number | null
+    founded_tick?: number
+    peak_population?: number
+    current_population?: number
+    active?: boolean
+  }
+  epitaph?: {
+    clan_id: number
+    clan_name: string
+    totem: string | null
+    color: string
+    founded_tick: number
+    extinct_tick: number
+    peak_population: number
+    peak_tick: number
+    wars_fought: number
+    battles_won: number
+    temples_built: number
+    schisms_caused: number
+    extinction_cause: string | null
+  } | null
+  lifespan?: {
+    founded_day: number
+    extinct_day: number | null
+    active: boolean
+  }
+  stats: {
+    wars_fought: number
+    wars_won: number
+    schisms: number
+    temples_built: number
+    top_rival: string | null
+    peak_population?: number
+    extinction_cause?: string | null
+  }
+  notables?: {
+    hero?: { id: number; personal_name: string; title?: string; kill_count: number } | null
+    villain?: { id: number; name: string; deed: string } | null
+  }
+  recent_events?: any[]
+}
+
+type TabKey = 'stronghold' | 'roster' | 'warfare' | 'annals' | 'biography'
 
 export default function ClanDetails({
   clanId,
   state: _state,
+  initialTab,
   onClose,
   onSelectCreature,
 }: {
   clanId: number
   state?: any
+  initialTab?: TabKey
   onClose: () => void
   onSelectCreature?: (id: number) => void
 }) {
@@ -83,6 +134,10 @@ export default function ClanDetails({
   const [data, setData] = useState<ClanDetailsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [snap, setSnap] = useState<'peek' | 'half' | 'full'>('half')
+  const [copiedClanLink, setCopiedClanLink] = useState(false)
+  const [bioData, setBioData] = useState<ClanBiographyData | null>(null)
+  const [loadingBio, setLoadingBio] = useState(false)
+  const [storyCopied, setStoryCopied] = useState(false)
   const startYRef = useRef<number | null>(null)
   const snapRef = useRef(snap)
   useEffect(() => { snapRef.current = snap }, [snap])
@@ -105,17 +160,37 @@ export default function ClanDetails({
   }
   const cycleSnap = () => setSnap((s) => (s === 'peek' ? 'half' : s === 'half' ? 'full' : 'peek'))
   const [activeTab, setActiveTab] = useState<TabKey>(() => {
+    if (initialTab) return initialTab
     try {
       const s = sessionStorage.getItem('clan-tab') as TabKey | null
-      if (s && ['stronghold','roster','warfare','annals'].includes(s)) return s
+      if (s && ['stronghold','roster','warfare','annals','biography'].includes(s)) return s
     } catch {}
     return 'stronghold'
   })
   const [rosterFilter, setRosterFilter] = useState<'all'|'warriors'|'harvesters'|'elders'|'sick'>('all')
 
   useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab)
+    }
+  }, [initialTab])
+
+  useEffect(() => {
     try { sessionStorage.setItem('clan-tab', activeTab) } catch {}
   }, [activeTab])
+
+  useEffect(() => {
+    if (activeTab === 'biography' || !bioData) {
+      setLoadingBio(true)
+      fetch(`/api/clan/${clanId}/biography`)
+        .then((r) => r.json())
+        .then((d) => {
+          setBioData(d)
+          setLoadingBio(false)
+        })
+        .catch(() => setLoadingBio(false))
+    }
+  }, [clanId, activeTab])
 
   useEffect(() => {
     setLoading(true)
@@ -181,6 +256,36 @@ export default function ClanDetails({
     return true
   })
 
+  const generateClanStoryPrompt = () => {
+    if (!bioData) return
+    const c = bioData.clan
+    const s = bioData.stats
+    const l = bioData.lifespan
+    const n = bioData.notables
+    const prompt = [
+      `# Clan Chronicle: The Saga of ${c.name} (Clan #${c.id})`,
+      ``,
+      `Write a rich, immersive mythological saga chronicling the rise, trials, and legacy of Clan ${c.name} in Flatland.`,
+      ``,
+      `## Historical Profile:`,
+      `- Totem: ${c.totem ? `${c.totem} (${totemEmoji(c.totem)})` : 'None'}`,
+      `- Lifespan: Founded on Day ${l?.founded_day ?? 0}, ${l?.active ? 'thriving to the present day' : `met its doom on Day ${l?.extinct_day ?? '?'} due to ${s.extinction_cause || 'collapse'}`}`,
+      `- Peak Population: ${s.peak_population ?? c.peak_population ?? 'Unknown'} members at its zenith`,
+      `- Warfare: Fought in ${s.wars_fought} wars, victorious in ${s.wars_won} conflicts`,
+      `- Primary Rival: ${s.top_rival || 'None recognized'}`,
+      `- Spiritual Legacy: ${s.temples_built} holy temples erected`,
+      `- Internal Strife: Endured ${s.schisms} internal schisms and splits`,
+      n?.hero ? `- Legendary Champion: ${n.hero.personal_name}${n.hero.title ? ` the ${n.hero.title}` : ''} (#${n.hero.id}) with ${n.hero.kill_count} confirmed kills` : '',
+      n?.villain ? `- Infamous Antagonist: ${n.villain.name} (#${n.villain.id}) remembered for ${n.villain.deed}` : '',
+      ``,
+      `Narrate this history across 3 distinct eras: The Genesis & Founding, The Golden Age & Crucible of War, and the Enduring Legacy. Keep it cinematic and evocative.`
+    ].filter(Boolean).join('\n')
+
+    navigator.clipboard?.writeText(prompt)
+    setStoryCopied(true)
+    setTimeout(() => setStoryCopied(false), 2000)
+  }
+
   return (
     <aside className="inspector clan-inspector" data-snap={snap}>
       <div className="inspector-handle" role="button" aria-label="drag handle" onClick={cycleSnap} onTouchStart={handleDragStart} onTouchEnd={handleDragEnd} />
@@ -197,6 +302,29 @@ export default function ClanDetails({
                 {data.name}
               </h2>
               <span className="clan-id-tag">#{data.id}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  const url = `${window.location.origin}${window.location.pathname}?clan=${data.id}`
+                  navigator.clipboard?.writeText(url)
+                  setCopiedClanLink(true)
+                  setTimeout(() => setCopiedClanLink(false), 2000)
+                }}
+                style={{
+                  background: copiedClanLink ? '#238636' : 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid',
+                  borderColor: copiedClanLink ? '#2ea043' : '#30363d',
+                  color: copiedClanLink ? '#fff' : '#8b949e',
+                  borderRadius: 4,
+                  fontSize: 10.5,
+                  padding: '1px 6px',
+                  cursor: 'pointer',
+                  marginLeft: 4,
+                }}
+                title="Copy shareable link for this clan (BM-20)"
+              >
+                {copiedClanLink ? '✓ Link Copied' : '🔗 Share'}
+              </button>
             </div>
             <div className="clan-hero-sub">
               <span>{t('clanDetails.founded', { day: data.founded_day ?? Math.floor((data.born_tick ?? 0)/1200) })}</span>
@@ -237,7 +365,7 @@ export default function ClanDetails({
         </div>
       </div>
 
-      {/* 4-Tab Codex */}
+      {/* 5-Tab Codex */}
       <div className="insp-tabs">
         {(
           [
@@ -246,6 +374,12 @@ export default function ClanDetails({
               icon: '🏰',
               short: t('clanDetails.tabStrongholdShort') !== 'clanDetails.tabStrongholdShort' ? t('clanDetails.tabStrongholdShort') : 'Stronghold',
               full: t('clanDetails.tabStronghold') !== 'clanDetails.tabStronghold' ? t('clanDetails.tabStronghold') : 'Stronghold',
+            },
+            {
+              key: 'biography',
+              icon: '🏛️',
+              short: t('clanDetails.tabBioShort') !== 'clanDetails.tabBioShort' ? t('clanDetails.tabBioShort') : 'Bio',
+              full: t('clanDetails.tabBiography') !== 'clanDetails.tabBiography' ? t('clanDetails.tabBiography') : 'Clan Biography & Heritage',
             },
             {
               key: 'roster',
@@ -310,6 +444,123 @@ export default function ClanDetails({
             </div>
           )}
           {data.culture && <div style={{ background: 'rgba(22,27,34,0.6)', padding: '6px 8px', borderRadius: 6, border: '1px solid #30363d', fontSize: 12, color: '#e6edf3' }}>🎭 {data.culture}</div>}
+        </div>
+      )}
+
+      {activeTab === 'biography' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {loadingBio && !bioData ? (
+            <p className="chip" style={{ margin: '8px 0' }}>{t('clanDetails.loadingBio') !== 'clanDetails.loadingBio' ? t('clanDetails.loadingBio') : 'Loading clan biography...'}</p>
+          ) : bioData ? (
+            <>
+              {/* Lifespan & Status Banner */}
+              <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#e6edf3' }}>
+                    {bioData.lifespan?.active ? `🌟 ${t('clanDetails.activeClan') !== 'clanDetails.activeClan' ? t('clanDetails.activeClan') : 'Active Clan'}` : `💀 ${t('clanDetails.extinctClan') !== 'clanDetails.extinctClan' ? t('clanDetails.extinctClan') : 'Extinct Clan'}`}
+                  </span>
+                  <span className="chip" style={{ fontSize: 11, background: bioData.lifespan?.active ? 'rgba(63,185,80,0.15)' : 'rgba(248,81,73,0.15)', color: bioData.lifespan?.active ? '#3fb950' : '#f85149', fontWeight: 600 }}>
+                    {bioData.lifespan?.active
+                      ? `Day ${bioData.lifespan.founded_day} – Present`
+                      : `Day ${bioData.lifespan?.founded_day ?? 0} – Day ${bioData.lifespan?.extinct_day ?? '?'}`}
+                  </span>
+                </div>
+                {bioData.stats.extinction_cause && (
+                  <div style={{ fontSize: 11, color: '#f85149' }}>
+                    <b>{t('clanDetails.extinctionCause') !== 'clanDetails.extinctionCause' ? t('clanDetails.extinctionCause') : 'Extinction Cause'}:</b> {bioData.stats.extinction_cause}
+                  </div>
+                )}
+              </div>
+
+              {/* Clan Heritage Metrics Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                <div className="chip" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '6px 10px', gap: 2 }}>
+                  <span style={{ fontSize: 10, color: '#8b949e', textTransform: 'uppercase' }}>{t('clanDetails.peakPop') !== 'clanDetails.peakPop' ? t('clanDetails.peakPop') : 'Peak Population'}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#e6edf3' }}>{bioData.stats.peak_population ?? data.population} members</span>
+                </div>
+                <div className="chip" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '6px 10px', gap: 2 }}>
+                  <span style={{ fontSize: 10, color: '#8b949e', textTransform: 'uppercase' }}>{t('clanDetails.warfareRecord') !== 'clanDetails.warfareRecord' ? t('clanDetails.warfareRecord') : 'Warfare Record'}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#ff7b72' }}>{bioData.stats.wars_fought} wars ({bioData.stats.wars_won} won)</span>
+                </div>
+                <div className="chip" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '6px 10px', gap: 2 }}>
+                  <span style={{ fontSize: 10, color: '#8b949e', textTransform: 'uppercase' }}>{t('clanDetails.schismsSplits') !== 'clanDetails.schismsSplits' ? t('clanDetails.schismsSplits') : 'Schisms & Splits'}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#e3b341' }}>{bioData.stats.schisms}</span>
+                </div>
+                <div className="chip" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '6px 10px', gap: 2 }}>
+                  <span style={{ fontSize: 10, color: '#8b949e', textTransform: 'uppercase' }}>{t('clanDetails.templesFounded') !== 'clanDetails.templesFounded' ? t('clanDetails.templesFounded') : 'Temples Founded'}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#58a6ff' }}>{bioData.stats.temples_built}</span>
+                </div>
+              </div>
+
+              {/* Top Rival */}
+              <div style={{ background: 'rgba(22,27,34,0.6)', border: '1px solid #30363d', borderRadius: 8, padding: '8px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: '#8b949e', textTransform: 'uppercase' }}>{t('clanDetails.topRival') !== 'clanDetails.topRival' ? t('clanDetails.topRival') : 'Arch-Rival Clan'}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: bioData.stats.top_rival ? '#ff7b72' : '#8b949e' }}>
+                  {bioData.stats.top_rival ? `⚔️ ${bioData.stats.top_rival}` : (t('clanDetails.noRival') !== 'clanDetails.noRival' ? t('clanDetails.noRival') : 'None recorded')}
+                </span>
+              </div>
+
+              {/* Hall of Notables (Hero & Villain) */}
+              <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ fontSize: 11, color: '#8b949e', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('clanDetails.hallOfNotables') !== 'clanDetails.hallOfNotables' ? t('clanDetails.hallOfNotables') : 'Hall of Notables'}</div>
+                {bioData.notables?.hero ? (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11 }}>
+                    <span>🗡️ {t('clanDetails.champion') !== 'clanDetails.champion' ? t('clanDetails.champion') : 'Champion'}: <button type="button" onClick={() => onSelectCreature?.(bioData.notables!.hero!.id)} style={{ background: 'none', border: 'none', color: '#58a6ff', cursor: 'pointer', fontWeight: 600, padding: 0 }}>{bioData.notables.hero.personal_name} (#{bioData.notables.hero.id}) ↗</button></span>
+                    <span className="chip" style={{ color: '#ff7b72', fontWeight: 600 }}>{bioData.notables.hero.kill_count} kills</span>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 11, color: '#8b949e' }}>🗡️ {t('clanDetails.noChampion') !== 'clanDetails.noChampion' ? t('clanDetails.noChampion') : 'Champion: No celebrated warrior recorded'}</div>
+                )}
+                {bioData.notables?.villain ? (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11 }}>
+                    <span>🐍 {t('clanDetails.antagonist') !== 'clanDetails.antagonist' ? t('clanDetails.antagonist') : 'Antagonist'}: {bioData.notables.villain.id ? <button type="button" onClick={() => onSelectCreature?.(bioData.notables!.villain!.id)} style={{ background: 'none', border: 'none', color: '#f85149', cursor: 'pointer', fontWeight: 600, padding: 0 }}>{bioData.notables.villain.name} (#{bioData.notables.villain.id}) ↗</button> : bioData.notables.villain.name}</span>
+                    <span className="chip" style={{ color: '#f85149', fontWeight: 600 }}>{bioData.notables.villain.deed}</span>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 11, color: '#8b949e' }}>🐍 {t('clanDetails.noAntagonist') !== 'clanDetails.noAntagonist' ? t('clanDetails.noAntagonist') : 'Antagonist: No known traitor or assassin'}</div>
+                )}
+              </div>
+
+              {/* AI Clan Saga Generator Button */}
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={generateClanStoryPrompt}
+                  className="chip"
+                  style={{
+                    flex: 1,
+                    background: storyCopied ? '#238636' : 'rgba(56, 139, 253, 0.15)',
+                    borderColor: storyCopied ? '#2ea043' : 'rgba(56, 139, 253, 0.4)',
+                    color: storyCopied ? '#fff' : '#58a6ff',
+                    cursor: 'pointer',
+                    fontSize: 11,
+                    padding: '6px 10px',
+                    fontWeight: 600,
+                    textAlign: 'center',
+                  }}
+                  title="Generate rich AI story prompt for this clan's chronicle"
+                >
+                  {storyCopied ? '✓ Prompt Copied to Clipboard!' : (t('clanDetails.genStoryPrompt') !== 'clanDetails.genStoryPrompt' ? t('clanDetails.genStoryPrompt') : '📖 Generate Clan Chronicle Story Prompt')}
+                </button>
+              </div>
+
+              {/* Clan Chronicles Feed */}
+              {bioData.recent_events && bioData.recent_events.length > 0 && (
+                <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: 6, padding: '6px 8px' }}>
+                  <div style={{ fontSize: 11, color: '#8b949e', textTransform: 'uppercase', marginBottom: 4 }}>{t('clanDetails.historicalEvents') !== 'clanDetails.historicalEvents' ? t('clanDetails.historicalEvents') : 'Historical Events'}</div>
+                  <ul className="insp-events" style={{ maxHeight: 160, overflowY: 'auto', margin: 0, padding: 0 }}>
+                    {bioData.recent_events.map((ev: any, i: number) => (
+                      <li key={i} className={`ev-${ev.type}`} style={{ fontSize: 11.5 }}>
+                        Day {Math.floor(ev.tick / 1200)} (tick {ev.tick}): <b>{ev.type}</b> {ev.payload?.a_name && ev.payload?.b_name ? `· ${ev.payload.a_name} vs ${ev.payload.b_name}` : ''} {ev.payload?.detail || ''}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="chip" style={{ margin: '8px 0' }}>{t('clanDetails.noBioData') !== 'clanDetails.noBioData' ? t('clanDetails.noBioData') : 'No biography data available.'}</p>
+          )}
         </div>
       )}
 

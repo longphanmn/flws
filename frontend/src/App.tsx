@@ -76,7 +76,20 @@ export default function App() {
   })
   const [helpOpen, setHelpOpen] = useState(false)
   const [wikiOpen, setWikiOpen] = useState(false)
-  const [worldHistoryOpen, setWorldHistoryOpen] = useState(false)
+  const [historyInitialDay] = useState<number | null>(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search).get('history')
+      if (p !== null && !isNaN(Number(p))) return Number(p)
+    }
+    return null
+  })
+  const [worldHistoryOpen, setWorldHistoryOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search).get('history')
+      if (p !== null && !isNaN(Number(p))) return true
+    }
+    return false
+  })
   const [analyticsOpen, setAnalyticsOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768)
   const [statusExpanded, setStatusExpanded] = useState(false)
@@ -101,7 +114,20 @@ export default function App() {
   const [versionInfo, setVersionInfo] = useState<{ version: string; revision: string } | null>(null)
   const [log, setLog] = useState<HistoryEvent[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
-  const [selectedClanId, setSelectedClanId] = useState<number | null>(null)
+  const [initialClanTab, setInitialClanTab] = useState<'stronghold' | 'roster' | 'warfare' | 'annals' | 'biography' | undefined>(() => {
+    if (typeof window !== 'undefined') {
+      const c = new URLSearchParams(window.location.search).get('clan')
+      if (c !== null && !isNaN(Number(c))) return 'biography'
+    }
+    return undefined
+  })
+  const [selectedClanId, setSelectedClanId] = useState<number | null>(() => {
+    if (typeof window !== 'undefined') {
+      const c = new URLSearchParams(window.location.search).get('clan')
+      if (c !== null && !isNaN(Number(c))) return Number(c)
+    }
+    return null
+  })
   const [showWorldEnd, setShowWorldEnd] = useState(false)
   const [aliveHist, setAliveHist] = useState<number[]>([])
   const [worlds, setWorlds] = useState<WorldSummary[]>([])
@@ -128,8 +154,9 @@ export default function App() {
     }
   }
 
-  const selectClan = (cid: number | null) => {
+  const selectClan = (cid: number | null, tab?: 'stronghold' | 'roster' | 'warfare' | 'annals' | 'biography') => {
     setSelectedClanId(cid)
+    if (tab) setInitialClanTab(tab)
     if (cid !== null) {
       setSelectedId(null)
     }
@@ -1282,7 +1309,16 @@ export default function App() {
         </div>
       )}
       {selectedClanId !== null && (
-        <ClanDetails clanId={selectedClanId} state={state} onClose={() => setSelectedClanId(null)} onSelectCreature={selectCreature} />
+        <ClanDetails
+          clanId={selectedClanId}
+          state={state}
+          initialTab={initialClanTab}
+          onClose={() => {
+            setSelectedClanId(null)
+            setInitialClanTab(undefined)
+          }}
+          onSelectCreature={selectCreature}
+        />
       )}
       {showWorldEnd && state && (
         <WorldEndSummary
@@ -1295,10 +1331,11 @@ export default function App() {
       <WorldHistoryModal
         open={worldHistoryOpen}
         onClose={() => setWorldHistoryOpen(false)}
+        initialDay={historyInitialDay}
         state={state}
         worlds={worlds}
         selectedRunId={selectedRunId}
-        onSelectClan={selectClan}
+        onSelectClan={(cid) => selectClan(cid, 'biography')}
         onSelectCreature={selectCreature}
       />
       <ConfirmModal open={resetConfirmOpen} onClose={() => setResetConfirmOpen(false)} onConfirm={doReset} />
@@ -1325,6 +1362,7 @@ export default function App() {
               <li><b>{t('app.rightStack.overview')}</b>: {t('app.hintsModal.overview')}</li>
               <li><b>{t('app.hintsModal.tapCreature').split(':')[0] || 'Tap creature'}</b>: {t('app.hintsModal.tapCreature')}</li>
               <li><b>{t('app.hintsModal.controls').split(':')[0] || 'Controls'}</b>: {t('app.hintsModal.controls')}</li>
+              <li><b>{t('app.topNav.history')}</b>: {t('app.hintsModal.historyChronicle')}</li>
             </ul>
           </div>
         </div>
