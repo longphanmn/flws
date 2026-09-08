@@ -35,6 +35,32 @@ const newestFirst = (a: HistoryEvent, b: HistoryEvent) =>
 /** "2026-08-22T06:47:01+00:00" → "06:47" for compact run labels. */
 const fmtStart = (iso: string) => iso.slice(11, 16) || iso
 
+const LENS_COOKIE_KEY = 'fl_lens_mode'
+const VALID_LENS_MODES: readonly LensMode[] = ['classic', 'mutants', 'generations', 'dynasty'] as const
+
+function getLensCookie(): LensMode {
+  if (typeof document === 'undefined') return 'classic'
+  try {
+    const match = document.cookie.match(new RegExp('(?:^|; )' + LENS_COOKIE_KEY + '=([^;]*)'))
+    if (match) {
+      const val = decodeURIComponent(match[1]) as LensMode
+      if (VALID_LENS_MODES.includes(val)) return val
+    }
+    const local = localStorage.getItem(LENS_COOKIE_KEY) as LensMode
+    if (local && VALID_LENS_MODES.includes(local)) return local
+  } catch {}
+  return 'classic'
+}
+
+function setLensCookie(mode: LensMode): void {
+  if (typeof document === 'undefined') return
+  try {
+    const maxAge = 365 * 24 * 60 * 60
+    document.cookie = `${LENS_COOKIE_KEY}=${encodeURIComponent(mode)}; path=/; max-age=${maxAge}; SameSite=Lax`
+    localStorage.setItem(LENS_COOKIE_KEY, mode)
+  } catch {}
+}
+
 export default function App() {
   const { t, lang, setLang } = useI18n()
   const [status, setStatus] = useState<ConnStatus>('connecting')
@@ -83,7 +109,10 @@ export default function App() {
   const [selectedRunId, setSelectedRunId] = useState<number | null>(null)
   const [loadingOlder, setLoadingOlder] = useState(false)
   const [noMoreHistory, setNoMoreHistory] = useState(false)
-  const [lensMode, setLensMode] = useState<LensMode>('classic')
+  const [lensMode, setLensMode] = useState<LensMode>(() => getLensCookie())
+  useEffect(() => {
+    setLensCookie(lensMode)
+  }, [lensMode])
   const [lensHintOpen, setLensHintOpen] = useState(false)
 
   /** §Y clan display name from live state, falling back to bare #id. */
