@@ -1325,26 +1325,28 @@ function GodPanelInner({ open, onClose }: Props) {
 
       {/* Primary Action Dock */}
       <div className="god-foot-main-row">
-        <button
-          type="button"
-          className="god-foot-action-btn god-foot-apply"
-          onClick={apply}
-          disabled={submitting}
-          title={t('god.footer.applyDesc')}
-        >
-          <span className="god-foot-btn-icon">⚡</span>
-          <span className="god-foot-btn-label">{t('god.footer.apply')}</span>
-        </button>
-        <button
-          type="button"
-          className="god-foot-action-btn god-foot-save god-save"
-          onClick={save}
-          disabled={submitting}
-          title={t('god.footer.saveDesc')}
-        >
-          <span className="god-foot-btn-icon">💾</span>
-          <span className="god-foot-btn-label">{t('god.footer.save')}</span>
-        </button>
+        <div className="god-foot-secondary-actions">
+          <button
+            type="button"
+            className="god-foot-action-btn god-foot-apply"
+            onClick={apply}
+            disabled={submitting}
+            title={t('god.footer.applyDesc')}
+          >
+            <span className="god-foot-btn-icon">⚡</span>
+            <span className="god-foot-btn-label">{t('god.footer.apply')}</span>
+          </button>
+          <button
+            type="button"
+            className="god-foot-action-btn god-foot-save god-save"
+            onClick={save}
+            disabled={submitting}
+            title={t('god.footer.saveDesc')}
+          >
+            <span className="god-foot-btn-icon">💾</span>
+            <span className="god-foot-btn-label">{t('god.footer.save')}</span>
+          </button>
+        </div>
         <button
           type="button"
           className="god-foot-action-btn god-foot-apply-reset"

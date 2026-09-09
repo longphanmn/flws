@@ -3604,10 +3604,10 @@ def _clan_details(clan_id: int) -> dict:
 
 
 @app.get("/api/clans")
-async def get_clans() -> dict:
+async def get_clans(include_extinct: bool = False) -> dict:
     """Clan roster with lineage, territory and war record."""
     # AZ Phase 1 P0/P1: refresh frozen cache on HTTP serve; lock for build
-    cached = getattr(RT, "_cached_clans_payload", None)
+    cached = getattr(RT, "_cached_clans_payload", None) if not include_extinct else None
     if cached is not None:
         # also refresh if tick drifted >10 ticks since cache (stale while no WS clients)
         try:
@@ -3618,15 +3618,16 @@ async def get_clans() -> dict:
             pass
     with RT.lock:
         try:
-            payload = _clans_payload()
-            RT._cached_clans_payload = payload  # type: ignore
+            payload = _clans_payload(include_extinct=include_extinct)
+            if not include_extinct:
+                RT._cached_clans_payload = payload  # type: ignore
             return payload
         except Exception:
             RT._cached_clans_payload = None  # type: ignore
             raise
 
 
-def _clans_payload(sim: Simulation | None = None) -> dict:
+def _clans_payload(sim: Simulation | None = None, include_extinct: bool = False) -> dict:
     sim = sim or RT.sim
     # live clan dict + live population + house territory + war history
     # N150: limit to top 100 alive clans to avoid 1.5MB/5s at 4000 clans
@@ -3645,6 +3646,7 @@ def _clans_payload(sim: Simulation | None = None) -> dict:
     # §X clan memory — only for top 50 alive clans to avoid 4000× overhead
     alive_cids = [cid for cid, pop in pop_by_clan.items() if pop > 0]
     alive_cids.sort(key=lambda cid: -pop_by_clan.get(cid, 0))
+    show_all = include_extinct or len(alive_cids) == 0
     top_cids = set(alive_cids[:50])
     knowledge_by_clan = {}
     if sim.config.knowledge_enabled and top_cids:
@@ -3654,9 +3656,9 @@ def _clans_payload(sim: Simulation | None = None) -> dict:
     clans = []
     for cid, info in sim.clans.items():
         pop = pop_by_clan.get(cid, 0)
-        if pop == 0:
+        if pop == 0 and not show_all:
             continue  # skip ghost clans (exile/schism remnants) — saves 1.5MB
-        if cid not in top_cids and len(clans) >= 100:
+        if cid not in top_cids and len(clans) >= 100 and not show_all:
             continue
         house = houses_by_clan.get(cid)
         clans.append({
@@ -3692,8 +3694,11 @@ def _clans_payload(sim: Simulation | None = None) -> dict:
             "task_board": info.get("task_board", {}),  # §AL
         })
 
-    # sort by population desc and cap at 100
-    clans.sort(key=lambda c: (-c["population"], c["id"]))
+    # sort by population desc, then war wins, then dead_count
+    if show_all:
+        clans.sort(key=lambda c: (-c["population"], -c["war_wins"], -c.get("dead_count", 0), c["id"]))
+    else:
+        clans.sort(key=lambda c: (-c["population"], c["id"]))
     clans = clans[:100]
     names = {str(cid): info.get("name") for cid, info in sim.clans.items() if info.get("name")}
     return {"clans": clans, "names": names, "tick": sim.tick}

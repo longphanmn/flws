@@ -937,7 +937,22 @@
     "historyExport": "📜 Histoire du monde & Export du récit",
     "reset": "🔄 Réinitialiser le monde — Nouvelle graine",
     "close": "Fermer",
-    "note": "Le monde a sombré dans le silence. Dieu peut fixer de nouvelles lois ou réinitialiser avec une nouvelle graine. L'histoire demeure consultable dans /api/history et /api/worlds."
+    "note": "Le monde a sombré dans le silence. Dieu peut fixer de nouvelles lois ou réinitialiser avec une nouvelle graine. L'histoire demeure consultable dans /api/history et /api/worlds.",
+    "chronicleLegends": "Légendes & Records de la Chronique",
+    "longestSurviving": "⏳ Clan le plus résistant",
+    "longestSurvivingDesc": "A survécu {{days}} jours (Jour {{start}} → Jour {{end}})",
+    "biggestClan": "👑 Plus grand empire",
+    "biggestClanDesc": "{{count}} membres au total enregistrés",
+    "mostWonClan": "⚔️ Souverain de guerre",
+    "mostWonDesc": "{{wins}} victoires ({{wins}}V / {{losses}}D)",
+    "lastStanding": "🕯️ Dernier souffle vivant",
+    "lastStandingDesc": "{{name}} ({{clan}}) a péri au Jour {{day}} ({{cause}})",
+    "deadliestDay": "💀 Journée la plus meurtrière",
+    "deadliestDayDesc": "Jour {{day}} avec {{count}} victimes",
+    "primaryCause": "Cause principale d'extinction",
+    "extinctionBreakdown": "Répartition des causes de décès",
+    "historyBtn": "Histoire du monde & Export du récit",
+    "resetBtn": "Réinitialiser le monde — Nouvelle graine"
   },
   "auth": {
     "wrongPasskey": "Clé secrète invalide — la réinitialisation se fait sur le terminal serveur (python -m app.godkey reset <clé>)",

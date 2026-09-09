@@ -937,7 +937,22 @@
     "historyExport": "📜 World History & Story Export",
     "reset": "🔄 Reset World — New Seed",
     "close": "Close",
-    "note": "The world has fallen silent. God may set new laws or reset for a fresh seed. History remains in /api/history and /api/worlds."
+    "note": "The world has fallen silent. God may set new laws or reset for a fresh seed. History remains in /api/history and /api/worlds.",
+    "chronicleLegends": "Chronicle Records & Legends",
+    "longestSurviving": "⏳ Longest Surviving Clan",
+    "longestSurvivingDesc": "Endured {{days}} days (Day {{start}} → Day {{end}})",
+    "biggestClan": "👑 Greatest Realm (Most Members)",
+    "biggestClanDesc": "{{count}} total members recorded",
+    "mostWonClan": "⚔️ Sovereign of War (Most Victories)",
+    "mostWonDesc": "{{wins}} victories ({{wins}}W / {{losses}}L)",
+    "lastStanding": "🕯️ Final Living Soul",
+    "lastStandingDesc": "{{name}} ({{clan}}) perished on Day {{day}} ({{cause}})",
+    "deadliestDay": "💀 Deadliest Day",
+    "deadliestDayDesc": "Day {{day}} with {{count}} casualties",
+    "primaryCause": "Primary Cause of Extinction",
+    "extinctionBreakdown": "Mortality & Causes Breakdown",
+    "historyBtn": "World History & Story Export",
+    "resetBtn": "Reset World — New Seed"
   },
   "auth": {
     "wrongPasskey": "Wrong passkey — reset must be done in backend terminal (python -m app.godkey reset <key>)",

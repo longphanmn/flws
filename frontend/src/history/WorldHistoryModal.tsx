@@ -1012,24 +1012,35 @@ ${langInstruction}
         {/* Header */}
         <header className="history-modal-head">
           <div className="history-head-title-wrap">
-            <span className="history-head-icon">📜</span>
-            <div>
-              <h2 className="history-head-title">
-                {t('history.title')}
-              </h2>
-              <div className="history-head-subtitle">
-                {t('history.subtitle', { seed: state?.seed ?? 42, days: dayRecords.length, alive: state?.creatures_alive ?? 0 })}
+            <div className="history-head-title-left">
+              <span className="history-head-icon">📜</span>
+              <div>
+                <h2 className="history-head-title">
+                  {t('history.title')}
+                </h2>
+                <div className="history-head-subtitle">
+                  {t('history.subtitle', { seed: state?.seed ?? 42, days: dayRecords.length, alive: state?.creatures_alive ?? 0 })}
+                </div>
               </div>
             </div>
-            {isMobile && (
+            <div className="history-head-title-actions">
               <button
-                className="history-close-btn"
+                type="button"
+                className="history-tool-btn history-share-btn-mobile"
+                onClick={handleShareCard}
+                title={t('history.actions.shareCardTooltip') || 'Download 1200x630 share card PNG'}
+              >
+                <span>📸</span>
+                <span className="history-tool-label">{t('history.actions.shareCard') || 'Share'}</span>
+              </button>
+              <button
+                className="history-close-btn history-close-btn-mobile"
                 onClick={onClose}
                 aria-label={t('history.close') || 'Close'}
               >
                 ✕
               </button>
-            )}
+            </div>
           </div>
 
           <div className="history-head-controls">
@@ -1088,16 +1099,14 @@ ${langInstruction}
                 <span className="history-tool-label">{t('history.actions.shareCard') || 'Share'}</span>
               </button>
 
-              {!isMobile && (
-                <button
-                  type="button"
-                  className="history-close-btn"
-                  onClick={onClose}
-                  aria-label={t('history.close') || 'Close'}
-                >
-                  ✕
-                </button>
-              )}
+              <button
+                type="button"
+                className="history-close-btn"
+                onClick={onClose}
+                aria-label={t('history.close') || 'Close'}
+              >
+                ✕
+              </button>
             </div>
           </div>
         </header>
@@ -1253,59 +1262,49 @@ ${langInstruction}
                           transition: 'background 0.15s',
                         }}
                       >
-                        {/* One-Line Day Row */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 auto', minWidth: 0 }}>
-                            {/* BM-7: Star pin button */}
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                togglePinDay(d.day)
-                              }}
-                              style={{
-                                background: 'transparent',
-                                border: 'none',
-                                cursor: 'pointer',
-                                fontSize: 14,
-                                padding: '0 2px',
-                                lineHeight: 1,
-                                flexShrink: 0,
-                              }}
-                              title={isPinned ? t('history.actions.unpinDay') : t('history.actions.pinDay')}
-                            >
-                              {isPinned ? '⭐' : '☆'}
-                            </button>
+                        {/* Day Row (vertical layout on mobile, horizontal on desktop) */}
+                        <div className="history-day-row">
+                          <div className="history-day-meta-line">
+                            <div className="history-day-badges">
+                              {/* BM-7: Star pin button */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  togglePinDay(d.day)
+                                }}
+                                className="history-pin-btn"
+                                title={isPinned ? t('history.actions.unpinDay') : t('history.actions.pinDay')}
+                              >
+                                {isPinned ? '⭐' : '☆'}
+                              </button>
 
-                            <span
-                              className="chip"
-                              style={{
-                                background: isPinned ? 'rgba(56,139,253,0.2)' : '#21262d',
-                                color: isPinned ? '#58a6ff' : '#e3b341',
-                                fontWeight: 700,
-                                fontSize: 11,
-                                padding: '2px 8px',
-                                flexShrink: 0,
-                              }}
-                            >
-                              {t('history.dayNumber', { day: d.day })}
-                            </span>
-                            <span style={{ fontSize: 16, flexShrink: 0 }}>{d.primaryIcon}</span>
-                            <span
-                              style={{
-                                color: '#e6edf3',
-                                fontSize: 12,
-                                fontWeight: 500,
-                                lineHeight: 1.4,
-                                minWidth: 0,
-                                overflowWrap: 'anywhere',
-                                wordBreak: 'break-word',
-                              }}
-                            >
-                              {d.summaryLine}
+                              <span
+                                className="chip"
+                                style={{
+                                  background: isPinned ? 'rgba(56,139,253,0.2)' : '#21262d',
+                                  color: isPinned ? '#58a6ff' : '#e3b341',
+                                  fontWeight: 700,
+                                  fontSize: 11,
+                                  padding: '2px 8px',
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {t('history.dayNumber', { day: d.day })}
+                              </span>
+                              <span style={{ fontSize: 16, flexShrink: 0 }}>{d.primaryIcon}</span>
+                            </div>
+
+                            <span className="history-day-expand-chevron mobile-only">
+                              {isExpanded ? '▲' : '▼'}
                             </span>
                           </div>
-                          <span style={{ fontSize: 11, color: '#8b949e', flex: 'none', marginLeft: 4 }}>
+
+                          <span className="history-day-summary-text">
+                            {d.summaryLine}
+                          </span>
+
+                          <span className="history-day-expand-chevron desktop-only">
                             {isExpanded ? '▲' : '▼'}
                           </span>
                         </div>

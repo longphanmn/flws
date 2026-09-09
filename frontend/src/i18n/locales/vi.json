@@ -937,7 +937,22 @@
     "historyExport": "📜 Lịch sử thế giới & Xuất truyện",
     "reset": "🔄 Khởi tạo lại — Tạo Seed mới",
     "close": "Đóng",
-    "note": "Đại địa đã hoàn toàn chìm vào cõi tĩnh lặng. Đấng Sáng Tạo có thể ban bố luật mới hoặc đặt lại để mở ra một thế giới mới. Toàn bộ lịch sử vẫn được lưu trữ tại /api/history và /api/worlds."
+    "note": "Đại địa đã hoàn toàn chìm vào cõi tĩnh lặng. Đấng Sáng Tạo có thể ban bố luật mới hoặc đặt lại để mở ra một thế giới mới. Toàn bộ lịch sử vẫn được lưu trữ tại /api/history và /api/worlds.",
+    "chronicleLegends": "Kỷ lục & Huyền thoại Biên niên sử",
+    "longestSurviving": "⏳ Thị tộc trường tồn nhất",
+    "longestSurvivingDesc": "Trường tồn {{days}} ngày (Ngày {{start}} → Ngày {{end}})",
+    "biggestClan": "👑 Vương triều hùng mạnh nhất",
+    "biggestClanDesc": "{{count}} thành viên ghi nhận trong lịch sử",
+    "mostWonClan": "⚔️ Bá chủ chiến tranh (Thắng nhiều nhất)",
+    "mostWonDesc": "{{wins}} trận thắng ({{wins}}T / {{losses}}B)",
+    "lastStanding": "🕯️ Sinh linh cuối cùng",
+    "lastStandingDesc": "{{name}} ({{clan}}) tử vong vào Ngày {{day}} ({{cause}})",
+    "deadliestDay": "💀 Ngày đẫm máu nhất",
+    "deadliestDayDesc": "Ngày {{day}} với {{count}} sinh mệnh ngã xuống",
+    "primaryCause": "Nguyên nhân tuyệt diệt chính",
+    "extinctionBreakdown": "Chi tiết nguyên nhân tử vong",
+    "historyBtn": "Lịch sử thế giới & Xuất truyện",
+    "resetBtn": "Khởi tạo lại — Tạo Seed mới"
   },
   "auth": {
     "wrongPasskey": "Mật mã không đúng — việc đặt lại mật mã chỉ có thể thực hiện từ máy chủ backend (python -m app.godkey reset <key>)",

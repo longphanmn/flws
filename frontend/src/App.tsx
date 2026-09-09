@@ -798,7 +798,7 @@ export default function App() {
           )}
           <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
             <button className="god-btn" onClick={() => { setStatusExpanded(false); setWorldHistoryOpen(true); }} style={{ flex: 1, minHeight: 34, fontSize: 12 }}>
-              📜 {t('history.tabs.timeline') ? t('history.tabs.timeline').split(' ')[1] || 'History' : 'History'}
+              📜 {t('history.title') || 'World History'}
             </button>
             <button className="god-btn" onClick={() => { setStatusExpanded(false); setWikiOpen(true); }} style={{ flex: 1, minHeight: 34, fontSize: 12 }}>
               📖 {t('wiki.open') || 'Wiki'}
@@ -1325,7 +1325,7 @@ export default function App() {
           state={state}
           onReset={() => { sendReset(); setShowWorldEnd(false) }}
           onClose={() => setShowWorldEnd(false)}
-          onOpenWorldHistory={() => setWorldHistoryOpen(true)}
+          onOpenWorldHistory={() => { setShowWorldEnd(false); setWorldHistoryOpen(true); }}
         />
       )}
       <WorldHistoryModal
