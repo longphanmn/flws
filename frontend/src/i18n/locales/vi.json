@@ -639,6 +639,7 @@
     "docGuide": "Living Guide (/guide) — Kiến trúc mã nguồn và sơ đồ hệ thống",
     "docApi": "Tài liệu tương tác Swagger API (/docs)",
     "docLaws": "Danh mục Thiên luật Khối Cầu (/docs/god-laws.md)",
+    "docHealth": "Bảng đo sức khỏe & giám sát động cơ (/health)",
     "bookTitle": "📚 Flatland: Đối chiếu Tiểu thuyết Abbott & Bản Mô Phỏng",
     "bookDesc": "Khảo cứu đối chiếu giữa tác phẩm châm biếm kinh điển năm 1884 của Edwin A. Abbott và ứng dụng mô phỏng sự sống nhân tạo tự hành.",
     "bookSection1": "1. Giai tầng, Hình học & Trật tự Xã hội",

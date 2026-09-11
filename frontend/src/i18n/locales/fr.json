@@ -639,6 +639,7 @@
     "docGuide": "Guide vivant (/guide) — Architecture du code et cartographie des systèmes",
     "docApi": "API interactive Swagger (/docs)",
     "docLaws": "Lois de la Sphère (/docs/god-laws.md)",
+    "docHealth": "Tableau de bord de santé & télémétrie du moteur (/health)",
     "bookTitle": "📚 Flatland : Le roman d'Abbott face à la simulation",
     "bookDesc": "Une étude comparative entre le classique satirique d'Edwin A. Abbott de 1884, Flatland: A Romance of Many Dimensions, et notre simulation autonome de vie artificielle.",
     "bookSection1": "1. Caste, géométrie & hiérarchie sociale",

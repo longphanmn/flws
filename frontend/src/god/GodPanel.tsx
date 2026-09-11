@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { godFetch } from './auth'
 import { useI18n } from '../i18n'
 import type { GodLaws } from '../types'
+import { apiUrl } from '../config'
+
 
 const GodPanelErrorFallback = ({ error, onReset }: { error: any; onReset: () => void }) => {
   const { t } = useI18n()
@@ -827,9 +829,9 @@ function GodPanelInner({ open, onClose }: Props) {
           <div className="god-hint-box" style={{ margin: '0 12px 8px' }}>
             {trTitle}
             <div style={{ marginTop: 6 }}>
-              <a href="/docs/god-laws.md" rel="noreferrer" style={{ fontSize: 11, color: '#58a6ff' }}>{t('god.ui.open_docs')}</a>
+              <a href="./docs/god-laws.md" target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#58a6ff' }}>{t('god.ui.open_docs')} ↗</a>
               {' · '}
-              <a href="/wiki#god-laws" style={{ fontSize: 11, color: '#58a6ff' }}>{t('god.ui.wiki_link')}</a>
+              <a href={apiUrl('/wiki#god-laws')} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#58a6ff' }}>{t('god.ui.wiki_link')} ↗</a>
             </div>
           </div>
         )}
@@ -1257,9 +1259,9 @@ function GodPanelInner({ open, onClose }: Props) {
           <div className="god-hint-box">
             {hint}
             <div style={{ marginTop: 6 }}>
-              <a href="/docs/god-laws.md" rel="noreferrer" style={{ fontSize: 11, color: '#58a6ff' }}>{t('god.ui.open_docs')}</a>
+              <a href="./docs/god-laws.md" target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#58a6ff' }}>{t('god.ui.open_docs')} ↗</a>
               {' · '}
-              <a href="/wiki#god-laws" style={{ fontSize: 11, color: '#58a6ff' }}>{t('god.ui.wiki_link')}</a>
+              <a href={apiUrl('/wiki#god-laws')} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#58a6ff' }}>{t('god.ui.wiki_link')} ↗</a>
             </div>
           </div>
         )}

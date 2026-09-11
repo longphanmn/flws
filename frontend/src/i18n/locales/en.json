@@ -639,6 +639,7 @@
     "docGuide": "Living Guide (/guide) — Codebase architecture and system maps",
     "docApi": "Swagger Interactive API (/docs)",
     "docLaws": "Laws of the Sphere (/docs/god-laws.md)",
+    "docHealth": "Engine Health & Telemetry Dashboard (/health)",
     "bookTitle": "📚 Flatland: Abbott's Novella vs. The Simulation",
     "bookDesc": "A comparative study between Edwin A. Abbott’s 1884 satirical classic Flatland: A Romance of Many Dimensions and our autonomous artificial life simulation.",
     "bookSection1": "1. Caste, Geometry & Social Hierarchy",

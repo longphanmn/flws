@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -60,9 +60,34 @@ const proxyConfig = {
   '/redoc': { target: 'http://localhost:8000', changeOrigin: true, timeout: 5000 },
 }
 
-export default defineConfig({
-  base: process.env.VITE_BASE || './',
-  plugins: [react(), healthPage()],
+export default defineConfig(({ mode }) => {
+  const rootDir = path.resolve(__dirname, '..')
+  const env = loadEnv(mode, rootDir, ['API_', 'BACKEND_', 'VITE_', 'WS_'])
+
+  const rawApiUrl = process.env.VITE_DEMO_API_URL || process.env.API_URL || env.API_URL || env.VITE_BACKEND_URL || env.BACKEND_URL || 'https://world.minhnhan.in'
+  const cleanApiUrl = rawApiUrl.replace(/\/+$/, '')
+
+  let rawWsUrl = process.env.VITE_DEMO_WS_URL || process.env.WS_URL || env.WS_URL || env.VITE_WS_URL || ''
+  if (!rawWsUrl && cleanApiUrl) {
+    if (cleanApiUrl.startsWith('https://')) {
+      rawWsUrl = cleanApiUrl.replace(/^https:\/\//, 'wss://') + '/ws'
+    } else if (cleanApiUrl.startsWith('http://')) {
+      rawWsUrl = cleanApiUrl.replace(/^http:\/\//, 'ws://') + '/ws'
+    }
+  }
+
+  const isDemo = process.env.VITE_IS_DEMO === 'true' || env.VITE_IS_DEMO === 'true'
+
+  return {
+    base: process.env.VITE_BASE || './',
+    envDir: rootDir,
+    envPrefix: ['VITE_', 'API_', 'BACKEND_', 'WS_'],
+    define: {
+      '__ENV_API_URL__': JSON.stringify(cleanApiUrl),
+      '__ENV_WS_URL__': JSON.stringify(rawWsUrl),
+      '__VITE_IS_DEMO__': JSON.stringify(isDemo),
+    },
+    plugins: [react(), healthPage()],
   server: {
     host: '0.0.0.0',
     port: 5173,
@@ -78,17 +103,19 @@ export default defineConfig({
     cors: true,
     proxy: proxyConfig,
   },
-  build: {
-    minify: 'esbuild',
-    cssMinify: true,
-    sourcemap: false,
-    chunkSizeWarningLimit: 1000,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
+    build: {
+      minify: 'esbuild',
+      cssMinify: true,
+      sourcemap: false,
+      chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ['react', 'react-dom'],
+          },
         },
       },
     },
-  },
+  }
 })
+

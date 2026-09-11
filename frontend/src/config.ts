@@ -6,19 +6,36 @@
  */
 
 const isGitHubPages = typeof window !== 'undefined' && window.location.hostname.endsWith('github.io')
+const isDemoBuild = typeof __VITE_IS_DEMO__ !== 'undefined' ? Boolean(__VITE_IS_DEMO__) : false
+const isDemoEnvironment = isGitHubPages || isDemoBuild
 
 const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
 const paramBackend = params?.get('backend') || null
 const paramWs = params?.get('ws') || null
 
-export const DEFAULT_REMOTE_BACKEND = 'https://world.minhnhan.in'
-export const DEFAULT_REMOTE_WS = 'wss://world.minhnhan.in/ws'
+// Configured from .env (API_URL / BACKEND_URL / VITE_BACKEND_URL) via Vite define/import.meta.env
+const envApiUrl = (typeof __ENV_API_URL__ !== 'undefined' && __ENV_API_URL__) ||
+  ((import.meta as any).env?.VITE_DEMO_API_URL as string) ||
+  ((import.meta as any).env?.API_URL as string) ||
+  'https://world.minhnhan.in'
+
+const envWsUrl = (typeof __ENV_WS_URL__ !== 'undefined' && __ENV_WS_URL__) ||
+  ((import.meta as any).env?.VITE_DEMO_WS_URL as string) ||
+  ((import.meta as any).env?.WS_URL as string) ||
+  ''
+
+export const DEFAULT_REMOTE_BACKEND = envApiUrl.replace(/\/+$/, '')
+export const DEFAULT_REMOTE_WS = envWsUrl || (
+  DEFAULT_REMOTE_BACKEND.startsWith('https')
+    ? DEFAULT_REMOTE_BACKEND.replace(/^https/, 'wss') + '/ws'
+    : DEFAULT_REMOTE_BACKEND.replace(/^http/, 'ws') + '/ws'
+)
 
 export function getBackendBaseUrl(): string {
   if (paramBackend) return paramBackend.replace(/\/+$/, '')
   const metaEnv = (import.meta as any).env
   if (metaEnv?.VITE_BACKEND_URL) return (metaEnv.VITE_BACKEND_URL as string).replace(/\/+$/, '')
-  if (isGitHubPages) return DEFAULT_REMOTE_BACKEND
+  if (isDemoEnvironment) return DEFAULT_REMOTE_BACKEND
   return ''
 }
 
@@ -31,7 +48,7 @@ export function getWebSocketUrl(): string {
     const host = paramBackend.replace(/^https?:\/\//, '').replace(/\/+$/, '')
     return `${wsProto}//${host}/ws`
   }
-  if (isGitHubPages) return DEFAULT_REMOTE_WS
+  if (isDemoEnvironment) return DEFAULT_REMOTE_WS
   const proto = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss' : 'ws'
   const host = typeof window !== 'undefined' ? window.location.host : 'localhost:8000'
   return `${proto}://${host}/ws`

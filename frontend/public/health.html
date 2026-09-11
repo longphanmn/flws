@@ -376,7 +376,8 @@
   </div>
   <div class="header-right">
     <button id="btn-refresh" class="btn" title="Refresh now">↻ Refresh</button>
-    <a href="/" class="btn btn-primary" title="Open Simulation">Open World ↗</a>
+    <a href="./" class="btn btn-primary" title="Open Simulation">Open Simulation ↗</a>
+    <a href="https://longphanmn.github.io/flatland/" class="btn" target="_blank" rel="noopener noreferrer" title="Project Landing Page">Landing ↗</a>
   </div>
 </header>
 
@@ -472,6 +473,15 @@
 (function () {
   "use strict";
 
+  var isDemo = window.location.hostname.endsWith("github.io") || window.location.pathname.indexOf("/demo") !== -1;
+  var DEFAULT_REMOTE_API = "__API_URL_PLACEHOLDER__";
+  if (DEFAULT_REMOTE_API.indexOf("__") !== -1) {
+    DEFAULT_REMOTE_API = "https://world.minhnhan.in";
+  }
+  var urlParams = new URLSearchParams(window.location.search);
+  var paramBackend = urlParams.get("backend") || urlParams.get("api");
+  var API_BASE = (paramBackend || (isDemo ? DEFAULT_REMOTE_API : "")).replace(/\/+$/, "");
+
   var g = document.getElementById("g");
   var gp = document.getElementById("gp");
   var tip = document.getElementById("tip");
@@ -482,6 +492,19 @@
 
   // Time range state
   var currentRange = localStorage.getItem("fl_health_range") || "1h";
+
+  function updateExternalLinks() {
+    var base = API_BASE || "";
+    var rawLink = document.querySelector('a[href*="/healthz"]');
+    if (rawLink) rawLink.href = (base || "") + "/healthz" + (currentRange ? "?range=" + encodeURIComponent(currentRange) : "");
+    var teleLink = document.querySelector('a[href*="/api/perf/telemetry"]');
+    if (teleLink) teleLink.href = (base || "") + "/api/perf/telemetry";
+    var docsLink = document.querySelector('a[href*="/docs"]');
+    if (docsLink) docsLink.href = (base || "") + "/docs";
+  }
+  updateExternalLinks();
+
+
 
   function esc(s) {
     return String(s != null ? s : "—")
@@ -1041,7 +1064,7 @@
   }
 
   function poll() {
-    var url = "/healthz";
+    var url = (API_BASE ? API_BASE : "") + "/healthz";
     if (currentRange) {
       url += "?range=" + encodeURIComponent(currentRange);
     }
@@ -1053,6 +1076,14 @@
       .then(function (data) {
         cur = data;
         renderAll();
+        if (API_BASE) {
+          var rawLink = document.querySelector('a[href*="/healthz"]');
+          if (rawLink) rawLink.href = API_BASE + "/healthz" + (currentRange ? "?range=" + encodeURIComponent(currentRange) : "");
+          var teleLink = document.querySelector('a[href*="/api/perf/telemetry"]');
+          if (teleLink) teleLink.href = API_BASE + "/api/perf/telemetry";
+          var docsLink = document.querySelector('a[href*="/docs"]');
+          if (docsLink) docsLink.href = API_BASE + "/docs";
+        }
       })
       .catch(function (err) {
         var el = document.getElementById("err");

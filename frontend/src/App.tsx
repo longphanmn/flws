@@ -15,7 +15,8 @@ import { WorldSocket, type ConnStatus } from './websocket'
 import type { HelloMessage, HistoryEvent, LensMode, StateMessage, WorldSummary } from './types'
 import { useI18n } from './i18n'
 import ConfirmModal from './components/ConfirmModal'
-import { getWebSocketUrl } from './config'
+import { apiUrl, getWebSocketUrl } from './config'
+
 
 const SPEEDS = [1, 5, 10, 20, 40]
 const HISTORY_PAGE = 200
@@ -752,7 +753,7 @@ export default function App() {
               </select>
             </div>
           )}
-          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+          <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
             <button className="god-btn" onClick={() => { setStatusExpanded(false); setWorldHistoryOpen(true); }} style={{ flex: 1, minHeight: 34, fontSize: 12 }}>
               📜 {t('history.title') || 'World History'}
             </button>
@@ -762,6 +763,9 @@ export default function App() {
             <button className="god-btn" onClick={() => { setStatusExpanded(false); setAnalyticsOpen(true); }} style={{ flex: 1, minHeight: 34, fontSize: 12 }}>
               📊 {t('analytics.open')}
             </button>
+            <a className="god-btn" href={apiUrl('/health')} target="_blank" rel="noopener noreferrer" style={{ flex: '0 0 auto', padding: '0 10px', minHeight: 34, fontSize: 12, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', color: '#c9d1d9' }}>
+              🏥 Health ↗
+            </a>
           </div>
         </div>
         </>
@@ -1139,7 +1143,7 @@ export default function App() {
       )}
       {!isMobile && (
         <div className="version-bar" title={versionInfo ? `v${versionInfo.version} · ${versionInfo.revision} · Developed by Long Phan <long@minhnhan.in> · Built with OpenCode & Antigravity` : 'Flatland · Developed by Long Phan <long@minhnhan.in>'}>
-          {versionInfo ? `v${versionInfo.version} · ${versionInfo.revision}` : 'v0.1.6'} · <span style={{ opacity: 0.85 }}>Developed by Long Phan · <a href="mailto:long@minhnhan.in" style={{ color: 'inherit', textDecoration: 'underline' }}>long@minhnhan.in</a> · <a href="https://longphanmn.github.io/flatland/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Landing</a></span>
+          {versionInfo ? `v${versionInfo.version} · ${versionInfo.revision}` : 'v0.1.6'} · <span style={{ opacity: 0.85 }}>Developed by Long Phan · <a href="mailto:long@minhnhan.in" style={{ color: 'inherit', textDecoration: 'underline' }}>long@minhnhan.in</a> · <a href="https://longphanmn.github.io/flatland/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Landing</a> · <a href={apiUrl('/wiki')} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Wiki</a> · <a href={apiUrl('/docs')} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Docs</a> · <a href={apiUrl('/health')} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Health</a></span>
         </div>
       )}
       <AuthModal />
