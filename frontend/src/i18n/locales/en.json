@@ -914,7 +914,16 @@
     "sidesLabel": "Sides",
     "shapeLabel": "Shape",
     "polarPending": "Polar trait bake pending — annealing may be off or creature from legacy gen.",
-    "gatheringNeural": "Gathering live neural state — 16→12→7 (295) at 15 Hz."
+    "gatheringNeural": "Gathering live neural state — 16→12→7 (295) at 15 Hz.",
+    "raycastingTitle": "Sensory Raycasting",
+    "rayLeft": "LEFT",
+    "rayForward": "FORWARD",
+    "rayRight": "RIGHT",
+    "hitTypeClear": "Clear",
+    "hitTypeFood": "Food",
+    "hitTypeAlly": "Ally",
+    "hitTypeEnemy": "Rival",
+    "hitTypeObstacle": "Obstacle"
   },
   "charts": {
     "collectingHistory": "collecting history…",

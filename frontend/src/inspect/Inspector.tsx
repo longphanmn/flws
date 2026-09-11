@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import type { EntityState, HistoryEvent } from '../types'
+import type { EntityState, HistoryEvent, StateMessage } from '../types'
 import { totemEmoji } from '../totems'
 import { useI18n } from '../i18n'
 import { CreatureAvatar, CASTE_COLORS } from '../components/CreatureAvatar'
+import { computeCreatureRays, rayHitColor } from '../render/raycast'
 
 
 interface KinCard {
@@ -259,6 +260,245 @@ function BiomechHUD({ e }: { e: EntityState }) {
     </div>
   )
 }
+
+function SensoryRayCard({ e, state }: { e: EntityState; state?: StateMessage | null }) {
+  const { t } = useI18n()
+  if (!state) return null
+
+  const rayResult = computeCreatureRays(e, state)
+  const [leftRay, , rightRay] = rayResult.rays
+
+  // Radar geometry (SVG)
+  const width = 280, height = 118
+  const cx = 140, cy = 104
+  const radarRadius = 78
+
+  // Relative heading is UP (-PI/2)
+  const leftAngleSVG = -Math.PI / 2 + leftRay.relAngleRad
+  const midAngleSVG = -Math.PI / 2
+  const rightAngleSVG = -Math.PI / 2 + rightRay.relAngleRad
+
+  // Outer arc endpoints
+  const arcX1 = cx + Math.cos(leftAngleSVG) * radarRadius
+  const arcY1 = cy + Math.sin(leftAngleSVG) * radarRadius
+  const arcX2 = cx + Math.cos(rightAngleSVG) * radarRadius
+  const arcY2 = cy + Math.sin(rightAngleSVG) * radarRadius
+
+  // Hit positions on radar
+  const rayCoords = rayResult.rays.map((r, i) => {
+    const angleSVG = i === 0 ? leftAngleSVG : i === 1 ? midAngleSVG : rightAngleSVG
+    const frac = Math.max(0.12, Math.min(1.0, r.hitDist / r.maxDist))
+    const hitR = frac * radarRadius
+    const hx = cx + Math.cos(angleSVG) * hitR
+    const hy = cy + Math.sin(angleSVG) * hitR
+    const endX = cx + Math.cos(angleSVG) * radarRadius
+    const endY = cy + Math.sin(angleSVG) * radarRadius
+    const color = rayHitColor(r.hitType)
+    return { ...r, angleSVG, hitR, hx, hy, endX, endY, color }
+  })
+
+  // Latched NN inputs if available
+  const nnInputs = (e as any).nn_inputs as number[] | undefined
+
+  return (
+    <div
+      className="sensory-ray-card"
+      style={{
+        background: '#161b22',
+        border: '1px solid #30363d',
+        borderRadius: 8,
+        padding: '10px 12px',
+        minWidth: 0,
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 13 }}>👁️</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#e6edf3', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            {t('inspector.raycastingTitle') ?? 'Sensory Raycasting'}
+          </span>
+        </div>
+        <span style={{ fontSize: 9, color: '#58a6ff', background: 'rgba(56,139,253,0.12)', border: '1px solid rgba(56,139,253,0.3)', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>
+          BH-7 Neuro-Morph FOV
+        </span>
+      </div>
+
+      {/* Miniature Vision Radar SVG */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+        <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{ background: '#0d1117', borderRadius: 6, border: '1px solid #21262d' }}>
+          <defs>
+            <radialGradient id="rayRadarGlow" cx="50%" cy="90%" r="90%">
+              <stop offset="0%" stopColor="#58a6ff" stopOpacity="0.22" />
+              <stop offset="70%" stopColor="#58a6ff" stopOpacity="0.04" />
+              <stop offset="100%" stopColor="#58a6ff" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+
+          {/* Vision Cone Sector */}
+          <path
+            d={`M ${cx} ${cy} L ${arcX1} ${arcY1} A ${radarRadius} ${radarRadius} 0 0 1 ${arcX2} ${arcY2} Z`}
+            fill="url(#rayRadarGlow)"
+          />
+          {/* Outer Arc Perimeter */}
+          <path
+            d={`M ${arcX1} ${arcY1} A ${radarRadius} ${radarRadius} 0 0 1 ${arcX2} ${arcY2}`}
+            fill="none"
+            stroke="#58a6ff"
+            strokeWidth="1"
+            strokeDasharray="2 2"
+            opacity="0.4"
+          />
+
+          {/* Distance Reference Rings */}
+          {[0.33, 0.66, 1.0].map((s, idx) => (
+            <path
+              key={idx}
+              d={`M ${cx + Math.cos(leftAngleSVG) * radarRadius * s} ${cy + Math.sin(leftAngleSVG) * radarRadius * s} A ${radarRadius * s} ${radarRadius * s} 0 0 1 ${cx + Math.cos(rightAngleSVG) * radarRadius * s} ${cy + Math.sin(rightAngleSVG) * radarRadius * s}`}
+              fill="none"
+              stroke="#30363d"
+              strokeWidth="0.7"
+              strokeDasharray="2 3"
+            />
+          ))}
+
+          {/* Ray Lines */}
+          {rayCoords.map((r, i) => {
+            const isHit = r.hitType !== null
+            return (
+              <g key={i}>
+                {/* Ray line to hit or max distance */}
+                {isHit ? (
+                  <>
+                    <line x1={cx} y1={cy} x2={r.hx} y2={r.hy} stroke={r.color} strokeWidth="3.5" opacity="0.2" />
+                    <line x1={cx} y1={cy} x2={r.hx} y2={r.hy} stroke={r.color} strokeWidth="1.6" />
+                    {/* Dashed line extending past hit point to max range */}
+                    <line x1={r.hx} y1={r.hy} x2={r.endX} y2={r.endY} stroke="#30363d" strokeWidth="1" strokeDasharray="2 2" opacity="0.5" />
+                    {/* Hit marker */}
+                    <circle cx={r.hx} cy={r.hy} r="3.5" fill="none" stroke={r.color} strokeWidth="1.2" />
+                    <circle cx={r.hx} cy={r.hy} r="1.8" fill={r.color} />
+                  </>
+                ) : (
+                  <line x1={cx} y1={cy} x2={r.endX} y2={r.endY} stroke="#8b949e" strokeWidth="1" strokeDasharray="3 3" opacity="0.5" />
+                )}
+                {/* Angle label at edge */}
+                <text
+                  x={cx + Math.cos(r.angleSVG) * (radarRadius + 10)}
+                  y={cy + Math.sin(r.angleSVG) * (radarRadius + 10)}
+                  fill={isHit ? r.color : '#8b949e'}
+                  fontSize="8"
+                  fontWeight="bold"
+                  fontFamily="ui-monospace, monospace"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                >
+                  {r.relAngleDeg > 0 ? `+${r.relAngleDeg}°` : `${r.relAngleDeg}°`}
+                </text>
+              </g>
+            )
+          })}
+
+          {/* Creature Origin (triangle pointing up) */}
+          <polygon
+            points={`${cx},${cy - 8} ${cx - 5},${cy + 4} ${cx + 5},${cy + 4}`}
+            fill="#e6edf3"
+            stroke="#30363d"
+            strokeWidth="1"
+          />
+          <circle cx={cx} cy={cy} r="2" fill="#58a6ff" />
+        </svg>
+      </div>
+
+      {/* 3-Column Ray Metrics Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 8 }}>
+        {rayCoords.map((r, i) => {
+          const isHit = r.hitType !== null
+          const col = r.color
+          const slotDist = 3 + i * 2
+          const slotType = 4 + i * 2
+          const latchedDist = nnInputs ? nnInputs[slotDist] : undefined
+          const latchedType = nnInputs ? nnInputs[slotType] : undefined
+
+          return (
+            <div
+              key={i}
+              style={{
+                background: '#0d1117',
+                border: `1px solid ${isHit ? `${col}55` : '#21262d'}`,
+                borderTop: `2px solid ${col}`,
+                borderRadius: 6,
+                padding: '6px 7px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 3,
+                minWidth: 0,
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 10 }}>
+                <span style={{ fontWeight: 700, color: '#e6edf3' }}>
+                  {i === 0 ? (t('inspector.rayLeft') ?? 'LEFT') : i === 1 ? (t('inspector.rayForward') ?? 'MID') : (t('inspector.rayRight') ?? 'RIGHT')}
+                </span>
+                <span style={{ color: '#8b949e', fontSize: 9, fontFamily: 'ui-monospace' }}>
+                  {r.relAngleDeg > 0 ? `+${r.relAngleDeg}°` : `${r.relAngleDeg}°`}
+                </span>
+              </div>
+
+              {/* Hit Status Pill */}
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  color: isHit ? col : '#8b949e',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+                title={r.hitLabel}
+              >
+                {isHit ? `🎯 ${r.hitLabel}` : `✨ ${t('inspector.hitTypeClear') ?? 'Clear'}`}
+              </div>
+
+              {/* Distance Meter */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#8b949e', fontFamily: 'ui-monospace' }}>
+                <span>Dist:</span>
+                <span style={{ color: '#e6edf3', fontWeight: 600 }}>{r.hitDist.toFixed(1)}m</span>
+              </div>
+              <div style={{ height: 3, background: '#21262d', borderRadius: 2, overflow: 'hidden' }}>
+                <div
+                  style={{
+                    width: `${Math.round((r.hitDist / r.maxDist) * 100)}%`,
+                    height: '100%',
+                    background: col,
+                  }}
+                />
+              </div>
+
+              {/* Neural Input Mapping (Inputs 3-8) */}
+              <div style={{ marginTop: 2, paddingTop: 3, borderTop: '1px dashed #21262d', fontSize: 9, color: '#8b949e', display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'ui-monospace' }}>
+                  <span>inp[{slotDist}] (dist)</span>
+                  <span style={{ color: '#79c0ff', fontWeight: 600 }}>{(latchedDist ?? r.nnDist).toFixed(2)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'ui-monospace' }}>
+                  <span>inp[{slotType}] (type)</span>
+                  <span style={{ color: r.nnType > 0 ? '#3fb950' : r.nnType < 0 ? '#f85149' : '#8b949e', fontWeight: 700 }}>
+                    {(latchedType ?? r.nnType) > 0 ? '+1.0' : (latchedType ?? r.nnType) < 0 ? '-1.0' : '0.0'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Explanatory Footer */}
+      <div style={{ fontSize: 9, color: '#8b949e', lineHeight: 1.3, background: '#0d1117', padding: '5px 8px', borderRadius: 4, border: '1px solid #21262d' }}>
+        <span style={{ color: '#58a6ff', fontWeight: 600 }}>Micro-RNN coupling: </span>
+        Inputs 3–8 feed directly into W1 sensory weights (16→12) allowing the creature to steer towards food/allies and evade enemies/walls in real-time.
+      </div>
+    </div>
+  )
+}
+
 // BH-10 NN Connectivity Heatmap 16→12→7
 function NNHeatmap({ e }: { e: EntityState }) {
   const genome: number[] | undefined = (e as any).nn_genome as number[] | undefined
@@ -633,10 +873,11 @@ ${events.map((ev) => `- Tick ${ev.tick}: ${ev.type}${ev.caste ? ` (${ev.caste})`
             {e.trait && <span className="chip"> {e.trait === 'greedy' ? '⬔' : e.trait === 'peaceful' ? '◯' : e.trait === 'paranoid' ? '⬥' : e.trait === 'bold' ? '▲' : '•'} {e.trait}</span>}
             {(e as any).archetype && <span className="chip" style={{ gridColumn: '1 / -1', background: (e as any).archetype==='Apex Hunter' ? 'rgba(255,123,114,0.18)' : (e as any).archetype==='Nocturnal Forager' ? 'rgba(121,192,255,0.18)' : (e as any).archetype==='Granary Courier' ? 'rgba(63,185,80,0.16)' : 'rgba(210,168,255,0.16)', border: `1px solid ${(e as any).archetype==='Apex Hunter' ? '#ff7b72' : (e as any).archetype==='Nocturnal Forager' ? '#79c0ff' : (e as any).archetype==='Granary Courier' ? '#3fb950' : '#d2a8ff'}`, color: '#e6edf3', fontWeight: 700 }} >{(e as any).archetype==='Apex Hunter'?'⚔':(e as any).archetype==='Nocturnal Forager'?'🌙':(e as any).archetype==='Granary Courier'?'🧺':'🛡️'} {(e as any).archetype}</span>}
           </div>
-          {/* §BG-9 Polar Radar & §BG-10 Biomech HUD */}
+          {/* §BG-9 Polar Radar & §BG-10 Biomech HUD & Sensory Raycasting */}
           <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
             <PolarRadar e={e} />
             <BiomechHUD e={e} />
+            <SensoryRayCard e={liveEntity ? { ...e, ...liveEntity } : e} state={state} />
             <div className="insp-2col" style={{ fontSize: 11 }}>
               <span className="chip" style={{ justifyContent: 'space-between', background: '#161b22' }}>{t('inspector.sidesLabel')} <b>{e.sides}</b> {(e as any).morph_k && (e as any).morph_k !== e.sides ? <span style={{ color: '#d2a8ff' }}>→{ (e as any).morph_k}</span> : null}</span>
               <span className="chip" style={{ justifyContent: 'space-between', background: '#161b22' }}>{t('inspector.shapeLabel')} <b>{e.shape}</b></span>

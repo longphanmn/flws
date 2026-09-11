@@ -914,7 +914,16 @@
     "sidesLabel": "Số cạnh",
     "shapeLabel": "Hình dáng",
     "polarPending": "Đang định hình cực — cơ chế ủ nhiệt có thể đang tắt hoặc cá thể thuộc thế hệ cũ.",
-    "gatheringNeural": "Đang giải mã mạng nơ-ron — 16→12→7 (295) ở tần số 15 Hz."
+    "gatheringNeural": "Đang giải mã mạng nơ-ron — 16→12→7 (295) ở tần số 15 Hz.",
+    "raycastingTitle": "Cảm Biến Tia Nhìn",
+    "rayLeft": "TRÁI",
+    "rayForward": "TIẾN",
+    "rayRight": "PHẢI",
+    "hitTypeClear": "Thông Thoáng",
+    "hitTypeFood": "Thức Ăn",
+    "hitTypeAlly": "Đồng Minh",
+    "hitTypeEnemy": "Đối Thủ",
+    "hitTypeObstacle": "Chướng Ngại Vật"
   },
   "charts": {
     "collectingHistory": "đang thu thập dữ liệu lịch sử…",

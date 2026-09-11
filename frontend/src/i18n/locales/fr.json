@@ -914,7 +914,16 @@
     "sidesLabel": "Côtés",
     "shapeLabel": "Forme",
     "polarPending": "Calcul des traits polaires en attente — recuit désactivé ou créature d'ancienne génération.",
-    "gatheringNeural": "Collecte de l'état neuronal en direct — 16→12→7 (295) à 15 Hz."
+    "gatheringNeural": "Collecte de l'état neuronal en direct — 16→12→7 (295) à 15 Hz.",
+    "raycastingTitle": "Rayons Sensoriels",
+    "rayLeft": "GAUCHE",
+    "rayForward": "AVANT",
+    "rayRight": "DROITE",
+    "hitTypeClear": "Dégagé",
+    "hitTypeFood": "Nourriture",
+    "hitTypeAlly": "Allié",
+    "hitTypeEnemy": "Rival",
+    "hitTypeObstacle": "Obstacle"
   },
   "charts": {
     "collectingHistory": "collecte de l'historique…",

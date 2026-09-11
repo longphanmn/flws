@@ -3963,6 +3963,16 @@ def _creature_mem_dossier(creature_id: int) -> dict:
                         entity["archetype"] = arch
                 except Exception:
                     pass
+            # Sensory NN inputs (latched slots 0..15, including raycasts 3..8)
+            if midx >= 0 and hasattr(soa, "inputs_buf"):
+                try:
+                    ib = soa.inputs_buf[midx]
+                    if hasattr(ib, "tolist"):
+                        entity["nn_inputs"] = [round(float(v), 3) for v in ib.tolist()]
+                    else:
+                        entity["nn_inputs"] = [round(float(v), 3) for v in ib]
+                except Exception:
+                    pass
         except Exception:
             pass
 

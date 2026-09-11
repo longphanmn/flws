@@ -1,6 +1,7 @@
 import type { EntityState, LensMode, StateMessage } from '../types'
 import { houseWallSegments } from '../types'
 import { TOTEMS } from '../totems'
+import { computeCreatureRays, rayHitColor } from './raycast'
 
 export const TAU = Math.PI * 2
 const _riverGradCacheGlobal = new Map<string, CanvasGradient>()
@@ -1282,6 +1283,156 @@ export function drawBatchedEntities(
   return houses
 }
 
+export function drawCreatureRaycasting(
+  ctx: CanvasRenderingContext2D,
+  creature: EntityState,
+  state: StateMessage,
+  camScale: number,
+  tick: number,
+): void {
+  const result = computeCreatureRays(creature, state)
+  const ox = result.origin.x
+  const oy = result.origin.y
+  const leftRay = result.rays[0]
+  const midRay = result.rays[1]
+  const rightRay = result.rays[2]
+
+  ctx.save()
+
+  // 1. Sensory Field of View Cone (Arc fan)
+  const coneRadius = Math.max(leftRay.maxDist, rightRay.maxDist, midRay.maxDist)
+  try {
+    const coneGrad = ctx.createRadialGradient(ox, oy, 0, ox, oy, coneRadius)
+    coneGrad.addColorStop(0, 'rgba(56, 139, 253, 0.16)')
+    coneGrad.addColorStop(0.7, 'rgba(56, 139, 253, 0.04)')
+    coneGrad.addColorStop(1, 'rgba(56, 139, 253, 0.0)')
+
+    ctx.fillStyle = coneGrad
+    ctx.beginPath()
+    ctx.moveTo(ox, oy)
+    ctx.arc(ox, oy, coneRadius, leftRay.angle, rightRay.angle)
+    ctx.closePath()
+    ctx.fill()
+  } catch {}
+
+  // Cone perimeter arc
+  ctx.strokeStyle = 'rgba(88, 166, 255, 0.28)'
+  ctx.lineWidth = Math.max(0.18, 0.8 / camScale)
+  ctx.setLineDash([0.6, 0.6])
+  ctx.beginPath()
+  ctx.arc(ox, oy, coneRadius, leftRay.angle, rightRay.angle)
+  ctx.stroke()
+  ctx.setLineDash([])
+
+  // 2. Individual Rays (Left, Mid, Right)
+  const tagLabels: Array<{ text: string; x: number; y: number; color: string }> = []
+
+  for (let i = 0; i < 3; i++) {
+    const ray = result.rays[i]
+    const col = rayHitColor(ray.hitType)
+    const isHit = ray.hitType !== null
+
+    // A. Sensing beam corridor (the ±1.5 units tolerance width)
+    ctx.strokeStyle = isHit ? `${col}18` : 'rgba(88, 166, 255, 0.04)'
+    ctx.lineWidth = 2.4
+    ctx.beginPath()
+    ctx.moveTo(ox, oy)
+    ctx.lineTo(ray.hitPoint.x, ray.hitPoint.y)
+    ctx.stroke()
+
+    // B. Core Ray Line
+    if (isHit) {
+      // Glow underlay
+      ctx.strokeStyle = `${col}40`
+      ctx.lineWidth = Math.max(0.6, 2.4 / camScale)
+      ctx.beginPath()
+      ctx.moveTo(ox, oy)
+      ctx.lineTo(ray.hitPoint.x, ray.hitPoint.y)
+      ctx.stroke()
+
+      // Crisp core line
+      ctx.strokeStyle = col
+      ctx.lineWidth = Math.max(0.3, 1.2 / camScale)
+      ctx.beginPath()
+      ctx.moveTo(ox, oy)
+      ctx.lineTo(ray.hitPoint.x, ray.hitPoint.y)
+      ctx.stroke()
+
+      // C. Hit Impact Marker
+      const pulse = Math.sin(tick * 0.2 + i * 2) * 0.15
+      const ringR = 0.7 + pulse
+      ctx.strokeStyle = col
+      ctx.lineWidth = Math.max(0.2, 0.9 / camScale)
+      ctx.beginPath()
+      ctx.arc(ray.hitPoint.x, ray.hitPoint.y, ringR, 0, TAU)
+      ctx.stroke()
+
+      ctx.fillStyle = col
+      ctx.beginPath()
+      ctx.arc(ray.hitPoint.x, ray.hitPoint.y, 0.3, 0, TAU)
+      ctx.fill()
+
+      // Dotted connection line to target entity center if slightly offset
+      if (ray.hitEntityId && state.entities) {
+        const tgt = state.entities.find((e) => e.id === ray.hitEntityId)
+        if (tgt && (Math.abs(tgt.x - ray.hitPoint.x) > 0.3 || Math.abs(tgt.y - ray.hitPoint.y) > 0.3)) {
+          ctx.strokeStyle = `${col}66`
+          ctx.lineWidth = Math.max(0.15, 0.6 / camScale)
+          ctx.setLineDash([0.4, 0.4])
+          ctx.beginPath()
+          ctx.moveTo(ray.hitPoint.x, ray.hitPoint.y)
+          ctx.lineTo(tgt.x, tgt.y)
+          ctx.stroke()
+          ctx.setLineDash([])
+        }
+      }
+    } else {
+      // Clear line of sight (dashed line)
+      ctx.strokeStyle = 'rgba(139, 148, 158, 0.45)'
+      ctx.lineWidth = Math.max(0.2, 0.8 / camScale)
+      ctx.setLineDash([0.8, 0.8])
+      ctx.beginPath()
+      ctx.moveTo(ox, oy)
+      ctx.lineTo(ray.hitPoint.x, ray.hitPoint.y)
+      ctx.stroke()
+      ctx.setLineDash([])
+    }
+
+    // Telemetry label data for high-zoom view
+    if (camScale >= 3.0) {
+      const prefix = i === 0 ? 'L' : i === 1 ? 'MID' : 'R'
+      const labelText = isHit
+        ? `${prefix}: ${ray.hitLabel} ${ray.hitDist.toFixed(1)}m`
+        : `${prefix}: Clear`
+      const placeDist = isHit ? Math.max(2.0, ray.hitDist * 0.7) : ray.maxDist * 0.55
+      const lx = ox + Math.cos(ray.angle) * placeDist
+      const ly = oy + Math.sin(ray.angle) * placeDist
+      tagLabels.push({ text: labelText, x: lx, y: ly, color: col })
+    }
+  }
+
+  // 3. Render telemetry badges on canvas
+  if (tagLabels.length > 0) {
+    ctx.font = 'bold 0.85px ui-monospace, monospace'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    for (const tag of tagLabels) {
+      const metrics = ctx.measureText(tag.text)
+      const pw = metrics.width + 0.8
+      const ph = 1.2
+      ctx.fillStyle = 'rgba(13, 17, 23, 0.85)'
+      ctx.fillRect(tag.x - pw / 2, tag.y - ph / 2, pw, ph)
+      ctx.strokeStyle = tag.color
+      ctx.lineWidth = 0.15
+      ctx.strokeRect(tag.x - pw / 2, tag.y - ph / 2, pw, ph)
+      ctx.fillStyle = '#e6edf3'
+      ctx.fillText(tag.text, tag.x, tag.y)
+    }
+  }
+
+  ctx.restore()
+}
+
 export function renderWorldFrame(
   ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
   state: StateMessage,
@@ -1719,10 +1870,13 @@ export function renderWorldFrame(
     }
   }
 
-  // Selection Halo
+  // Selection Halo & Sensory Raycasting
   if (selectedId !== null) {
     const selEnt = state.entities.find((e) => e.id === selectedId)
     if (selEnt) {
+      if (selEnt.kind === 'creature' && ctx instanceof CanvasRenderingContext2D) {
+        drawCreatureRaycasting(ctx, selEnt, state, cam.scale, state.tick)
+      }
       ctx.strokeStyle = '#e3b341'
       ctx.lineWidth = 0.4
       ctx.setLineDash([1.2, 0.8])
