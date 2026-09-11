@@ -197,13 +197,21 @@ class EnvironmentMixin:
 
     def ambient_at(self, x: float, y: float) -> float:
         """Ambient temperature at a point on the heat field (§AQ PH-1)."""
-        col = min(self._temp_cols - 1, max(0, int(x / self.config.width * self._temp_cols)))
-        row = min(self._temp_rows - 1, max(0, int(y / self.config.height * self._temp_rows)))
+        inv_w = getattr(self, "_temp_cols_inv_w", None)
+        if inv_w is None:
+            self._temp_cols_inv_w = inv_w = self._temp_cols / max(1.0, float(self.config.width))
+            self._temp_rows_inv_h = self._temp_rows / max(1.0, float(self.config.height))
+        col = min(self._temp_cols - 1, max(0, int(x * inv_w)))
+        row = min(self._temp_rows - 1, max(0, int(y * self._temp_rows_inv_h)))
         t = self.temperature_grid[row * self._temp_cols + col]
         # §AO E: a field campfire warms its circle of light.
-        for cf in self.campfires:
-            if (x - cf["x"]) ** 2 + (y - cf["y"]) ** 2 <= CAMPFIRE_LIGHT_RADIUS * CAMPFIRE_LIGHT_RADIUS:
-                t = max(t, CAMPFIRE_HEAT)
+        if self.campfires:
+            cf_r2 = CAMPFIRE_LIGHT_RADIUS * CAMPFIRE_LIGHT_RADIUS
+            for cf in self.campfires:
+                dx = x - cf["x"]
+                dy = y - cf["y"]
+                if dx * dx + dy * dy <= cf_r2:
+                    t = max(t, CAMPFIRE_HEAT)
         return t
 
     def indoor_ambient(self, house: House) -> float:

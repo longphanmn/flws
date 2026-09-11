@@ -1989,3 +1989,135 @@ Audited, quantified, and **deliberately excluded**. Do not start these without r
 - [x] [P1] BF-4 Early-world mate energy threshold ramp `boom_energy_mult` ($\times 2.5$ decaying to $\times 1$).
 - [x] [P1] BF-5 Initial world season offset (`initial_season_offset=2` autumn start).
 
+## BG. Mutational Shape & Visual Phenotypes [P0–P2] — 12/12 (archived 2026-09-02)
+
+- [x] [P0] BG-1 True Isosceles Soldier razor apex
+- [x] [P0] BG-2 Dynamic mutated polygon geometry
+- [x] [P0] BG-3 Line caste (Woman) variable thickness & taper
+- [x] [P0] BG-4 Topological aberration rendering
+- [x] [P1] BG-5 Blade Glint (Kinetic Pierce Accent)
+- [x] [P1] BG-6 Heavy Inertia Armor
+- [x] [P1] BG-7 Speciation chromatic aberration
+- [x] [P1] BG-8 Elder lineage nucleus
+- [x] [P1] BG-9 Polar Morphology Radar in Inspector
+- [x] [P1] BG-10 Biomechanical trait HUD
+- [x] [P2] BG-11 Morphological Phylogeny Tree
+- [x] [P2] BG-12 Morphospace 2D Scatterplot
+
+## BH. Next-Gen Evolutionary Mutation Engine & Neuroevolution [P0–P2] — 10/10 (archived 2026-09-02)
+
+- [x] [P0] BH-1 Two-Parent Meiotic Polar Crossover
+- [x] [P0] BH-2 Macro-Mutation Spurts (5% chance at $\lambda=0$)
+- [x] [P0] BH-3 Stress-Induced Mutagenesis
+- [x] [P0] BH-4 Real-time NN Genome Crossover on Birth
+- [x] [P1] BH-5 Functional-Block NN Mutation Rates
+- [x] [P1] BH-6 Behavioral Inversion Mutations (0.5% chance)
+- [x] [P1] BH-7 Neuro-Morphological Sensor Coupling
+- [x] [P1] BH-8 Nocturnal Forager & Sentry Policy Evolution
+- [x] [P1] BH-9 Behavioral Archetype Auto-Classifier
+- [x] [P2] BH-10 Inspector NN Connectivity Heatmap
+
+## BI. Simulation Engine Decomposition [P0–P1] — 10/10 (archived 2026-09-02)
+
+- [x] [P0] BI-1 Create simulation/ package scaffold
+- [x] [P0] BI-2 Extract constants.py
+- [x] [P0] BI-3 Extract SerializationMixin
+- [x] [P0] BI-4 Extract EcologyMixin
+- [x] [P0] BI-5 Extract EnvironmentMixin
+- [x] [P0] BI-6 Extract SettlementMixin
+- [x] [P0] BI-7 Extract TheologyMixin
+- [x] [P0] BI-8 Extract SocietyMixin
+- [x] [P0] BI-9 Extract LifecycleMixin
+- [x] [P1] BI-10 Extract CreatureUpdateMixin & decompose _update_creature
+
+## BJ. Production Performance & Tick Budget Restoration [P0–P1] — 6/6 (archived 2026-09-03)
+
+- [x] [P0] BJ-1 Incremental AgentSoA Slot Management
+- [x] [P0] BJ-2 Single-Pass _refresh_cache() with Lightweight Post-Movement Refresh
+- [x] [P1] BJ-3 Decouple Telemetry & Analytics Ring from Simulation Hot-Path
+- [x] [P1] BJ-4 Lockless Snapshot Serialization & Broadcast Pipeline
+- [x] [P1] BJ-5 Wire Compiled Native Core C/OpenMP Batch Accelerators
+- [x] [P0] BJ-6 Production Tick-Budget Regression Benchmark
+
+## BK. Creature Visual Evolution, Generational Lineage & Aberrant Morphology [P0–P2] — 9/9 (archived 2026-09-08)
+
+- [x] [P0] BK-1 Genesis Spark for Primordials (Gen 0–2)
+- [x] [P0] BK-2 Concentric Lineage Halos & Celestial Ancestral Corona
+- [x] [P0] BK-3 Dynamic Chaotic Breathing & Jagged Mutant Spires
+- [x] [P1] BK-4 Ancestral Crystalline Core Patina
+- [x] [P1] BK-5 Soldier Razor Apex & Piercing Glint
+- [x] [P1] BK-6 Battle Veteran Wound Scars
+- [x] [P1] BK-7 CreatureAvatar & Radar Complete Visual Parity
+- [x] [P2] BK-8 Canvas HUD Evolutionary Genome Mirror Toolbar
+- [x] [P2] BK-9 Evolutionary Genome & Millennial Corona Visualization
+
+## BL. Frontend High-Performance 60 FPS Engine — Optimization & LOD Pipeline [P0–P1] — 6/6 (archived 2026-09-08)
+
+- [x] [P0] BL-1 Offscreen Terrain & Elevation Hillshade Caching
+- [x] [P0] BL-2 Phenotype Level-of-Detail (LOD) Gating
+- [x] [P0] BL-3 Zero-Allocation Batching & Scratch Pool Recycling
+- [x] [P1] BL-4 Static Lookup Hoisting & Loop String Cleanup
+- [x] [P1] BL-5 React DOM Reconciliation Decoupling
+- [x] [P1] BL-6 Component Memoization & Render Guarding
+
+## BM. Chronicle, World History & AI Story [P0–P2] — 26/26 (archived 2026-09-08)
+
+- [x] [P1] BM-1 "Major Moments" jump chips in Chronicle Feed
+- [x] [P1] BM-2 Per-day mini-story button
+- [x] [P1] BM-3 Hero / Villain auto-callout in AI prompt
+- [x] [P1] BM-4 "This Week in Flatland" mini-prompt
+- [x] [P2] BM-5 Language selector for LLM prompt
+- [x] [P2] BM-6 "Jump to tick" input in Chronicle Feed
+- [x] [P2] BM-7 Pin / bookmark specific days with notes
+- [x] [P1] BM-8 Horizontal epoch bar
+- [x] [P1] BM-9 Population sparkline overlay
+- [x] [P2] BM-10 "Day Navigator" scrubber slider
+- [x] [P2] BM-11 War arc connectors
+- [x] [P1] BM-12 Per-clan biography panel
+- [x] [P1] BM-13 "Records & Legends" leaderboard
+- [x] [P2] BM-14 Clan rivalry matrix
+- [x] [P2] BM-15 Cause-of-death breakdown per era
+- [x] [P2] BM-16 Faith index over time
+- [x] [P0] BM-17 In-app AI generation with user API key
+- [x] [P1] BM-18 Named creature arc story
+- [x] [P2] BM-19 Deep link to specific day
+- [x] [P2] BM-20 Deep link to clan biography
+- [x] [P2] BM-21 Shareable World Card image
+- [x] [P1] BM-22 Server-side day aggregation endpoint
+- [x] [P1] BM-23 Clan epitaph table in DB
+- [x] [P1] BM-24 Named creature record on death
+- [x] [P2] BM-25 Full-text search over events
+- [x] [P2] BM-26 World "Annals" endpoint
+
+## BN. God Panel UX & Law Cleanup [P1–P2] — 28/28 (archived 2026-09-09)
+
+- [x] [P1] BN-1 Remove 5 internal numeric params from UI
+- [x] [P1] BN-2 Combine 3 soft-cap knobs -> "Carrying pressure" slider
+- [x] [P1] BN-3 Combine morphology annealing -> "Speciation speed"
+- [x] [P1] BN-4 Combine vertex + angle jitter -> "Shape jitter sigma"
+- [x] [P1] BN-5 Simplify Extinction Safeguards to 1 slider
+- [x] [P2] BN-6 Combine disease params -> "Plague severity"
+- [x] [P2] BN-7 Split GodLaws type into public + internal
+- [x] [P2] BN-8 "Advanced" collapsed accordion for Neuroevolution + Morphology
+- [x] [P1] BN-9 Merge Food groups -> "Food & Agriculture"
+- [x] [P1] BN-10 Merge Climate groups -> "Climate & Shelter"
+- [x] [P1] BN-11 Merge Population groups -> "Population Safety"
+- [x] [P1] BN-12 Merge Evolution groups -> "Evolution Engine"
+- [x] [P2] BN-13 Merge Combat groups -> "Combat & Survival"
+- [x] [P2] BN-14 Merge Governance groups -> "Society & Governance"
+- [x] [P2] BN-15 Collapse Physics sub-groups
+- [x] [P1] BN-16 Logarithmic-scale sliders for huge-range params
+- [x] [P1] BN-17 Master-feature toggles as loud colored pills
+- [x] [P1] BN-18 Gray-out gated params instead of hiding
+- [x] [P2] BN-19 Rename zone pills to plain language
+- [x] [P2] BN-20 Click baseline marker to revert
+- [x] [P2] BN-21 Mobile: large stepper + long-press repeat
+- [x] [P1] BN-22 "Panic" rescue button in footer
+- [x] [P1] BN-23 Persist unsaved draft to localStorage
+- [x] [P2] BN-24 Export / Import laws as JSON
+- [x] [P2] BN-25 Law change log in session
+- [x] [P2] BN-26 Undo/redo stack
+- [x] [P2] BN-27 Cross-tab search
+- [x] [P2] BN-28 Filter by zone
+
+

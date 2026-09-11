@@ -62,6 +62,91 @@ export function bgSoldierRazor(cx: number, cy: number, radius: number, heading: 
   return local.map(([lx, ly]) => [cx + lx * ca - ly * sa, cy + lx * sa + ly * ca])
 }
 
+// Scratch buffer for points where explicit array coordinates are required (e.g. blade glint sharpest vertex)
+const _scratchPts: [number, number][] = []
+for (let i = 0; i < 64; i++) _scratchPts.push([0, 0])
+
+export function bgMutatedPointsScratch(
+  cx: number, cy: number, sides: number, radius: number, baseAngle: number,
+  irregularity: number, id: number, tick = 0,
+): [number, number][] {
+  const irr = Math.max(0, Math.min(1, irregularity || 0))
+  const startAng = baseAngle - Math.PI / 2
+  const dynamicOsc = irr > 0.04 && tick > 0
+  const n = Math.min(sides, 64)
+  for (let i = 0; i < n; i++) {
+    const aJitter = (bgPseudoRand(id, i * 2) - 0.5) * irr * 0.65
+    let rJitter = 1 + (bgPseudoRand(id, i * 2 + 1) - 0.5) * irr * 0.9
+    if (irr > 0.15 && (i % 2 === 0)) {
+      rJitter += (bgPseudoRand(id, i * 5 + 3) > 0.45 ? 1 : -0.25) * irr * 0.45
+    }
+    if (dynamicOsc) {
+      rJitter += Math.sin(tick * 0.28 + i * 2.1 + (id % 17)) * irr * 0.12
+    }
+    const a = startAng + (i / sides) * TAU + aJitter
+    const rr = radius * rJitter
+    _scratchPts[i][0] = cx + Math.cos(a) * rr
+    _scratchPts[i][1] = cy + Math.sin(a) * rr
+  }
+  return _scratchPts
+}
+
+// Zero-allocation mutated polygon path tracer directly into Canvas2D
+export function bgTraceMutatedPath(
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | CanvasPath,
+  cx: number, cy: number, sides: number, radius: number, baseAngle: number,
+  irregularity: number, id: number, tick = 0,
+): void {
+  const irr = Math.max(0, Math.min(1, irregularity || 0))
+  const startAng = baseAngle - Math.PI / 2
+  const dynamicOsc = irr > 0.04 && tick > 0
+  for (let i = 0; i < sides; i++) {
+    const aJitter = (bgPseudoRand(id, i * 2) - 0.5) * irr * 0.65
+    let rJitter = 1 + (bgPseudoRand(id, i * 2 + 1) - 0.5) * irr * 0.9
+    if (irr > 0.15 && (i % 2 === 0)) {
+      rJitter += (bgPseudoRand(id, i * 5 + 3) > 0.45 ? 1 : -0.25) * irr * 0.45
+    }
+    if (dynamicOsc) {
+      rJitter += Math.sin(tick * 0.28 + i * 2.1 + (id % 17)) * irr * 0.12
+    }
+    const a = startAng + (i / sides) * TAU + aJitter
+    const rr = radius * rJitter
+    const px = cx + Math.cos(a) * rr
+    const py = cy + Math.sin(a) * rr
+    if (i === 0) ctx.moveTo(px, py)
+    else ctx.lineTo(px, py)
+  }
+  ctx.closePath()
+}
+
+// Zero-allocation soldier razor triangle path tracer
+export function bgTraceSoldierRazor(
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | CanvasPath,
+  cx: number, cy: number, radius: number, heading: number, isoAngleDeg: number,
+): void {
+  const theta = Math.max(8, Math.min(59.8, isoAngleDeg)) * Math.PI / 180
+  const needleMult = isoAngleDeg < 30 ? 1.0 + ((30 - isoAngleDeg) / 30) * 0.45 : 1.0
+  const xr = radius * 1.05 * needleMult
+  const xb = radius * 0.55
+  const dx = xr + xb
+  const yb = dx * Math.tan(theta / 2)
+  const ca = Math.cos(heading), sa = Math.sin(heading)
+
+  ctx.moveTo(cx + xr * ca, cy + xr * sa)
+  ctx.lineTo(cx - xb * ca - yb * sa, cy - xb * sa + yb * ca)
+  ctx.lineTo(cx - xb * ca + yb * sa, cy - xb * sa - yb * ca)
+  ctx.closePath()
+}
+
+// Apex point of soldier razor (zero allocation tuple replacement)
+export function bgSoldierRazorApex(
+  cx: number, cy: number, radius: number, heading: number, isoAngleDeg: number,
+): [number, number] {
+  const needleMult = isoAngleDeg < 30 ? 1.0 + ((30 - Math.max(8, Math.min(59.8, isoAngleDeg))) / 30) * 0.45 : 1.0
+  const xr = radius * 1.05 * needleMult
+  return [cx + xr * Math.cos(heading), cy + xr * Math.sin(heading)]
+}
+
 // §BK-9 Unified Genome Mirror & Evolutionary Lens styling helper
 export function getCreatureLensStyle(
   c: EntityState,
@@ -659,28 +744,19 @@ export function drawBatchedEntities(
       const isoAngle = (c as any).iso_angle
       const isSoldierRazor = c.caste === 'Soldier' && sides === 3 && typeof isoAngle === 'number' && isoAngle < 59.9
       if (isSoldierRazor) {
-        const pts = bgSoldierRazor(c.x, c.y, r, ang, isoAngle)
-        ctx.moveTo(pts[0][0], pts[0][1])
-        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1])
-        ctx.closePath()
+        bgTraceSoldierRazor(ctx, c.x, c.y, r, ang, isoAngle)
         continue
       }
       if (useCircleLOD || sides >= PRIEST_SIDES) {
         if (irr > 0.08 && sides >= PRIEST_SIDES) {
-          const pts = bgMutatedPoints(c.x, c.y, sides, r, ang, Math.min(0.3, irr), c.id, tick)
-          ctx.moveTo(pts[0][0], pts[0][1])
-          for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1])
-          ctx.closePath()
+          bgTraceMutatedPath(ctx, c.x, c.y, sides, r, ang, Math.min(0.3, irr), c.id, tick)
         } else {
           ctx.moveTo(c.x + r, c.y)
           ctx.arc(c.x, c.y, r, 0, TAU)
         }
       } else {
         if (irr > 0.02) {
-          const pts = bgMutatedPoints(c.x, c.y, sides, r, ang, irr, c.id, tick)
-          ctx.moveTo(pts[0][0], pts[0][1])
-          for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1])
-          ctx.closePath()
+          bgTraceMutatedPath(ctx, c.x, c.y, sides, r, ang, irr, c.id, tick)
         } else {
           const startAng = ang - Math.PI / 2
           for (let i = 0; i < sides; i++) {
@@ -741,12 +817,9 @@ export function drawBatchedEntities(
         ctx.fillStyle = color
         ctx.beginPath()
         if ((c.caste === 'Soldier' && sides===3 && typeof (c as any).iso_angle==='number' && (c as any).iso_angle < 59.9)) {
-          const isoA = (c as any).iso_angle
-          const pts = bgSoldierRazor(c.x, c.y, r*0.88, ang, isoA)
-          ctx.moveTo(pts[0][0], pts[0][1]); for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]); ctx.closePath()
+          bgTraceSoldierRazor(ctx, c.x, c.y, r*0.88, ang, (c as any).iso_angle)
         } else if (irr > 0.02) {
-          const pts = bgMutatedPoints(c.x, c.y, sides, r*0.88, ang, irr, c.id, tick)
-          ctx.moveTo(pts[0][0], pts[0][1]); for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]); ctx.closePath()
+          bgTraceMutatedPath(ctx, c.x, c.y, sides, r*0.88, ang, irr, c.id, tick)
         } else {
           const sa = ang - Math.PI/2
           for(let i=0;i<sides;i++){ const a=sa+(i/sides)*TAU; const px=c.x+Math.cos(a)*r*0.88, py=c.y+Math.sin(a)*r*0.88; if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);} ctx.closePath()
@@ -763,8 +836,8 @@ export function drawBatchedEntities(
         let gx = c.x, gy = c.y
         let found = false
         if (c.caste === 'Soldier' && sides===3 && typeof (c as any).iso_angle==='number' && (c as any).iso_angle < 59.9) {
-          const pts = bgSoldierRazor(c.x, c.y, r, ang, (c as any).iso_angle)
-          gx = pts[0][0]; gy = pts[0][1]; found = true
+          const tip = bgSoldierRazorApex(c.x, c.y, r, ang, (c as any).iso_angle)
+          gx = tip[0]; gy = tip[1]; found = true
         } else if (irr <= 0.02) {
           // Regular polygon: apex vertex is at ang - PI/2
           gx = c.x + Math.cos(ang - Math.PI / 2) * r
@@ -772,10 +845,10 @@ export function drawBatchedEntities(
           found = true
         } else {
           // compute polygon points and find sharpest by interior angle
-          const pts = bgMutatedPoints(c.x, c.y, sides, r, ang, irr, c.id, tick)
+          const pts = bgMutatedPointsScratch(c.x, c.y, sides, r, ang, irr, c.id, tick)
           let best = 999, bx = pts[0][0], by = pts[0][1]
-          for (let i = 0; i < pts.length; i++) {
-            const im1 = (i - 1 + pts.length) % pts.length, ip1 = (i + 1) % pts.length
+          for (let i = 0; i < sides; i++) {
+            const im1 = (i - 1 + sides) % sides, ip1 = (i + 1) % sides
             const ux = pts[im1][0] - pts[i][0], uy = pts[im1][1] - pts[i][1]
             const vx = pts[ip1][0] - pts[i][0], vy = pts[ip1][1] - pts[i][1]
             const nu = Math.hypot(ux, uy), nv = Math.hypot(vx, vy)
@@ -815,8 +888,7 @@ export function drawBatchedEntities(
         ctx.lineWidth = 0.22
         ctx.beginPath()
         if (irr > 0.02) {
-          const pts = bgMutatedPoints(c.x+0.22, c.y+0.13, sides, r, ang, irr, c.id, tick)
-          ctx.moveTo(pts[0][0], pts[0][1]); for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]); ctx.closePath()
+          bgTraceMutatedPath(ctx, c.x+0.22, c.y+0.13, sides, r, ang, irr, c.id, tick)
         } else {
           const sa = ang - Math.PI/2
           for(let i=0;i<sides;i++){ const a=sa+(i/sides)*TAU; const px=c.x+0.22+Math.cos(a)*r, py=c.y+0.13+Math.sin(a)*r; if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);} ctx.closePath()
@@ -826,8 +898,7 @@ export function drawBatchedEntities(
         ctx.globalAlpha = 0.32 * Math.min(1, specIntensity)
         ctx.beginPath()
         if (irr > 0.02) {
-          const pts = bgMutatedPoints(c.x-0.18, c.y-0.12, sides, r, ang, irr, c.id, tick)
-          ctx.moveTo(pts[0][0], pts[0][1]); for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]); ctx.closePath()
+          bgTraceMutatedPath(ctx, c.x-0.18, c.y-0.12, sides, r, ang, irr, c.id, tick)
         } else {
           const sa = ang - Math.PI/2
           for(let i=0;i<sides;i++){ const a=sa+(i/sides)*TAU; const px=c.x-0.18+Math.cos(a)*r, py=c.y-0.12+Math.sin(a)*r; if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);} ctx.closePath()
@@ -854,13 +925,11 @@ export function drawBatchedEntities(
         ctx.lineTo(c.x - paX * aMid, c.y - paY * aMid)
         ctx.closePath()
       } else if (c.caste === 'Soldier' && sides === 3 && typeof (c as any).iso_angle === 'number' && (c as any).iso_angle < 59.9) {
-        const pts = bgSoldierRazor(c.x, c.y, auraR, ang, (c as any).iso_angle)
-        ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]); ctx.closePath()
+        bgTraceSoldierRazor(ctx, c.x, c.y, auraR, ang, (c as any).iso_angle)
       } else if (sides >= PRIEST_SIDES) {
         ctx.arc(c.x, c.y, auraR, 0, TAU)
       } else {
-        const pts = bgMutatedPoints(c.x, c.y, sides, auraR, ang, irr, c.id, tick)
-        ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]); ctx.closePath()
+        bgTraceMutatedPath(ctx, c.x, c.y, sides, auraR, ang, irr, c.id, tick)
       }
       ctx.strokeStyle = auraColor
       ctx.lineWidth = 0.35
@@ -885,13 +954,11 @@ export function drawBatchedEntities(
         ctx.lineTo(c.x - paX * hMid, c.y - paY * hMid)
         ctx.closePath()
       } else if (c.caste === 'Soldier' && sides === 3 && typeof (c as any).iso_angle === 'number' && (c as any).iso_angle < 59.9) {
-        const pts = bgSoldierRazor(c.x, c.y, haloR, ang, (c as any).iso_angle)
-        ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]); ctx.closePath()
+        bgTraceSoldierRazor(ctx, c.x, c.y, haloR, ang, (c as any).iso_angle)
       } else if (sides >= PRIEST_SIDES) {
         ctx.arc(c.x, c.y, haloR, 0, TAU)
       } else if (irr > 0.02) {
-        const pts = bgMutatedPoints(c.x, c.y, sides, haloR, ang, irr, c.id, tick)
-        ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]); ctx.closePath()
+        bgTraceMutatedPath(ctx, c.x, c.y, sides, haloR, ang, irr, c.id, tick)
       } else {
         const sa = ang - Math.PI / 2
         for (let i = 0; i < sides; i++) {
@@ -1099,8 +1166,7 @@ export function drawBatchedEntities(
 
     // §BK-5 Soldier Razor Piercing Glint & Metallic Apex Accent (θ < 30°)
     if (c.caste === 'Soldier' && sides === 3 && typeof (c as any).iso_angle === 'number' && (c as any).iso_angle < 30) {
-      const pts = bgSoldierRazor(c.x, c.y, r, ang, (c as any).iso_angle)
-      const tipX = pts[0][0], tipY = pts[0][1]
+      const [tipX, tipY] = bgSoldierRazorApex(c.x, c.y, r, ang, (c as any).iso_angle)
       const ca = Math.cos(ang), sa = Math.sin(ang)
       ctx.beginPath()
       ctx.moveTo(tipX - ca * 0.7, tipY - sa * 0.7)

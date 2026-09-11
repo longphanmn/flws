@@ -20,6 +20,8 @@ export class WorldSocket {
 
   // Phase 1 AJ: Entity state map for reconstructing deltas into complete StateMessages
   private entitiesMap: Map<number, EntityState> = new Map()
+  private entitiesList: EntityState[] = []
+  private entitiesDirty = true
   private lastFullState: StateMessage | null = null
 
   constructor(
@@ -59,7 +61,11 @@ export class WorldSocket {
           for (const e of fullMsg.entities) {
             this.entitiesMap.set(e.id, e)
           }
+          this.entitiesList = [...fullMsg.entities]
+        } else {
+          this.entitiesList = []
         }
+        this.entitiesDirty = false
         this.handlers.onState?.(fullMsg)
       } else if (msg.type === 'delta_state') {
         const delta = msg as DeltaStateMessage
@@ -71,17 +77,23 @@ export class WorldSocket {
           for (const id of delta.remove_ids) {
             this.entitiesMap.delete(id)
           }
+          this.entitiesDirty = true
         }
         // Apply upserts
         if (delta.upsert_entities && delta.upsert_entities.length > 0) {
           for (const e of delta.upsert_entities) {
             const existing = this.entitiesMap.get(e.id)
             if (existing) {
-              this.entitiesMap.set(e.id, { ...existing, ...e })
+              Object.assign(existing, e)
             } else {
               this.entitiesMap.set(e.id, e)
+              this.entitiesDirty = true
             }
           }
+        }
+        if (this.entitiesDirty) {
+          this.entitiesList = Array.from(this.entitiesMap.values())
+          this.entitiesDirty = false
         }
         // Reconstruct complete StateMessage
         const reconstructed: StateMessage = {
@@ -109,7 +121,7 @@ export class WorldSocket {
           rivers: delta.rivers ?? this.lastFullState?.rivers ?? [],
           bridges: delta.bridges ?? this.lastFullState?.bridges ?? [],
           dams: delta.dams ?? this.lastFullState?.dams ?? [],
-          entities: Array.from(this.entitiesMap.values()),
+          entities: this.entitiesList,
           paused: delta.paused ?? this.lastFullState.paused,
           analytics: (delta as any).analytics ?? (this.lastFullState as any)?.analytics,
           safeguard_active: delta.safeguard_active ?? this.lastFullState?.safeguard_active ?? false,

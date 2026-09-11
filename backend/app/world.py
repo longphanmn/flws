@@ -156,44 +156,43 @@ class World:
         res_append = res.append
 
         if self.is_wrap:
-            cx_center = int(x * inv_cs) % cols if cols else 0
-            cy_center = int(y * inv_cs) % rows if rows else 0
-            rx = int(radius * inv_cs) + 2
-            ry = rx
-            need_seen = (rx * 2 + 1 >= cols) or (ry * 2 + 1 >= rows)
-            if need_seen:
-                seen: set[int] = set()
-                for dx_grid in range(-rx, rx + 1):
-                    cx = (cx_center + dx_grid) % cols
-                    for dy_grid in range(-ry, ry + 1):
-                        cy = (cy_center + dy_grid) % rows
-                        for e in buckets[cy * cols + cx]:
-                            if e.id in seen:
-                                continue
-                            seen.add(e.id)
-                            edx = x - e.x
-                            if edx < 0: edx = -edx
-                            if edx > half_w: edx -= w
-                            if edx > radius: continue
-                            edy = y - e.y
-                            if edy < 0: edy = -edy
-                            if edy > half_h: edy -= h
-                            if edy > radius: continue
-                            if edx * edx + edy * edy <= r2:
-                                res_append(e)
-                return res
-            for dx_grid in range(-rx, rx + 1):
-                cx = (cx_center + dx_grid) % cols
-                for dy_grid in range(-ry, ry + 1):
-                    cy = (cy_center + dy_grid) % rows
-                    for e in buckets[cy * cols + cx]:
+            if 2.0 * radius >= w:
+                x0_c, span_x = 0, cols
+            elif x - radius < 0.0:
+                x0_c = int((x - radius + w) * inv_cs)
+                span_x = min(cols, (cols - x0_c) + min(cols - 1, int((x + radius) * inv_cs)) + 1)
+            elif x + radius > w:
+                x0_c = int((x - radius) * inv_cs)
+                span_x = min(cols, (cols - x0_c) + min(cols - 1, int((x + radius - w) * inv_cs)) + 1)
+            else:
+                x0_c = int((x - radius) * inv_cs)
+                span_x = min(cols, min(cols - 1, int((x + radius) * inv_cs)) - x0_c + 1)
+
+            if 2.0 * radius >= h:
+                y0_c, span_y = 0, rows
+            elif y - radius < 0.0:
+                y0_c = int((y - radius + h) * inv_cs)
+                span_y = min(rows, (rows - y0_c) + min(rows - 1, int((y + radius) * inv_cs)) + 1)
+            elif y + radius > h:
+                y0_c = int((y - radius) * inv_cs)
+                span_y = min(rows, (rows - y0_c) + min(rows - 1, int((y + radius - h) * inv_cs)) + 1)
+            else:
+                y0_c = int((y - radius) * inv_cs)
+                span_y = min(rows, min(rows - 1, int((y + radius) * inv_cs)) - y0_c + 1)
+
+            for dy_grid in range(span_y):
+                cy = (y0_c + dy_grid) % rows
+                row_off = cy * cols
+                for dx_grid in range(span_x):
+                    cx = (x0_c + dx_grid) % cols
+                    for e in buckets[row_off + cx]:
                         edx = x - e.x
                         if edx < 0: edx = -edx
-                        if edx > half_w: edx -= w
+                        if edx > half_w: edx = w - edx
                         if edx > radius: continue
                         edy = y - e.y
                         if edy < 0: edy = -edy
-                        if edy > half_h: edy -= h
+                        if edy > half_h: edy = h - edy
                         if edy > radius: continue
                         if edx * edx + edy * edy <= r2:
                             res_append(e)
@@ -228,64 +227,60 @@ class World:
         h = self.height
         half_w = self.half_width
         half_h = self.half_height
-        cs = self.cell_size
         res: list[tuple[Entity, float]] = []
         res_append = res.append
 
         if self.is_wrap:
-            cx_center = int(x * inv_cs) % cols if cols else 0
-            cy_center = int(y * inv_cs) % rows if rows else 0
-            rx = int(radius * inv_cs) + 2
-            ry = rx
-            need_seen = (rx * 2 + 1 >= cols) or (ry * 2 + 1 >= rows)
+            if 2.0 * radius >= w:
+                x0_c, span_x = 0, cols
+            elif x - radius < 0.0:
+                x0_c = int((x - radius + w) * inv_cs)
+                span_x = min(cols, (cols - x0_c) + min(cols - 1, int((x + radius) * inv_cs)) + 1)
+            elif x + radius > w:
+                x0_c = int((x - radius) * inv_cs)
+                span_x = min(cols, (cols - x0_c) + min(cols - 1, int((x + radius - w) * inv_cs)) + 1)
+            else:
+                x0_c = int((x - radius) * inv_cs)
+                span_x = min(cols, min(cols - 1, int((x + radius) * inv_cs)) - x0_c + 1)
 
-            if need_seen:
-                seen: set[int] = set()
-                for dx_grid in range(-rx, rx + 1):
-                    cx = (cx_center + dx_grid) % cols
-                    for dy_grid in range(-ry, ry + 1):
-                        cy = (cy_center + dy_grid) % rows
-                        for e in buckets[cy * cols + cx]:
-                            if e.id in seen:
-                                continue
-                            seen.add(e.id)
-                            edx = x - e.x
-                            if edx < 0: edx = -edx
-                            if edx > half_w: edx -= w
-                            if edx > radius: continue
-                            edy = y - e.y
-                            if edy < 0: edy = -edy
-                            if edy > half_h: edy -= h
-                            if edy > radius: continue
-                            d2 = edx * edx + edy * edy
-                            if d2 <= r2:
-                                res_append((e, d2))
-                return res
-            for dx_grid in range(-rx, rx + 1):
-                cx = (cx_center + dx_grid) % cols
-                for dy_grid in range(-ry, ry + 1):
-                    cy = (cy_center + dy_grid) % rows
-                    for e in buckets[cy * cols + cx]:
+            if 2.0 * radius >= h:
+                y0_c, span_y = 0, rows
+            elif y - radius < 0.0:
+                y0_c = int((y - radius + h) * inv_cs)
+                span_y = min(rows, (rows - y0_c) + min(rows - 1, int((y + radius) * inv_cs)) + 1)
+            elif y + radius > h:
+                y0_c = int((y - radius) * inv_cs)
+                span_y = min(rows, (rows - y0_c) + min(rows - 1, int((y + radius - h) * inv_cs)) + 1)
+            else:
+                y0_c = int((y - radius) * inv_cs)
+                span_y = min(rows, min(rows - 1, int((y + radius) * inv_cs)) - y0_c + 1)
+
+            for dy_grid in range(span_y):
+                cy = (y0_c + dy_grid) % rows
+                row_off = cy * cols
+                for dx_grid in range(span_x):
+                    cx = (x0_c + dx_grid) % cols
+                    for e in buckets[row_off + cx]:
                         edx = x - e.x
                         if edx < 0: edx = -edx
-                        if edx > half_w: edx -= w
+                        if edx > half_w: edx = w - edx
                         if edx > radius: continue
                         edy = y - e.y
                         if edy < 0: edy = -edy
-                        if edy > half_h: edy -= h
+                        if edy > half_h: edy = h - edy
                         if edy > radius: continue
                         d2 = edx * edx + edy * edy
                         if d2 <= r2:
                             res_append((e, d2))
             return res
         # clamp: no wrap
-        x0 = int((x - radius) // cs)
+        x0 = int((x - radius) * inv_cs)
         if x0 < 0: x0 = 0
-        x1 = int((x + radius) // cs)
+        x1 = int((x + radius) * inv_cs)
         if x1 >= cols: x1 = cols - 1
-        y0 = int((y - radius) // cs)
+        y0 = int((y - radius) * inv_cs)
         if y0 < 0: y0 = 0
-        y1 = int((y + radius) // cs)
+        y1 = int((y + radius) * inv_cs)
         if y1 >= rows: y1 = rows - 1
         for cy in range(y0, y1 + 1):
             row_off = cy * cols

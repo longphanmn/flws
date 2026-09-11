@@ -254,6 +254,8 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
         # §AQ PH-1: coarse ambient heat field (row-major, top-left origin)
         self._temp_cols = max(1, math.ceil(self.config.width / TEMP_CELL))
         self._temp_rows = max(1, math.ceil(self.config.height / TEMP_CELL))
+        self._temp_cols_inv_w = self._temp_cols / max(1.0, float(self.config.width))
+        self._temp_rows_inv_h = self._temp_rows / max(1.0, float(self.config.height))
         base0 = SEASON_BASE_TEMP[SEASONS[0]]
         self.temperature_grid = [base0] * (self._temp_cols * self._temp_rows)
         # §AM: living soil — a fertility grid the harvests draw upon
@@ -1086,6 +1088,7 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
         AF: one O(N) scan replaces the old world.creatures() call (O(N)) plus
         independent per-subsystem entity scans in plants/fires/enforce_food_law/corpses.
         """
+        self._totem_mult_cache = {}  # resonance is recomputed per tick
         creatures: list[Creature] = []
         foods: list = []
         houses: list = []
@@ -1231,7 +1234,9 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
                     priest_pos[cid] = (c.x, c.y)
                     break
         self._priest_pos = priest_pos
-        self._totem_mult_cache = {}  # resonance is recomputed per tick
+        for cid in self.clans:
+            if cid not in self._totem_mult_cache:
+                self._totem_mult(cid)
 
     def _get_creatures(self) -> list[Creature]:
         if self._cached_creatures:
@@ -1523,16 +1528,33 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
         # from O(N*S) to O(N * avg_nearby) (~400 -> ~5-10). Law-preserving:
         # grid is superset for max_hear_d; iteration order = insertion order.
         self._signal_grid: dict[tuple[int, int], list[tuple[int, dict]]] = {}
+        self._signal_grid_buckets: list[list[tuple[int, dict]] | None] | None = None
         self._signal_grid_cs = self.world.cell_size
         if self.signals and self.config.communication_enabled:
             cols = self.world.cols
             rows = self.world.rows
             cs = self._signal_grid_cs
-            sg_grid = self._signal_grid
+            inv_cs = 1.0 / cs if cs else 1.0
+            buckets: list[list[tuple[int, dict]] | None] = [None] * (cols * rows)
             for idx, sg in enumerate(self.signals):
-                gx = int(sg["x"] // cs) % cols if cols else 0
-                gy = int(sg["y"] // cs) % rows if rows else 0
-                sg_grid.setdefault((gx, gy), []).append((idx, sg))
+                gx = int(sg["x"] * inv_cs) % cols if cols else 0
+                gy = int(sg["y"] * inv_cs) % rows if rows else 0
+                ci = gy * cols + gx
+                b = buckets[ci]
+                if b is None:
+                    buckets[ci] = [(idx, sg)]
+                else:
+                    b.append((idx, sg))
+            self._signal_grid_buckets = buckets
+            sig_r = self.config.signal_radius
+            snd_boost = SOUND_WIND_MULT * self.wind_speed if self.config.scent_enabled else 0.0
+            self._sig_tick_snd_boost = snd_boost
+            self._sig_tick_r = sig_r
+            self._sig_tick_r2 = sig_r * sig_r
+            max_hear_d = sig_r * 2.5 * (1.0 + snd_boost)
+            self._sig_tick_max_hear_d = max_hear_d
+            self._sig_tick_max_hear_d2 = max_hear_d * max_hear_d
+            self._sig_tick_rx = int(max_hear_d * inv_cs) + 1
         # §AR S-1: a war cry must wake sleepers BEFORE they settle — the full
         # hearing pass never reaches a sleeping body.
         if self.signals and self.config.communication_enabled:

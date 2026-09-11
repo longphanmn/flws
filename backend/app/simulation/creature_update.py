@@ -1181,75 +1181,60 @@ class CreatureUpdateMixin:
         harvest_order = False  # §AS L-2: autumn stores call
         harvest_house: tuple[float, float] | None = None
         if cfg.communication_enabled and self.signals:
-            sig_r = cfg.signal_radius
-            # §AQ PH-2: sound rides the wind - listeners DOWNWIND of a source
-            # hear it farther (the pressure wave drifts with the air).
-            snd_boost = SOUND_WIND_MULT * self.wind_speed if cfg.scent_enabled else 0.0
+            sig_r = getattr(self, "_sig_tick_r", cfg.signal_radius)
+            sig_r2 = getattr(self, "_sig_tick_r2", sig_r * sig_r)
+            snd_boost = getattr(self, "_sig_tick_snd_boost", (SOUND_WIND_MULT * self.wind_speed if cfg.scent_enabled else 0.0))
+            max_hear_d = getattr(self, "_sig_tick_max_hear_d", sig_r * 2.5 * (1.0 + snd_boost))
+            max_hear_d2 = getattr(self, "_sig_tick_max_hear_d2", max_hear_d * max_hear_d)
+            _rx = getattr(self, "_sig_tick_rx", int(max_hear_d // self.world.cell_size) + 1)
             wx_s, wy_s = self._cos_wind, self._sin_wind
-            # §AU O-2: hoisted per-tick constants and a cheap squared
-            # far-reject before any wavefront trig runs.
-            sig_r2 = sig_r * sig_r
-            half_w = cfg.width * 0.5
-            half_h = cfg.height * 0.5
-            max_hear_d = sig_r * 2.5 * (1.0 + snd_boost)
-            max_hear_d2 = max_hear_d * max_hear_d
+            half_w = self.world.half_width
+            half_h = self.world.half_height
             best_food_sq = math.inf
             best_alarm_sq = math.inf
             my_dialect = float(self.clans.get(c.clan_id, {}).get("dialect", 0.0)) if c.clan_id else 0.0
-            # §AU CPU: grid-gather signals within max_hear_d (law-preserving superset,
-            # insertion-order sorted, wrap-aware). O(S) -> O(~5-10) per creature.
-            _sg_grid = getattr(self, "_signal_grid", {})
-            _sg_cs = getattr(self, "_signal_grid_cs", self.world.cell_size)
-            _sg_cols = self.world.cols
-            _sg_rows = self.world.rows
-            if _sg_grid:
-                _rx = int(max_hear_d // _sg_cs) + 1
-                _cx0 = int(c.x // _sg_cs) % _sg_cols if _sg_cols else 0
-                _cy0 = int(c.y // _sg_cs) % _sg_rows if _sg_rows else 0
+
+            _sg_buckets = getattr(self, "_signal_grid_buckets", None)
+            if _sg_buckets is not None:
+                _sg_cols = self.world.cols
+                _sg_rows = self.world.rows
+                inv_cs = 1.0 / self.world.cell_size if self.world.cell_size else 1.0
+                _cand: list[tuple[int, dict]] = []
                 if self.world.config.boundary == "wrap":
-                    _cand: list[tuple[int, dict]] = []
-                    # PERF (no logic change): cell repeats are impossible when
-                    # the visit range fits the grid — skip the seen-set, keep
-                    # the sort (visit order still isn't insertion order).
-                    _span = 2 * _rx + 1
-                    _need_seen = _span > _sg_cols or _span > _sg_rows
-                    _seen_cells = set() if _need_seen else None
-                    for _dx in range(-_rx, _rx + 1):
-                        for _dy in range(-_rx, _rx + 1):
-                            _cx = (_cx0 + _dx) % _sg_cols if _sg_cols else 0
-                            _cy = (_cy0 + _dy) % _sg_rows if _sg_rows else 0
-                            if _need_seen:
-                                if (_cx, _cy) in _seen_cells:
-                                    continue
-                                _seen_cells.add((_cx, _cy))
-                            bucket = _sg_grid.get((_cx, _cy))
+                    span_x = min(_sg_cols, 2 * _rx + 1)
+                    span_y = min(_sg_rows, 2 * _rx + 1)
+                    x0 = 0 if span_x >= _sg_cols else (int(c.x * inv_cs) - _rx) % _sg_cols
+                    y0 = 0 if span_y >= _sg_rows else (int(c.y * inv_cs) - _rx) % _sg_rows
+
+                    for dy in range(span_y):
+                        cy = (y0 + dy) % _sg_rows
+                        row_off = cy * _sg_cols
+                        for dx in range(span_x):
+                            cx = (x0 + dx) % _sg_cols
+                            bucket = _sg_buckets[row_off + cx]
                             if bucket:
                                 _cand.extend(bucket)
-                    # sorting ≤1 element is a no-op — skip it (identical order)
-                    if len(_cand) > 1:
-                        _cand.sort(key=lambda t: t[0])
-                    _iter_signals = (sg for _, sg in _cand)
                 else:
-                    # clamp: collect cells overlapping max_hear_d square
-                    _cand = []
-                    if _sg_grid:
-                        # fallback to direct collection via bounding box
-                        for (gx, gy), bucket in _sg_grid.items():
-                            # quick cell-center far reject
-                            cx_cell = (gx + 0.5) * _sg_cs
-                            cy_cell = (gy + 0.5) * _sg_cs
-                            if abs(cx_cell - c.x) > max_hear_d + _sg_cs and abs(cy_cell - c.y) > max_hear_d + _sg_cs:
-                                continue
-                            _cand.extend(bucket)
-                        _cand.sort(key=lambda t: t[0])
-                    _iter_signals = (sg for _, sg in _cand) if _cand else iter(self.signals)
-                    # For clamp small maps, if grid sparse, fallback to filtered linear scan is still cheaper
-                    if not _cand:
-                        _iter_signals = (sg for sg in self.signals)
-                        # apply same far-reject quickly inside loop anyway
+                    cx_min = max(0, int((c.x - max_hear_d) * inv_cs))
+                    cx_max = min(_sg_cols - 1, int((c.x + max_hear_d) * inv_cs))
+                    cy_min = max(0, int((c.y - max_hear_d) * inv_cs))
+                    cy_max = min(_sg_rows - 1, int((c.y + max_hear_d) * inv_cs))
+                    for cy in range(cy_min, cy_max + 1):
+                        row_off = cy * _sg_cols
+                        for cx in range(cx_min, cx_max + 1):
+                            bucket = _sg_buckets[row_off + cx]
+                            if bucket:
+                                _cand.extend(bucket)
+                if len(_cand) > 1:
+                    _cand.sort()
+                signals_to_iter = _cand
+                has_idx = True
             else:
-                _iter_signals = iter(self.signals)
-            for sg in _iter_signals:
+                signals_to_iter = self.signals
+                has_idx = False
+
+            for item in signals_to_iter:
+                sg = item[1] if has_idx else item
                 dxw = sg["x"] - c.x
                 if dxw > half_w:
                     dxw -= cfg.width
@@ -1293,9 +1278,11 @@ class CreatureUpdateMixin:
                     # (listener - source) with the wind vector.
                     if snd_boost <= 0.0 or c.indoors or d2 >= (sig_r * 2.5) ** 2:
                         continue
+                    align = -(dxw * wx_s + dyw * wy_s)
+                    if align <= 0.0:
+                        continue
                     d_snd = math.sqrt(d2)
-                    dxs, dys = w.delta(sg["x"], sg["y"], c.x, c.y)  # source rel. listener
-                    downwind = max(0.0, -(dxs * wx_s + dys * wy_s) / d_snd)
+                    downwind = align / d_snd
                     if d_snd > sig_r * (1.0 + snd_boost * downwind):
                         continue
                 kind = sg["kind"]
@@ -1515,12 +1502,17 @@ class CreatureUpdateMixin:
         if not c.is_predator and not c.is_herbivore:
             panicked_mate = False
             priest_near = False
-            for o, d2o in w.query_radius_with_dist_sq(c.x, c.y, max(cfg.flock_radius, PRIEST_CALM_RADIUS)):
+            _p_r = max(cfg.flock_radius, PRIEST_CALM_RADIUS)
+            _p_r2 = _p_r * _p_r
+            _priest_r2 = PRIEST_CALM_RADIUS * PRIEST_CALM_RADIUS
+            for o, d2o in _batch_list:
+                if d2o > _p_r2:
+                    continue
                 if not isinstance(o, Creature) or o.id == c.id or o.clan_id != c.clan_id:
                     continue
                 if o.id in getattr(self, "_fleeing_ids", ()) or o.panic_ticks > 0:
                     panicked_mate = True
-                if o.caste == "Priest" and d2o <= PRIEST_CALM_RADIUS * PRIEST_CALM_RADIUS:
+                if o.caste == "Priest" and d2o <= _priest_r2:
                     priest_near = True
             if panicked_mate and (
                 flee_target is not None or self._fact_fresh(c, "danger") is not None
