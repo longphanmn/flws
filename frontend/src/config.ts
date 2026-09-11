@@ -15,9 +15,10 @@ const paramWs = params?.get('ws') || null
 
 function decodeEnvUrl(val: unknown): string {
   if (typeof val !== 'string' || !val) return ''
+  const str = val.replace(/\\/g, '').trim()
   try {
-    if (typeof window !== 'undefined' && window.atob && /^[A-Za-z0-9+/=]+$/.test(val) && val.length % 4 === 0) {
-      const decoded = window.atob(val)
+    if (typeof window !== 'undefined' && window.atob && /^[A-Za-z0-9+/=]+$/.test(str)) {
+      const decoded = window.atob(str).replace(/\\/g, '').trim()
       if (decoded.startsWith('http://') || decoded.startsWith('https://') || decoded.startsWith('ws://') || decoded.startsWith('wss://')) {
         return decoded
       }
@@ -25,7 +26,7 @@ function decodeEnvUrl(val: unknown): string {
   } catch {
     // ignore decoding errors
   }
-  return val
+  return str
 }
 
 // Configured from .env (API_URL / BACKEND_URL / VITE_BACKEND_URL) via Vite define/import.meta.env
@@ -44,11 +45,13 @@ const envWsUrl = decodeEnvUrl(
 )
 
 export const DEFAULT_REMOTE_BACKEND = envApiUrl.replace(/\/+$/, '')
-export const DEFAULT_REMOTE_WS = envWsUrl || (
-  DEFAULT_REMOTE_BACKEND.startsWith('https')
-    ? DEFAULT_REMOTE_BACKEND.replace(/^https/, 'wss') + '/ws'
-    : DEFAULT_REMOTE_BACKEND.replace(/^http/, 'ws') + '/ws'
-)
+export const DEFAULT_REMOTE_WS = (envWsUrl && (envWsUrl.startsWith('ws://') || envWsUrl.startsWith('wss://')))
+  ? envWsUrl
+  : (
+    DEFAULT_REMOTE_BACKEND.startsWith('https')
+      ? DEFAULT_REMOTE_BACKEND.replace(/^https/, 'wss') + '/ws'
+      : DEFAULT_REMOTE_BACKEND.replace(/^http/, 'ws') + '/ws'
+  )
 
 export function getBackendBaseUrl(): string {
   if (paramBackend) return paramBackend.replace(/\/+$/, '')

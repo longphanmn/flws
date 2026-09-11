@@ -73,7 +73,7 @@ export default defineConfig(({ mode }) => {
   const rawLandingUrl = process.env.VITE_LANDING_URL || process.env.LANDING_URL || env.LANDING_URL || ''
   const cleanLandingUrl = rawLandingUrl.replace(/\/+$/, '')
 
-  let rawWsUrl = process.env.VITE_DEMO_WS_URL || process.env.WS_URL || env.WS_URL || env.VITE_WS_URL || ''
+  let rawWsUrl = (process.env.VITE_DEMO_WS_URL || process.env.WS_URL || env.WS_URL || env.VITE_WS_URL || '').replace(/\\/g, '')
   if (!rawWsUrl && cleanApiUrl) {
     if (cleanApiUrl.startsWith('https://')) {
       rawWsUrl = cleanApiUrl.replace(/^https:\/\//, 'wss://') + '/ws'
