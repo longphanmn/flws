@@ -6,7 +6,8 @@
     "copy": "Copier",
     "download": "Télécharger",
     "search": "Rechercher",
-    "language": "Langue"
+    "language": "Langue",
+    "more": "Plus"
   },
   "app": {
     "title": "Flatland",
@@ -41,7 +42,12 @@
       "god": "Lois de la Sphère (Dieu)",
       "chronicle": "Journal",
       "world": "Monde",
-      "clans": "Clans"
+      "clans": "Clans",
+      "hideChronicle": "Masquer la chronique",
+      "showChronicle": "Afficher la chronique",
+      "tps": "ticks par seconde",
+      "speedTps": "ticks/s",
+      "runSelect": "Sélectionner une session de monde (La Sphère)"
     },
     "hud": {
       "alive": "Vivants",
@@ -150,6 +156,9 @@
       "tapCreature": "fonctionne à tout niveau de zoom (rayon 44px), affiche le dossier à gauche, halo doré + glyphe",
       "controls": "espace pause, S pas, R réinit, F cadrer, +/- zoom, glisser panoramique, pincer zoom",
       "historyChronicle": "Touche H ou icône livre ouvre l'Histoire du Monde avec frise d'époques, panthéon des records, matrice des rivalités et génération de récits IA."
+    },
+    "topNav": {
+      "history": "Histoire du Monde & Récits IA (H)"
     }
   },
   "god": {
@@ -330,7 +339,20 @@
       "advancedSafeguards": "⚙️ Réglages avancés : Sauvegardes & Amortissement",
       "advancedPlague": "⚙️ Réglages avancés : Pathologie",
       "matchingPresets": "Préréglages correspondants :",
-      "riskOnly": "Risques seuls"
+      "riskOnly": "Risques seuls",
+      "crashed": "Le panneau divin a planté",
+      "retry": "Réessayer",
+      "copyJsonTitle": "Copier les lois au format JSON dans le presse-papiers",
+      "importJsonTitle": "Importer les lois depuis un JSON",
+      "undoTitle": "Annuler la dernière modification (Ctrl+Z)",
+      "redoTitle": "Rétablir (Ctrl+Shift+Z)",
+      "toggleHistoryTitle": "Afficher/masquer l'historique des modifications de la session",
+      "extremeFilterTitle": "Afficher uniquement les paramètres en zone extrême (risque)",
+      "sessionModifications": "Modifications de la session",
+      "noModifications": "Aucune modification pour l'instant dans cette session.",
+      "importModalTitle": "Importer les lois depuis un JSON",
+      "importModalDesc": "Collez un objet JSON valide contenant les surcharges de lois.",
+      "applyImportedJson": "Appliquer le JSON importé"
     },
     "curatedPresetsTitle": "Préréglages curés",
     "lawsOfNatureTitle": "Lois de la Nature",
@@ -815,7 +837,9 @@
     "noAntagonist": "Antagoniste: Aucun traître ni assassin connu",
     "genStoryPrompt": "📖 Générer l'invite d'histoire de clan pour l'IA",
     "historicalEvents": "Événements Historiques",
-    "noBioData": "Aucune donnée biographique disponible."
+    "noBioData": "Aucune donnée biographique disponible.",
+    "copyLinkTitle": "Copier le lien de partage de ce clan",
+    "genStoryPromptTitle": "Générer un prompt d'histoire IA pour la chronique de ce clan"
   },
   "inspector": {
     "creature": "Créature",
@@ -944,7 +968,18 @@
     "primaryCause": "Cause principale d'extinction",
     "extinctionBreakdown": "Répartition des causes de décès",
     "historyBtn": "Histoire du monde & Export du récit",
-    "resetBtn": "Réinitialiser le monde — Nouvelle graine"
+    "resetBtn": "Réinitialiser le monde — Nouvelle graine",
+    "noVictories": "Aucune victoire de guerre",
+    "peaceReigned": "La paix a régné sans partage",
+    "causes": {
+      "starvation": "Famine et inanition",
+      "predation": "Prédation",
+      "plague": "Peste et épidémie",
+      "war": "Guerre et conflits",
+      "oldAge": "Vieillesse",
+      "disaster": "Cataclysme naturel",
+      "cold": "Gel sévère"
+    }
   },
   "auth": {
     "wrongPasskey": "Clé secrète invalide — la réinitialisation se fait sur le terminal serveur (python -m app.godkey reset <clé>)",
@@ -1528,7 +1563,25 @@
       "disease": "Maladie",
       "old_age": "Vieillesse",
       "chill": "Froid / Exposition",
-      "other": "Autre"
+      "other": "Autre",
+      "war": "Guerre",
+      "cannibalism": "Cannibalisme",
+      "euthanasia": "Euthanasie",
+      "impalement": "Empalement",
+      "poison": "Poison",
+      "exhaustion": "Épuisement",
+      "hyperthermia": "Coup de chaleur",
+      "overcrowding": "Surpopulation",
+      "exposure": "Intempéries",
+      "fall": "Chute",
+      "landslide": "Glissement de terrain",
+      "drowning": "Noyade",
+      "earthquake": "Séisme",
+      "lightning": "Foudre",
+      "fire": "Incendie",
+      "disaster": "Cataclysme",
+      "collision": "Collision",
+      "outbreak": "Flambée épidémique"
     },
     "ecology": {
       "flora_biomass": "Biomasse Végétale",
@@ -1708,7 +1761,17 @@
   "overviewPanel": {
     "vitals": "Signes vitaux",
     "inspect": "examiner",
-    "clan": "clan"
+    "clan": "clan",
+    "vitalsTooltips": {
+      "male": "Créatures mâles",
+      "female": "Créatures femelles",
+      "healthy": "Créatures en bonne santé",
+      "infected": "Infectées",
+      "hungryStarving": "Affamées et en détresse",
+      "chilled": "Transies de froid",
+      "totalAlive": "Total vivants",
+      "totalDead": "Total morts"
+    }
   },
   "mutationLab": {
     "morphospaceTitle": "Morpho-espace — Surface vs Acuité (BG-12)",

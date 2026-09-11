@@ -247,16 +247,16 @@ function OverviewPanel({
       <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '6px 8px' }}>
         <div style={{ fontSize: 10, fontWeight: 700, color: '#8b949e', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 5 }}>{t('overviewPanel.vitals')}</div>
         <div className="vitals-strip" style={{ marginBottom: 4 }}>
-          <span className="vitals-pill" title="Male creatures">♂ {t('app.overview.men')} <b style={{ color: '#79c0ff' }}>{menCount}</b></span>
-          <span className="vitals-pill" title="Female creatures">♀ {t('app.overview.women')} <b style={{ color: '#ff9bce' }}>{womenCount}</b></span>
-          <span className="vitals-pill" title="Healthy creatures">✓ {t('app.overview.healthy')} <b style={{ color: '#3fb950' }}>{healthyCount}</b></span>
-          <span className="vitals-pill" style={{ borderColor: sickCount > 0 ? '#238636' : undefined, color: sickCount > 0 ? '#3fb950' : undefined }} title="Infected">☣ {t('app.overview.sick')} <b>{sickCount}</b></span>
+          <span className="vitals-pill" title={t('overviewPanel.vitalsTooltips.male')}>♂ {t('app.overview.men')} <b style={{ color: '#79c0ff' }}>{menCount}</b></span>
+          <span className="vitals-pill" title={t('overviewPanel.vitalsTooltips.female')}>♀ {t('app.overview.women')} <b style={{ color: '#ff9bce' }}>{womenCount}</b></span>
+          <span className="vitals-pill" title={t('overviewPanel.vitalsTooltips.healthy')}>✓ {t('app.overview.healthy')} <b style={{ color: '#3fb950' }}>{healthyCount}</b></span>
+          <span className="vitals-pill" style={{ borderColor: sickCount > 0 ? '#238636' : undefined, color: sickCount > 0 ? '#3fb950' : undefined }} title={t('overviewPanel.vitalsTooltips.infected')}>☣ {t('app.overview.sick')} <b>{sickCount}</b></span>
         </div>
         <div className="vitals-strip">
-          <span className="vitals-pill" style={{ color: hungryCount + starvingCount > 0 ? '#d29922' : undefined }} title="Hungry + starving">🍖 {t('app.overview.hungry')} <b>{hungryCount + starvingCount}</b>{starvingCount > 0 ? ` · ⚠ ${starvingCount}` : ''}</span>
-          <span className="vitals-pill" style={{ color: chilledCount > 0 ? '#79c0ff' : undefined }} title="Chilled">🥶 {t('app.overview.chilled')} <b>{chilledCount}</b></span>
-          <span className="vitals-pill" title="Total alive">💚 <b>{state.creatures_alive}</b> {t('app.hud.alive').toLowerCase()}</span>
-          <span className="vitals-pill" title="Total dead">💀 <b>{state.creatures_dead}</b> {t('app.hud.dead').toLowerCase()}</span>
+          <span className="vitals-pill" style={{ color: hungryCount + starvingCount > 0 ? '#d29922' : undefined }} title={t('overviewPanel.vitalsTooltips.hungryStarving')}>🍖 {t('app.overview.hungry')} <b>{hungryCount + starvingCount}</b>{starvingCount > 0 ? ` · ⚠ ${starvingCount}` : ''}</span>
+          <span className="vitals-pill" style={{ color: chilledCount > 0 ? '#79c0ff' : undefined }} title={t('overviewPanel.vitalsTooltips.chilled')}>🥶 {t('app.overview.chilled')} <b>{chilledCount}</b></span>
+          <span className="vitals-pill" title={t('overviewPanel.vitalsTooltips.totalAlive')}>💚 <b>{state.creatures_alive}</b> {t('app.hud.alive').toLowerCase()}</span>
+          <span className="vitals-pill" title={t('overviewPanel.vitalsTooltips.totalDead')}>💀 <b>{state.creatures_dead}</b> {t('app.hud.dead').toLowerCase()}</span>
         </div>
       </div>
 

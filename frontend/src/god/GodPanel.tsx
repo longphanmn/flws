@@ -3,19 +3,24 @@ import { godFetch } from './auth'
 import { useI18n } from '../i18n'
 import type { GodLaws } from '../types'
 
+const GodPanelErrorFallback = ({ error, onReset }: { error: any; onReset: () => void }) => {
+  const { t } = useI18n()
+  return (
+    <div style={{ padding: 16, color: '#f85149' }}>
+      <h3 style={{ margin: '0 0 8px' }}>{t('god.ui.crashed')}</h3>
+      <pre style={{ whiteSpace: 'pre-wrap', fontSize: 11, background: '#161b22', padding: 8, borderRadius: 6, border: '1px solid #30363d' }}>{String(error?.message ?? error)}</pre>
+      <button onClick={onReset} style={{ marginTop: 8, padding: '6px 10px', background: '#21262d', border: '1px solid #30363d', borderRadius: 6, color: '#e6edf3', cursor: 'pointer' }}>{t('god.ui.retry')}</button>
+    </div>
+  )
+}
+
 class GodPanelErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
   state = { hasError: false, error: null as any }
   static getDerivedStateFromError(error: any) { return { hasError: true, error } }
   componentDidCatch(error: any, info: any) { console.error('[GodPanel] crash', error, info) }
   render() {
     if (this.state.hasError) {
-      return (
-        <div style={{ padding: 16, color: '#f85149' }}>
-          <h3 style={{ margin: '0 0 8px' }}>God Panel crashed</h3>
-          <pre style={{ whiteSpace: 'pre-wrap', fontSize: 11, background: '#161b22', padding: 8, borderRadius: 6, border: '1px solid #30363d' }}>{String(this.state.error?.message ?? this.state.error)}</pre>
-          <button onClick={() => this.setState({ hasError: false, error: null })} style={{ marginTop: 8, padding: '6px 10px', background: '#21262d', border: '1px solid #30363d', borderRadius: 6, color: '#e6edf3', cursor: 'pointer' }}>Retry</button>
-        </div>
-      )
+      return <GodPanelErrorFallback error={this.state.error} onReset={() => this.setState({ hasError: false, error: null })} />
     }
     return this.props.children
   }
@@ -1306,7 +1311,7 @@ function GodPanelInner({ open, onClose }: Props) {
             type="button"
             className="god-foot-tool-btn"
             onClick={handleExportJSON}
-            title="Copy laws as JSON to clipboard"
+            title={t('god.ui.copyJsonTitle')}
           >
             <span className="god-foot-btn-icon">{exportedCopied ? '✓' : '📤'}</span>
             <span className="god-foot-btn-label">{exportedCopied ? (t('god.ui.copied') || 'Copied!') : (t('god.ui.exportJson') || 'Export JSON')}</span>
@@ -1315,7 +1320,7 @@ function GodPanelInner({ open, onClose }: Props) {
             type="button"
             className="god-foot-tool-btn"
             onClick={() => setShowImportModal(true)}
-            title="Import laws from JSON"
+            title={t('god.ui.importJsonTitle')}
           >
             <span className="god-foot-btn-icon">📥</span>
             <span className="god-foot-btn-label">{t('god.ui.importJson') || 'Import JSON'}</span>
@@ -1639,7 +1644,7 @@ function GodPanelInner({ open, onClose }: Props) {
                     type="button"
                     onClick={handleUndo}
                     disabled={undoStack.length === 0}
-                    title="Undo last law change (Ctrl+Z)"
+                    title={t('god.ui.undoTitle')}
                     style={{ background: 'transparent', border: 'none', color: undoStack.length > 0 ? '#c9d1d9' : '#484f58', cursor: undoStack.length > 0 ? 'pointer' : 'default', padding: '2px 4px', fontSize: 13 }}
                   >
                     ↺
@@ -1648,7 +1653,7 @@ function GodPanelInner({ open, onClose }: Props) {
                     type="button"
                     onClick={handleRedo}
                     disabled={redoStack.length === 0}
-                    title="Redo (Ctrl+Shift+Z)"
+                    title={t('god.ui.redoTitle')}
                     style={{ background: 'transparent', border: 'none', color: redoStack.length > 0 ? '#c9d1d9' : '#484f58', cursor: redoStack.length > 0 ? 'pointer' : 'default', padding: '2px 4px', fontSize: 13 }}
                   >
                     ↻
@@ -1657,7 +1662,7 @@ function GodPanelInner({ open, onClose }: Props) {
                   <button
                     type="button"
                     onClick={() => setShowChangeLog(!showChangeLog)}
-                    title="Toggle session change history"
+                    title={t('god.ui.toggleHistoryTitle')}
                     style={{ background: '#21262d', border: '1px solid #30363d', borderRadius: 4, color: '#8b949e', fontSize: 11, padding: '2px 6px', cursor: 'pointer' }}
                   >
                     📜 {t('god.ui.changeLog')} ({changeLog.length})
@@ -1676,11 +1681,11 @@ function GodPanelInner({ open, onClose }: Props) {
               {showChangeLog && (
                 <div className="god-history-popover">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, borderBottom: '1px solid #30363d', paddingBottom: 4 }}>
-                    <span style={{ fontWeight: 700, color: '#e6edf3' }}>Session Modifications</span>
+                    <span style={{ fontWeight: 700, color: '#e6edf3' }}>{t('god.ui.sessionModifications')}</span>
                     <button onClick={() => setShowChangeLog(false)} style={{ background: 'transparent', border: 'none', color: '#8b949e', cursor: 'pointer' }}>×</button>
                   </div>
                   {changeLog.length === 0 ? (
-                    <div style={{ color: '#8b949e', padding: 8, textAlign: 'center' }}>No modifications yet in this session.</div>
+                    <div style={{ color: '#8b949e', padding: 8, textAlign: 'center' }}>{t('god.ui.noModifications')}</div>
                   ) : (
                     changeLog.map((entry, idx) => (
                       <div key={idx} className="god-history-item">
@@ -1723,7 +1728,7 @@ function GodPanelInner({ open, onClose }: Props) {
                 <button
                   className={`god-filter-btn ${filterRiskOnly ? 'active' : ''}`}
                   onClick={() => setFilterRiskOnly(!filterRiskOnly)}
-                  title="Show only parameters in the extreme (risk) zone"
+                  title={t('god.ui.extremeFilterTitle')}
                   style={{ color: filterRiskOnly ? '#ff7b72' : undefined, borderColor: filterRiskOnly ? '#f85149' : undefined }}
                 >
                   {t('god.ui.riskOnly')} ({riskKeysCount})
@@ -2187,9 +2192,9 @@ function GodPanelInner({ open, onClose }: Props) {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ margin: 0, color: '#e6edf3', fontSize: 14 }}>Import Laws from JSON</h3>
+            <h3 style={{ margin: 0, color: '#e6edf3', fontSize: 14 }}>{t('god.ui.importModalTitle')}</h3>
             <p style={{ margin: 0, color: '#8b949e', fontSize: 11 }}>
-              Paste a valid JSON object containing god law overrides.
+              {t('god.ui.importModalDesc')}
             </p>
             <textarea
               rows={8}
@@ -2213,14 +2218,14 @@ function GodPanelInner({ open, onClose }: Props) {
                 onClick={() => setShowImportModal(false)}
                 style={{ padding: '6px 12px', background: '#21262d', border: '1px solid #30363d', borderRadius: 6, color: '#c9d1d9', cursor: 'pointer' }}
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
                 onClick={handleImportSubmit}
                 style={{ padding: '6px 12px', background: '#238636', border: '1px solid #2ea043', borderRadius: 6, color: '#fff', fontWeight: 600, cursor: 'pointer' }}
               >
-                Apply Imported JSON
+                {t('god.ui.applyImportedJson')}
               </button>
             </div>
           </div>

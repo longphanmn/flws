@@ -47,33 +47,6 @@ Sex: polygons male, lines female (`entities.py:137`). Sons `sides = father.sides
 ## Geometric Physics (Morphology Engine, K∈[3,24])
 Polar genomes $K\in[3,24]$ SoA `morph_radii/morph_angles/morph_k/physical_traits (A,P,I_{zz},\theta_{\min},asym,Dmult)` — vectorized `morphology_engine.py` `KMAX 24` (`morphology.py` shim). $\lambda(g)=morph\_lambda\_override ?? clamp(1-(g-g_{start})/g_{decay})$ (`g_start 50` `g_decay 150`, `override -1.0` = auto). Baking $E_{\max}\cdot clamp(A/A_{ref},0.5,2.5)$ $decay\cdot clamp(P/P_{ref},0.7,2.0)$ $steer\Delta\theta$ $D_{mult}$ $asym$→$irregularity$ with `safeguard_morph_mercy` ($\eta>0.3$ suspends euthanasia), SAT broadphase $r_{\max}$ + circle fallback ($K\ge24$ & $asym<0.05$) + edge normals + $D_{mult}$ impulse. Telemetry `/api/metrics/morphology` and `/api/metrics/safeguards` (`N,\eta,tier,miracles,mercy`) live.
 
-## Evolutionary Genome Mirror & Visual Phenotypes (§BK-8 / §BK-9)
-Flatland unifies map visualization into an **Evolutionary Genome Mirror** where each creature's body dynamically mirrors its living genome, morphological mutations, and generational lineage across millennia (from Gen 0 to Gen 2000+):
-- **Generational Epoch Spectrum (Gen 0 → 2000+)**:
-  - **Gen 0–4 (Genesis Founders)**: Primordial Sky Cyan (`#38bdf8`) with a pulsing 4-point Genesis Spark.
-  - **Gen 5–24 (Pioneers)**: Early Pioneer Aqua (`#06b6d4`).
-  - **Gen 25–74 (Dynastic Lines)**: Formative Dynastic Jade (`#10b981`) with a concentric gold Dynasty Core Ring.
-  - **Gen 75–199 (Imperial Eras)**: Imperial Classical Violet (`#8b5cf6`).
-  - **Gen 200–499 (Sovereign Houses)**: Ancient Sovereign Magenta (`#ec4899`).
-  - **Gen 500–999 (Solar Empires)**: Millennial Solar Ember (`#f97316`).
-  - **Gen 1000–1999 (Eon Sovereigns)**: Eon Sovereign Gold (`#facc15`).
-  - **Gen 2000+ (Celestial Transcendants)**: Transcendent Celestial Diamond Starlight (`#fef08a`).
-- **Millennial Coronas & Orbital Halos**:
-  - **Gen 50+**: 8-ray Celestial Starburst Corona (`#fde047`).
-  - **Gen 200+**: 12-ray Sovereign Sunburst Corona (`#fbbf24`).
-  - **Gen 500+**: 16-ray Radiant Astral Corona with dashed orbital halo ring (`#f59e0b`).
-  - **Gen 1000+**: 20-ray Solar Eon Corona (`#facc15`).
-  - **Gen 2000+**: 24-ray Cosmic Starlight Corona with 8 orbiting diamond starlight cardinal flares (`#fef08a`).
-- **Genomic Mutation & Aberration Mirroring**:
-  - Regular orthodox creatures retain crisp geometric boundaries.
-  - Minor divergence ($0.08 \le irr < 0.16$) shifts hue toward violet and amber.
-  - Severe aberrations ($irr \ge 0.16$) shift toward deep magenta and crimson rose (`#f43f5e`).
-  - Radical mutants ($irr > 0.18$) radiate a bioluminescent chaotic aura with dynamic vertex breathing.
-- **Physical Trait Phenotypes**:
-  - **Razor Edges ($D_{mult}$)**: Apex vertex glints sparkle with intensity proportional to offensive sharpness.
-  - **Inertia Armor ($I_{zz}$ / Area)**: Thickened double-walled kinetic shell on high-inertia agents.
-  - **Ancestral Patina**: Crystalline core patinas solidify with age and lineage.
-
 ## World History, Chronicle & AI Storytelling (§BM)
 Flatland features an end-to-end multi-era historiography, timeline analytics, and AI storytelling suite:
 - **Major Moments & Chronicle Jumps**: Top dramatic days (casualties, conquests, schisms) are automatically highlighted as jump chips above the chronicle feed. Users can jump directly to any specific tick timestamp.
@@ -190,33 +163,6 @@ Giới tính: đa giác là giống đực, đoạn thẳng một chiều là gi
 ## Động cơ hình thái & Hình học cực (K∈[3,24])
 Bộ gen cực $K\in[3,24]$ lưu trữ cấu trúc SoA gồm bán kính, góc, diện tích, chu vi, mômen quán tính $I_{zz}$, góc nhỏ nhất $\theta_{\min}$ và hệ số bất đối xứng $asym$. Tự động điều chỉnh dung lượng năng lượng, lực đẩy và tính sát thương va chạm. Có cơ chế cứu rỗi (`safeguard_morph_mercy`) tạm hoãn thanh lọc dị hình khi dân số suy kiệt.
 
-## Gương Phản chiếu Bộ gen Tiến hóa & Kiểu hình Trực quan (§BK-8 / §BK-9)
-Flatland hợp nhất trực quan hóa bản đồ thành **Gương Phản chiếu Bộ gen Tiến hóa**, nơi thân thể mỗi sinh vật phản chiếu trực tiếp bộ gen sống, đột biến hình thái và huyết mạch dòng dõi trải dài hàng nghìn năm (từ Gen 0 đến Gen 2000+):
-- **Phổ màu Kỷ nguyên Huyết thống (Gen 0 → 2000+)**:
-  - **Gen 0–4 (Tổ phụ Khai thiên)**: Lam trời sơ nguyên (`#38bdf8`) với Đốm sáng Sáng thế 4 cánh nhấp nháy.
-  - **Gen 5–24 (Tiên phong Định cư)**: Lục lam tiên phong (`#06b6d4`).
-  - **Gen 25–74 (Gia tộc Định hình)**: Lục bảo vương triều (`#10b981`) kèm Vòng lõi Huyết thống Hoàng kim đồng tâm.
-  - **Gen 75–199 (Thời kỳ Đế chế)**: Tím thẫm cổ điển (`#8b5cf6`).
-  - **Gen 200–499 (Vương triều Thượng cổ)**: Cánh sen uy nghiêm (`#ec4899`).
-  - **Gen 500–999 (Kỷ nguyên Thái dương)**: Hổ phách rực lửa (`#f97316`).
-  - **Gen 1000–1999 (Đế vương Vĩnh hằng)**: Vàng kim vương giả (`#facc15`).
-  - **Gen 2000+ (Hóa thần Thiên giới)**: Ánh sao Kim cương Tinh tú (`#fef08a`).
-- **Vành nhật hoa & Vòng quỹ đạo Hào quang Thiên cổ**:
-  - **Gen 50+**: Vành nhật hoa Tinh tú 8 tia sáng (`#fde047`).
-  - **Gen 200+**: Nhật hoa Mặt trời Vương giả 12 tia sáng (`#fbbf24`).
-  - **Gen 500+**: Vành nhật hoa Tinh vân 16 tia sáng kèm Vòng hào quang quỹ đạo quay quanh (`#f59e0b`).
-  - **Gen 1000+**: Nhật hoa Thái dương Vĩnh hằng 20 tia sáng (`#facc15`).
-  - **Gen 2000+**: Vành nhật hoa Vũ trụ 24 tia sáng kèm 8 Ngôi sao Kim cương bay quanh theo các phương vị (`#fef08a`).
-- **Phản chiếu Đột biến & Dị dạng Hình thái**:
-  - Cá thể chuẩn tắc giữ vững đường nét hình học sắc sảo.
-  - Lệch nhẹ ($0.08 \le irr < 0.16$) chuyển sắc sang tím và hổ phách.
-  - Dị dạng nghiêm trọng ($irr \ge 0.16$) chuyển sắc sang tím thẫm và đỏ thẫm (`#f43f5e`).
-  - Đột biến cấp cao ($irr > 0.18$) tỏa Hào quang Phát quang sinh học hỗn loạn với các đỉnh gai micro-dao động.
-- **Biểu hiện Đặc tính Vật lý**:
-  - **Lưỡi dao Sát thương ($D_{mult}$)**: Ánh kim lóe sáng tại đỉnh nhọn nhất tỷ lệ thuận với độ bén sát thương.
-  - **Giáp Quán tính ($I_{zz}$ / Diện tích)**: Vỏ giáp động lực học hai lớp dày dặn gia cố khi quán tính lớn.
-  - **Lõi Tinh thể Cổ xưa**: Lõi ngọc hóa cứng cáp theo tuổi đời và niên đại thế hệ.
-
 ## Biên niên sử, Lịch sử Thế giới & AI Kể chuyện (§BM)
 Flatland trang bị hệ thống phân tích biên niên sử đa thời kỳ và trợ lý viết truyện AI toàn diện:
 - **Khoảnh khắc Then chốt & Nhảy mốc thời gian**: 5 ngày biến động lớn nhất (thương vong, thôn tính, ly khai) hiển thị dạng chip nhảy nhanh trên bảng biên niên. Cho phép gõ số tick để nhảy tức thì đến thời khắc lịch sử.
@@ -306,33 +252,6 @@ Dimorphisme : les polygones sont mâles, les segments de droite sont femelles. L
 
 ## Moteur de morphologie & Physique géométrique (K∈[3,24])
 Génome sous forme vectorisée SoA comprenant rayons polaires, angles, superficie, périmètre, moment d'inertie $I_{zz}$ et asymétrie. Les attributs physiques modulent la capacité énergétique, l'impulsion motrice et la force de frappe lors des collisions SAT. Le protocole de clémence (`safeguard_morph_mercy`) suspend l'euthanasie lorsque la population s'effondre.
-
-## Miroir Génomique Évolutif & Phénotypes Visuels (§BK-8 / §BK-9)
-Flatland unifie la visualisation cartographique en un **Miroir Génomique Évolutif** où chaque créature reflète dynamiquement son génome vivant, ses mutations morphologiques et sa lignée générationnelle à travers les millénaires (de la Gén 0 à la Gén 2000+) :
-- **Spectre des Époques Générationnelles (Gén 0 → 2000+)** :
-  - **Gén 0–4 (Fondateurs de la Genèse)** : Cyan ciel primordial (`#38bdf8`) avec étincelle de genèse à 4 branches.
-  - **Gén 5–24 (Pionniers)** : Aqua d'exploration précoce (`#06b6d4`).
-  - **Gén 25–74 (Dynasties formatrices)** : Jade dynastique (`#10b981`) avec anneau central doré concentrique.
-  - **Gén 75–199 (Ères impériales)** : Violet classique impérial (`#8b5cf6`).
-  - **Gén 200–499 (Souverains anciens)** : Magenta souverain (`#ec4899`).
-  - **Gén 500–999 (Empires solaires)** : Braise solaire millénaire (`#f97316`).
-  - **Gén 1000–1999 (Souverains des éons)** : Or souverain (`#facc15`).
-  - **Gén 2000+ (Transcendants célestes)** : Étoile de diamant stellaire céleste (`#fef08a`).
-- **Couronnes Millénaires & Halos Orbitaux** :
-  - **Gén 50+** : Couronne stellaire céleste à 8 rayons (`#fde047`).
-  - **Gén 200+** : Couronne solaire souveraine à 12 rayons (`#fbbf24`).
-  - **Gén 500+** : Couronne astrale radieuse à 16 rayons avec anneau orbital en pointillés (`#f59e0b`).
-  - **Gén 1000+** : Couronne solaire des éons à 20 rayons (`#facc15`).
-  - **Gén 2000+** : Couronne cosmique stellaire à 24 rayons avec 8 étoiles de diamant en orbite (`#fef08a`).
-- **Expression des Mutations Génomiques & Aberrations** :
-  - Les citoyens orthodoxes conservent des contours géométriques nets.
-  - Les dérives légères ($0,08 \le irr < 0,16$) décalent la teinte vers le violet et l'ambre.
-  - Les aberrations sévères ($irr \ge 0,16$) virent au magenta profond et au rouge cramoisi (`#f43f5e`).
-  - Les mutants radicaux ($irr > 0,18$) rayonnent d'une aura bioluminescente chaotique.
-- **Traits Physiques & Armures** :
-  - **Lames acérées ($D_{mult}$)** : Éclat métallique scintillant au sommet le plus aigu.
-  - **Armure d'inertie ($I_{zz}$ / Surface)** : Double coque cinétique épaisse pour les corps à forte inertie.
-  - **Noyau cristallin ancestral** : Patine interne durcie avec l'âge et la lignée.
 
 ## Histoire du Monde, Chroniques & Récits par IA (§BM)
 Flatland propose une suite historiographique, analytique et de génération de récits par IA :

@@ -368,7 +368,7 @@ export default function WorldEndSummary({
                   {records.topWarClan.totem && <span style={{ fontSize: 13 }}>{totemEmoji(records.topWarClan.totem)}</span>}
                 </>
               ) : (
-                <span style={{ color: '#8b949e' }}>No war victories</span>
+                <span style={{ color: '#8b949e' }}>{t('worldEnd.noVictories')}</span>
               )}
             </div>
             <div className="world-end-card-sub">
@@ -376,7 +376,7 @@ export default function WorldEndSummary({
                 t('worldEnd.mostWonDesc', { wins: records.topWarClan.war_wins, losses: records.topWarClan.war_losses ?? 0 }) ||
                 `${records.topWarClan.war_wins} victories (${records.topWarClan.war_wins}W / ${records.topWarClan.war_losses ?? 0}L)`
               ) : (
-                'Peace reigned unbroken'
+                t('worldEnd.peaceReigned')
               )}
             </div>
           </div>

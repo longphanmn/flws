@@ -62,6 +62,7 @@ def _md_to_html(md: str) -> str:
         s = re.sub(r"__([^_]+)__", r"<strong>\1</strong>", s)
         s = re.sub(r"\*([^*]+)\*", r"<em>\1</em>", s)
         s = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2">\1</a>', s)
+        s = re.sub(r"&lt;span id=&quot;([^&]+)&quot;&gt;&lt;/span&gt;", r'<span id="\1"></span>', s)
         return s
 
     for raw in lines:

@@ -6,7 +6,8 @@
     "copy": "Sao chép",
     "download": "Tải xuống",
     "search": "Tìm kiếm",
-    "language": "Ngôn ngữ"
+    "language": "Ngôn ngữ",
+    "more": "Thêm"
   },
   "app": {
     "title": "Flatland",
@@ -41,7 +42,12 @@
       "god": "Thiên luật Khối Cầu (Chúa)",
       "chronicle": "Biên niên sử",
       "world": "Thế giới",
-      "clans": "Thị tộc"
+      "clans": "Thị tộc",
+      "hideChronicle": "Ẩn biên niên sử",
+      "showChronicle": "Hiện biên niên sử",
+      "tps": "tick mỗi giây",
+      "speedTps": "tick/s",
+      "runSelect": "Chọn phiên chạy thế giới (Hình Cầu)"
     },
     "hud": {
       "alive": "Sinh tồn",
@@ -150,6 +156,9 @@
       "tapCreature": "chạm ở bất kỳ tỷ lệ thu phóng nào (bán kính 44px) để mở hồ sơ bên trái, hào quang vàng và ký tự danh tính",
       "controls": "Phím cách: Tạm dừng, S: Từng nhịp, R: Đặt lại, F: Vừa khung, +/-: Thu phóng, kéo rê chuột để lia bản đồ",
       "historyChronicle": "Phím H hoặc biểu tượng cuốn sách mở Biên niên sử Lịch sử thế giới với dòng thời gian kỷ nguyên, bảng kỷ lục, ma trận thù địch và trợ lý AI viết truyện."
+    },
+    "topNav": {
+      "history": "Lịch sử thế giới & Tạo truyện AI (H)"
     }
   },
   "god": {
@@ -330,7 +339,20 @@
       "advancedSafeguards": "⚙️ Tùy chỉnh nâng cao: Bảo hộ & Giảm chấn",
       "advancedPlague": "⚙️ Tùy chỉnh nâng cao: Dịch bệnh học",
       "matchingPresets": "Mẫu phù hợp:",
-      "riskOnly": "Chỉ rủi ro"
+      "riskOnly": "Chỉ rủi ro",
+      "crashed": "Bảng điều khiển Thần Thánh gặp sự cố",
+      "retry": "Thử lại",
+      "copyJsonTitle": "Sao chép các quy luật dưới dạng JSON vào bộ nhớ tạm",
+      "importJsonTitle": "Nhập các quy luật từ JSON",
+      "undoTitle": "Hoàn tác thay đổi quy luật gần nhất (Ctrl+Z)",
+      "redoTitle": "Làm lại thay đổi (Ctrl+Shift+Z)",
+      "toggleHistoryTitle": "Bật/tắt lịch sử thay đổi trong phiên",
+      "extremeFilterTitle": "Chỉ hiển thị các tham số trong vùng nguy hiểm (cực đoan)",
+      "sessionModifications": "Các chỉnh sửa trong phiên",
+      "noModifications": "Chưa có chỉnh sửa nào trong phiên này.",
+      "importModalTitle": "Nhập quy luật từ JSON",
+      "importModalDesc": "Dán đối tượng JSON hợp lệ chứa các quy luật ghi đè.",
+      "applyImportedJson": "Áp dụng JSON đã nhập"
     },
     "curatedPresetsTitle": "Các Mẫu Thiết Lập Tuyển Chọn",
     "lawsOfNatureTitle": "Quy Luật Tự Nhiên",
@@ -815,7 +837,9 @@
     "noAntagonist": "Kẻ phản nghịch: Không có thích khách hay phản đồ",
     "genStoryPrompt": "📖 Tạo Prompt Biên niên Bộ tộc cho AI",
     "historicalEvents": "Sự kiện Lịch sử",
-    "noBioData": "Chưa có dữ liệu tiểu sử."
+    "noBioData": "Chưa có dữ liệu tiểu sử.",
+    "copyLinkTitle": "Sao chép liên kết chia sẻ cho bang tộc này",
+    "genStoryPromptTitle": "Tạo câu lệnh viết truyện AI cho biên niên sử của bang tộc này"
   },
   "inspector": {
     "creature": "Cá thể",
@@ -944,7 +968,18 @@
     "primaryCause": "Nguyên nhân tuyệt diệt chính",
     "extinctionBreakdown": "Chi tiết nguyên nhân tử vong",
     "historyBtn": "Lịch sử thế giới & Xuất truyện",
-    "resetBtn": "Khởi tạo lại — Tạo Seed mới"
+    "resetBtn": "Khởi tạo lại — Tạo Seed mới",
+    "noVictories": "Không có chiến thắng quân sự",
+    "peaceReigned": "Hòa bình ngự trị bất diệt",
+    "causes": {
+      "starvation": "Nạn đói & suy kiệt",
+      "predation": "Dã thú săn mồi",
+      "plague": "Dịch bệnh & lây nhiễm",
+      "war": "Chiến tranh & xung đột",
+      "oldAge": "Tuổi già",
+      "disaster": "Thảm họa thiên nhiên",
+      "cold": "Giá rét khắc nghiệt"
+    }
   },
   "auth": {
     "wrongPasskey": "Mật mã không đúng — việc đặt lại mật mã chỉ có thể thực hiện từ máy chủ backend (python -m app.godkey reset <key>)",
@@ -1528,7 +1563,25 @@
       "disease": "Dịch bệnh",
       "old_age": "Tuổi già",
       "chill": "Nhiễm lạnh / Phơi sương",
-      "other": "Khác"
+      "other": "Khác",
+      "war": "Chiến tranh",
+      "cannibalism": "Ăn thịt đồng loại",
+      "euthanasia": "Cái chết nhân đạo",
+      "impalement": "Đâm xuyên",
+      "poison": "Trúng độc",
+      "exhaustion": "Kiệt sức",
+      "hyperthermia": "Say nắng / sốc nhiệt",
+      "overcrowding": "Quá tải mật độ",
+      "exposure": "Thời tiết khắc nghiệt",
+      "fall": "Ngã từ trên cao",
+      "landslide": "Sạt lở đất",
+      "drowning": "Chết đuối",
+      "earthquake": "Động đất",
+      "lightning": "Sét đánh",
+      "fire": "Hỏa hoạn",
+      "disaster": "Thảm họa",
+      "collision": "Va chạm",
+      "outbreak": "Bùng phát dịch"
     },
     "ecology": {
       "flora_biomass": "Sinh Khối Thực Vật",
@@ -1708,7 +1761,17 @@
   "overviewPanel": {
     "vitals": "Sinh hiệu",
     "inspect": "soi chi tiết",
-    "clan": "thị tộc"
+    "clan": "thị tộc",
+    "vitalsTooltips": {
+      "male": "Sinh vật đực",
+      "female": "Sinh vật cái",
+      "healthy": "Sinh vật khỏe mạnh",
+      "infected": "Bị nhiễm bệnh",
+      "hungryStarving": "Đói & kiệt sức",
+      "chilled": "Bị nhiễm lạnh",
+      "totalAlive": "Tổng số còn sống",
+      "totalDead": "Tổng số đã chết"
+    }
   },
   "mutationLab": {
     "morphospaceTitle": "Không gian Hình thái — Diện tích vs Độ sắc nhọn (BG-12)",

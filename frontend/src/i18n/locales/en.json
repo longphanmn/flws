@@ -6,7 +6,8 @@
     "copy": "Copy",
     "download": "Download",
     "search": "Search",
-    "language": "Language"
+    "language": "Language",
+    "more": "More"
   },
   "app": {
     "title": "Flatland",
@@ -41,7 +42,12 @@
       "god": "Laws of the Sphere (God)",
       "chronicle": "Log",
       "world": "World",
-      "clans": "Clans"
+      "clans": "Clans",
+      "hideChronicle": "Hide chronicle",
+      "showChronicle": "Show chronicle",
+      "tps": "ticks per second",
+      "speedTps": "ticks/s",
+      "runSelect": "Select world run (The Sphere)"
     },
     "hud": {
       "alive": "Alive",
@@ -150,6 +156,9 @@
       "tapCreature": "works at any zoom (44px hit radius), shows dossier left, gold halo + name glyph",
       "controls": "space pause, S step, R reset, F fit, +/- zoom, drag pan, pinch zoom",
       "historyChronicle": "H key or book icon opens World History with epoch timeline, records leaderboard, rivalry matrix, and in-app AI story generation."
+    },
+    "topNav": {
+      "history": "World History & AI Story Export (H)"
     }
   },
   "god": {
@@ -330,7 +339,20 @@
       "advancedSafeguards": "⚙️ Advanced Safeguard & Damping Dials",
       "advancedPlague": "⚙️ Advanced Pathology Dials",
       "matchingPresets": "Matching Presets:",
-      "riskOnly": "Risk only"
+      "riskOnly": "Risk only",
+      "crashed": "God Panel crashed",
+      "retry": "Retry",
+      "copyJsonTitle": "Copy laws as JSON to clipboard",
+      "importJsonTitle": "Import laws from JSON",
+      "undoTitle": "Undo last law change (Ctrl+Z)",
+      "redoTitle": "Redo (Ctrl+Shift+Z)",
+      "toggleHistoryTitle": "Toggle session change history",
+      "extremeFilterTitle": "Show only parameters in the extreme (risk) zone",
+      "sessionModifications": "Session Modifications",
+      "noModifications": "No modifications yet in this session.",
+      "importModalTitle": "Import Laws from JSON",
+      "importModalDesc": "Paste a valid JSON object containing god law overrides.",
+      "applyImportedJson": "Apply Imported JSON"
     },
     "curatedPresetsTitle": "Curated Presets",
     "lawsOfNatureTitle": "Laws of Nature",
@@ -815,7 +837,9 @@
     "noAntagonist": "Antagonist: No known traitor or assassin",
     "genStoryPrompt": "📖 Generate Clan Chronicle Story Prompt",
     "historicalEvents": "Historical Events",
-    "noBioData": "No biography data available."
+    "noBioData": "No biography data available.",
+    "copyLinkTitle": "Copy shareable link for this clan",
+    "genStoryPromptTitle": "Generate rich AI story prompt for this clan's chronicle"
   },
   "inspector": {
     "creature": "Creature",
@@ -944,7 +968,18 @@
     "primaryCause": "Primary Cause of Extinction",
     "extinctionBreakdown": "Mortality & Causes Breakdown",
     "historyBtn": "World History & Story Export",
-    "resetBtn": "Reset World — New Seed"
+    "resetBtn": "Reset World — New Seed",
+    "noVictories": "No war victories",
+    "peaceReigned": "Peace reigned unbroken",
+    "causes": {
+      "starvation": "Famine & Starvation",
+      "predation": "Predation",
+      "plague": "Plague & Outbreak",
+      "war": "Warfare & Strife",
+      "oldAge": "Old Age",
+      "disaster": "Natural Cataclysm",
+      "cold": "Severe Frost"
+    }
   },
   "auth": {
     "wrongPasskey": "Wrong passkey — reset must be done in backend terminal (python -m app.godkey reset <key>)",
@@ -1528,7 +1563,25 @@
       "disease": "Disease",
       "old_age": "Old Age",
       "chill": "Chill / Exposure",
-      "other": "Other"
+      "other": "Other",
+      "war": "Warfare",
+      "cannibalism": "Cannibalism",
+      "euthanasia": "Euthanasia",
+      "impalement": "Impalement",
+      "poison": "Poison",
+      "exhaustion": "Exhaustion",
+      "hyperthermia": "Heatstroke",
+      "overcrowding": "Overcrowding",
+      "exposure": "Exposure",
+      "fall": "Fall",
+      "landslide": "Landslide",
+      "drowning": "Drowning",
+      "earthquake": "Earthquake",
+      "lightning": "Lightning",
+      "fire": "Fire",
+      "disaster": "Cataclysm",
+      "collision": "Collision",
+      "outbreak": "Outbreak"
     },
     "ecology": {
       "flora_biomass": "Flora Biomass",
@@ -1708,7 +1761,17 @@
   "overviewPanel": {
     "vitals": "Vitals",
     "inspect": "inspect",
-    "clan": "clan"
+    "clan": "clan",
+    "vitalsTooltips": {
+      "male": "Male creatures",
+      "female": "Female creatures",
+      "healthy": "Healthy creatures",
+      "infected": "Infected",
+      "hungryStarving": "Hungry + starving",
+      "chilled": "Chilled",
+      "totalAlive": "Total alive",
+      "totalDead": "Total dead"
+    }
   },
   "mutationLab": {
     "morphospaceTitle": "Morphospace — Area vs Sharpness (BG-12)",

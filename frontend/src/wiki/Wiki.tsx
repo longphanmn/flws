@@ -116,7 +116,6 @@ export default function Wiki({ open, onClose }: { open: boolean; onClose: () => 
             <ul>
               <li><a href="https://longphanmn.github.io/flatland/" target="_blank" rel="noreferrer">🌐 {t('wiki.docLanding') || 'Landing Page & Project Overview (longphanmn.github.io/flatland)'} ↗</a></li>
               <li><a href={`/wiki?lang=${activeLang}`}>{t('wiki.docWiki')}</a></li>
-              <li><a href={`/wiki?lang=${activeLang}#genome-mirror`}>🧬 {t('wiki.lensesTitle') || 'Evolutionary Genome Mirror & Visual Phenotypes'}</a></li>
               <li><a href="/docs">{t('wiki.docApi')}</a> + <a href="/openapi.json">/openapi.json</a></li>
               <li><a href="/docs/god-laws.md">{t('wiki.docLaws')}</a></li>
             </ul>

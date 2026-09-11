@@ -23,7 +23,7 @@ const MAX_LOG = 600
 const STATUS_LABEL: Record<ConnStatus, string> = {
   connecting: 'connecting',
   open: 'live',
-  closed: 'reconnecting…',
+  closed: 'reconnecting',
 }
 
 const eventKey = (ev: HistoryEvent) => `${ev.tick}:${ev.entity_id}:${ev.type}`
@@ -574,7 +574,7 @@ export default function App() {
       <header className={`hud ${isMobile ? 'hud-compact' : ''}`}>
         <span className="title">{t('app.title')}</span>
         <span className={`dot ${status}`} title={t("app.hints.connection", { status: t(`app.status.${STATUS_LABEL[status]}`) } as any)} data-hint={t("app.hints.connection", { status: t(`app.status.${STATUS_LABEL[status]}`) } as any)} />
-        {status !== 'open' && <span className="chip" style={{ color: status === 'connecting' ? '#d29922' : '#f85149' }}>{STATUS_LABEL[status]}</span>}
+        {status !== 'open' && <span className="chip" style={{ color: status === 'connecting' ? '#d29922' : '#f85149' }}>{t(`app.status.${STATUS_LABEL[status]}`)}</span>}
         {paused && <span className="chip paused">{t("app.status.paused")}</span>}
         {state && (
           <span className="chip" title={t('app.hints.timeOfDay', { time: state.time_of_day, season: state.season, weather: state.weather } as any)}>
@@ -657,7 +657,7 @@ export default function App() {
           </span>
         )}
 
-        {isMobile && <span className="chip" onClick={(e) => { e.stopPropagation(); setStatusExpanded(o => !o) }} style={{ marginLeft: 'auto', fontSize: 10, color: '#58a6ff', cursor: 'pointer' }}>{statusExpanded ? `▲ ${t('common.close')}` : `▼ ${t('common.language') === 'Langue' ? 'Plus' : t('common.language') === 'Ngôn ngữ' ? 'Thêm' : 'More'}`}</span>}
+        {isMobile && <span className="chip" onClick={(e) => { e.stopPropagation(); setStatusExpanded(o => !o) }} style={{ marginLeft: 'auto', fontSize: 10, color: '#58a6ff', cursor: 'pointer' }}>{statusExpanded ? `▲ ${t('common.close')}` : `▼ ${t('common.more')}`}</span>}
 
         <div className="top-right-panel" style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'nowrap', flexShrink: 0 }}>
           <select
@@ -682,7 +682,7 @@ export default function App() {
             <option value="fr">FR</option>
             <option value="vi">VI</option>
           </select>
-          <button className="god-btn" onClick={() => setWorldHistoryOpen(true)} title="World History & AI Story Export (H)" data-hint="World History & AI Story Export (H)">
+          <button className="god-btn" onClick={() => setWorldHistoryOpen(true)} title={t('app.controls.history')} data-hint={t('app.controls.history')}>
             📜
           </button>
           <button className="god-btn wiki-btn" onClick={() => setWikiOpen(true)} title={t('wiki.open') || 'Wiki'} data-hint={t('wiki.open') || 'Wiki'}>
@@ -897,27 +897,27 @@ export default function App() {
         <>
           <footer className="controls">
             {paused ? (
-              <button onClick={sendResume} title="Resume (Space)" data-hint="Resume (Space)">▶</button>
+              <button onClick={sendResume} title={t('app.controls.resume')} data-hint={t('app.controls.resume')}>▶</button>
             ) : (
-              <button onClick={sendPause} title="Pause (Space)" data-hint="Pause (Space)">⏸</button>
+              <button onClick={sendPause} title={t('app.controls.pause')} data-hint={t('app.controls.pause')}>⏸</button>
             )}
-            <button onClick={sendStep} title="Step (S)" data-hint="Step (S)">⏭</button>
-            <button onClick={confirmReset} title="Reset (R)" data-hint="Reset (R)">🔄</button>
-            <button onClick={() => window.dispatchEvent(new Event('flatworld-fit'))} title="Fit view (F)" data-hint="Fit view (F)">
+            <button onClick={sendStep} title={t('app.controls.step')} data-hint={t('app.controls.step')}>⏭</button>
+            <button onClick={confirmReset} title={t('app.controls.reset')} data-hint={t('app.controls.reset')}>🔄</button>
+            <button onClick={() => window.dispatchEvent(new Event('flatworld-fit'))} title={t('app.controls.fit')} data-hint={t('app.controls.fit')}>
               ⛶
             </button>
-            <button onClick={() => setChronicleOpen((o) => !o)} title={chronicleOpen ? 'Hide chronicle' : 'Show chronicle'} data-hint={chronicleOpen ? 'Hide chronicle' : 'Show chronicle'}>
+            <button onClick={() => setChronicleOpen((o) => !o)} title={chronicleOpen ? t('app.controls.hideChronicle') : t('app.controls.showChronicle')} data-hint={chronicleOpen ? t('app.controls.hideChronicle') : t('app.controls.showChronicle')}>
               {chronicleOpen ? '▤' : '📜'}
             </button>
-            <label className="chip" htmlFor="speed" title="ticks per second" data-hint="ticks per second">
+            <label className="chip" htmlFor="speed" title={t('app.controls.tps')} data-hint={t('app.controls.tps')}>
               ⚡
             </label>
             <select
               id="speed"
               value={speed}
               onChange={(e) => changeSpeed(Number(e.target.value))}
-              title="ticks/s"
-              data-hint="ticks/s"
+              title={t('app.controls.speedTps')}
+              data-hint={t('app.controls.speedTps')}
             >
               {SPEEDS.map((v) => (
                 <option key={v} value={v}>
@@ -927,7 +927,7 @@ export default function App() {
             </select>
             {worlds.length > 0 && (
               <div className="run-switcher">
-                <label className="chip run-label" htmlFor="run-bottom" title="Select world run (The Sphere)" data-hint="Select world run (The Sphere)">
+                <label className="chip run-label" htmlFor="run-bottom" title={t('app.controls.runSelect')} data-hint={t('app.controls.runSelect')}>
                   ⚖ run
                   <select
                     id="run-bottom"

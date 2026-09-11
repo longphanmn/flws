@@ -321,7 +321,7 @@ export default function ClanDetails({
                   cursor: 'pointer',
                   marginLeft: 4,
                 }}
-                title="Copy shareable link for this clan"
+                title={t('clanDetails.copyLinkTitle')}
               >
                 {copiedClanLink ? '✓ Link Copied' : '🔗 Share'}
               </button>
@@ -538,7 +538,7 @@ export default function ClanDetails({
                     fontWeight: 600,
                     textAlign: 'center',
                   }}
-                  title="Generate rich AI story prompt for this clan's chronicle"
+                  title={t('clanDetails.genStoryPromptTitle')}
                 >
                   {storyCopied ? '✓ Prompt Copied to Clipboard!' : (t('clanDetails.genStoryPrompt') !== 'clanDetails.genStoryPrompt' ? t('clanDetails.genStoryPrompt') : '📖 Generate Clan Chronicle Story Prompt')}
                 </button>
