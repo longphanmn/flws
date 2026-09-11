@@ -873,11 +873,10 @@ ${events.map((ev) => `- Tick ${ev.tick}: ${ev.type}${ev.caste ? ` (${ev.caste})`
             {e.trait && <span className="chip"> {e.trait === 'greedy' ? '⬔' : e.trait === 'peaceful' ? '◯' : e.trait === 'paranoid' ? '⬥' : e.trait === 'bold' ? '▲' : '•'} {e.trait}</span>}
             {(e as any).archetype && <span className="chip" style={{ gridColumn: '1 / -1', background: (e as any).archetype==='Apex Hunter' ? 'rgba(255,123,114,0.18)' : (e as any).archetype==='Nocturnal Forager' ? 'rgba(121,192,255,0.18)' : (e as any).archetype==='Granary Courier' ? 'rgba(63,185,80,0.16)' : 'rgba(210,168,255,0.16)', border: `1px solid ${(e as any).archetype==='Apex Hunter' ? '#ff7b72' : (e as any).archetype==='Nocturnal Forager' ? '#79c0ff' : (e as any).archetype==='Granary Courier' ? '#3fb950' : '#d2a8ff'}`, color: '#e6edf3', fontWeight: 700 }} >{(e as any).archetype==='Apex Hunter'?'⚔':(e as any).archetype==='Nocturnal Forager'?'🌙':(e as any).archetype==='Granary Courier'?'🧺':'🛡️'} {(e as any).archetype}</span>}
           </div>
-          {/* §BG-9 Polar Radar & §BG-10 Biomech HUD & Sensory Raycasting */}
+          {/* §BG-9 Polar Radar & §BG-10 Biomech HUD */}
           <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
             <PolarRadar e={e} />
             <BiomechHUD e={e} />
-            <SensoryRayCard e={liveEntity ? { ...e, ...liveEntity } : e} state={state} />
             <div className="insp-2col" style={{ fontSize: 11 }}>
               <span className="chip" style={{ justifyContent: 'space-between', background: '#161b22' }}>{t('inspector.sidesLabel')} <b>{e.sides}</b> {(e as any).morph_k && (e as any).morph_k !== e.sides ? <span style={{ color: '#d2a8ff' }}>→{ (e as any).morph_k}</span> : null}</span>
               <span className="chip" style={{ justifyContent: 'space-between', background: '#161b22' }}>{t('inspector.shapeLabel')} <b>{e.shape}</b></span>
@@ -913,6 +912,10 @@ ${events.map((ev) => `- Tick ${ev.tick}: ${ev.type}${ev.caste ? ` (${ev.caste})`
                 </div>
               )
             })}
+          </div>
+          {/* Sensory Raycasting */}
+          <div style={{ marginBottom: 8, minWidth: 0 }}>
+            <SensoryRayCard e={liveEntity ? { ...e, ...liveEntity } : e} state={state} />
           </div>
           {/* Neural radar compact gauges */}
           <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: 8, padding: '8px 10px', flexShrink: 0 }}>

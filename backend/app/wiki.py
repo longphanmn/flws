@@ -18,6 +18,7 @@ from .wiki_content_i18n import (
     CONFIG_OPS_MD_I18N,
     CURL_EXAMPLES_I18N,
     DATA_MODEL_MD_I18N,
+    GENOME_MIRROR_MD_I18N,
     HOW_IT_WORKS_MD_I18N,
 )
 from .wiki_i18n import (
@@ -43,6 +44,7 @@ HOW_IT_WORKS_MD = HOW_IT_WORKS_MD_I18N["en"]
 CONFIG_OPS_MD = CONFIG_OPS_MD_I18N["en"]
 CODEBASE_MAP_MD = CODEBASE_MAP_MD_I18N["en"]
 DATA_MODEL_MD = DATA_MODEL_MD_I18N["en"]
+GENOME_MIRROR_MD = GENOME_MIRROR_MD_I18N["en"]
 
 
 def _md_to_html(md: str) -> str:
@@ -963,6 +965,7 @@ def build_wiki_html(app: Any, lang: str = "en") -> str:
     presets_html = _md_to_html(ui["presets_title"]) + _presets_table(lang=lang)
 
     overview_md = WIKI_OVERVIEW_MD_I18N.get(lang, WIKI_OVERVIEW_MD_I18N["en"])
+    genome_mirror_md = GENOME_MIRROR_MD_I18N.get(lang, GENOME_MIRROR_MD_I18N["en"])
     book_comp_md = FLATLAND_BOOK_COMPARISON_MD_I18N.get(lang, FLATLAND_BOOK_COMPARISON_MD_I18N["en"])
     sustainability_md = SUSTAINABILITY_MD_I18N.get(lang, SUSTAINABILITY_MD_I18N["en"])
     performance_md = PERFORMANCE_MD_I18N.get(lang, PERFORMANCE_MD_I18N["en"])
@@ -984,6 +987,7 @@ def build_wiki_html(app: Any, lang: str = "en") -> str:
 
     section_bodies = {
         "overview": _md_to_html(overview_md),
+        "genome-mirror": _md_to_html(genome_mirror_md),
         "book-comparison": _md_to_html(book_comp_md),
         "quickstart": _md_to_html(quickstart_md),
         "how-the-world-works": _md_to_html(how_it_works_md),
@@ -1076,6 +1080,7 @@ def get_wiki_json(app: Any, lang: str = "en") -> dict:
     return {
         "lang": lang,
         "overview": WIKI_OVERVIEW_MD_I18N.get(lang, WIKI_OVERVIEW_MD_I18N["en"]),
+        "genome_mirror": GENOME_MIRROR_MD_I18N.get(lang, GENOME_MIRROR_MD_I18N["en"]),
         "book_comparison": FLATLAND_BOOK_COMPARISON_MD_I18N.get(lang, FLATLAND_BOOK_COMPARISON_MD_I18N["en"]),
         "sustainability": SUSTAINABILITY_MD_I18N.get(lang, SUSTAINABILITY_MD_I18N["en"]),
         "performance": PERFORMANCE_MD_I18N.get(lang, PERFORMANCE_MD_I18N["en"]),

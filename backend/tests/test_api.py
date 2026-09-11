@@ -170,6 +170,7 @@ def test_wiki_json_and_html(client):
     assert r_html.status_code == 200
     assert "Flatland" in r_html.text
     assert "Overview" in r_html.text
+    assert "genome-mirror" in r_html.text
 
     # Vietnamese via query param
     r_vi = client.get("/wiki?lang=vi")
@@ -197,6 +198,7 @@ def test_wiki_json_and_html(client):
     assert r_json.status_code == 200
     data = r_json.json()
     assert data["lang"] == "en"
+    assert "genome_mirror" in data and len(data["genome_mirror"]) > 100
     assert "laws" in data and len(data["laws"]) > 50
     assert "routes" in data and len(data["routes"]) > 10
     assert "presets" in data and len(data["presets"]) >= 7

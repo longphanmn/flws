@@ -112,7 +112,6 @@ export default function App() {
   const [loadingOlder, setLoadingOlder] = useState(false)
   const [noMoreHistory, setNoMoreHistory] = useState(false)
   const lensMode: LensMode = 'mutants'
-  const [lensHintOpen, setLensHintOpen] = useState(false)
 
   /** §Y clan display name from live state, falling back to bare #id. */
   const clanLabel = (id?: number | null): string => {
@@ -777,158 +776,6 @@ export default function App() {
           lensMode={lensMode}
         />
 
-        {/* §BK-8 Canvas HUD Lens Switcher Toolbar (Bottom-Left) */}
-        <div
-          className="lens-switcher-toolbar"
-          role="toolbar"
-          aria-label={t('app.lenses.toolbarLabel') || 'Map Lenses'}
-          style={{
-            position: isMobile ? 'fixed' : 'absolute',
-            top: 'auto',
-            right: 'auto',
-            left: !isMobile && (selectedId !== null || selectedClanId !== null) ? 406 : (isMobile ? 8 : 14),
-            bottom: isMobile ? 'calc(var(--thumb-h) + env(safe-area-inset-bottom) + 8px)' : 12,
-            transform: 'none',
-            width: 'fit-content',
-            height: 'auto',
-            maxHeight: 28,
-            display: 'flex',
-            flexDirection: 'row',
-            flexWrap: 'nowrap',
-            alignItems: 'center',
-          }}
-        >
-          <div
-            className="lens-btn active"
-            style={{
-              cursor: 'default',
-              padding: '2px 8px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              background: 'rgba(56, 189, 248, 0.15)',
-              borderColor: 'rgba(56, 189, 248, 0.45)',
-              color: '#38bdf8',
-            }}
-            title="Evolutionary Genome Mirror (Gen 0 → 2000+)"
-          >
-            <span>🧬</span>
-            <span style={{ fontWeight: 600, fontSize: '10.5px' }}>Genome Mirror</span>
-          </div>
-          <button
-            type="button"
-            className={`lens-btn lens-hint-btn ${lensHintOpen ? 'active' : ''}`}
-            onClick={() => setLensHintOpen(o => !o)}
-            title="Evolutionary Genome & Corona Legend"
-            aria-label="Evolutionary Genome & Corona Legend"
-          >
-            ?
-          </button>
-        </div>
-
-        {lensHintOpen && (
-          <div
-            className="lens-hint-popover"
-            role="dialog"
-            aria-label="Evolutionary Genome Mirror"
-            style={{
-              left: !isMobile && (selectedId !== null || selectedClanId !== null) ? 406 : (isMobile ? 8 : 14),
-              bottom: isMobile ? 'calc(var(--thumb-h) + env(safe-area-inset-bottom) + 38px)' : 44,
-              width: 340,
-              maxHeight: '75vh',
-              overflowY: 'auto',
-            }}
-          >
-            <div className="lens-hint-header">
-              <span className="lens-hint-title">
-                <span>🧬</span> Evolutionary Genome Mirror
-              </span>
-              <button
-                type="button"
-                className="lens-hint-close"
-                onClick={() => setLensHintOpen(false)}
-                aria-label={t('common.close') || 'Close'}
-              >
-                ×
-              </button>
-            </div>
-            <p className="lens-hint-desc">
-              Creatures visually mirror their living genome, morphological mutations, and generational lineage across millennia (Gen 0 → 2000+).
-            </p>
-            <div className="lens-hint-list">
-              <div className="lens-hint-item active">
-                <div className="lens-hint-item-head">
-                  <span className="lens-hint-badge" style={{ background: '#facc15', color: '#0b0f14' }}>EPOCHS</span>
-                  <b>Generational Heritage Spectrum</b>
-                  <span className="lens-hint-swatches">
-                    <span style={{ background: '#38bdf8' }} title="Gen 0-4 Genesis" />
-                    <span style={{ background: '#06b6d4' }} title="Gen 5-24 Pioneer" />
-                    <span style={{ background: '#10b981' }} title="Gen 25-74 Dynastic" />
-                    <span style={{ background: '#8b5cf6' }} title="Gen 75-199 Imperial" />
-                    <span style={{ background: '#ec4899' }} title="Gen 200-499 Sovereign" />
-                    <span style={{ background: '#f97316' }} title="Gen 500-999 Solar" />
-                    <span style={{ background: '#facc15' }} title="Gen 1000-1999 Eon" />
-                    <span style={{ background: '#fef08a' }} title="Gen 2000+ Celestial" />
-                  </span>
-                </div>
-                <div className="lens-hint-item-body">
-                  Evolutionary palette evolves from Primordial Cyan (Gen 0) through Dynastic Jade, Imperial Violet, Sovereign Magenta, and Solar Gold to Transcendent Celestial Starlight (Gen 2000+).
-                </div>
-              </div>
-
-              <div className="lens-hint-item">
-                <div className="lens-hint-item-head">
-                  <span className="lens-hint-badge" style={{ background: '#f59e0b', color: '#0b0f14' }}>CORONAS</span>
-                  <b>Millennial Coronas & Halo Rings</b>
-                </div>
-                <div className="lens-hint-item-body">
-                  • <b>Gen 50+</b>: 8-ray Starburst Corona<br />
-                  • <b>Gen 200+</b>: 12-ray Sovereign Sunburst<br />
-                  • <b>Gen 500+</b>: 16-ray Radiant Astral Corona + Orbital Halo Ring<br />
-                  • <b>Gen 1000+</b>: 20-ray Solar Eon Corona<br />
-                  • <b>Gen 2000+</b>: 24-ray Cosmic Starlight Corona + 8 Orbiting Flares
-                </div>
-              </div>
-
-              <div className="lens-hint-item">
-                <div className="lens-hint-item-head">
-                  <span className="lens-hint-badge" style={{ background: '#f43f5e', color: '#ffffff' }}>MUTANTS</span>
-                  <b>Genomic Mutation & Aberration</b>
-                  <span className="lens-hint-swatches">
-                    <span style={{ background: '#38bdf8' }} title="Orthodox" />
-                    <span style={{ background: '#a855f7' }} title="Aberrant" />
-                    <span style={{ background: '#f43f5e' }} title="Severe Mutation" />
-                  </span>
-                </div>
-                <div className="lens-hint-item-body">
-                  Severe genetic irregularity shifts body hues toward radiant violet and crimson, with bioluminescent aberrant auras surrounding radical mutants (irr &gt; 0.18).
-                </div>
-              </div>
-
-              <div className="lens-hint-item">
-                <div className="lens-hint-item-head">
-                  <span className="lens-hint-badge" style={{ background: '#38bdf8', color: '#0b0f14' }}>TRAITS</span>
-                  <b>Morphological Expression</b>
-                </div>
-                <div className="lens-hint-item-body">
-                  • <b>Razor Edges</b>: High Dmult blades display apex vertex glints.<br />
-                  • <b>Inertia Armor</b>: High Izz / area thickens kinetic armor shells.<br />
-                  • <b>Crystalline Core</b>: Patina cores solidify ancestral lineage.
-                </div>
-              </div>
-            </div>
-            <div className="lens-hint-foot">
-              <button
-                type="button"
-                className="lens-hint-wiki-btn"
-                onClick={() => { setLensHintOpen(false); setWikiOpen(true); }}
-              >
-                📖 {t('app.lenses.hintWikiLink') || 'Open in Wiki'}
-              </button>
-            </div>
-          </div>
-        )}
-
         {(isSafeguardActive || isSoftcapActive) && (
           <div
             className="regulation-status-container"
@@ -937,7 +784,7 @@ export default function App() {
               top: 'auto',
               right: 'auto',
               left: !isMobile && (selectedId !== null || selectedClanId !== null) ? 406 : (isMobile ? 8 : 14),
-              bottom: isMobile ? 'calc(var(--thumb-h) + env(safe-area-inset-bottom) + 38px)' : 42,
+              bottom: isMobile ? 'calc(var(--thumb-h) + env(safe-area-inset-bottom) + 8px)' : 12,
               width: 'fit-content',
               transform: 'none',
             }}

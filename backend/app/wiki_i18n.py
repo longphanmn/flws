@@ -181,6 +181,7 @@ UI_I18N = {
 NAV_SECTIONS = [
     # Core Knowledge
     ("overview", {"en": "Overview", "vi": "Tổng quan", "fr": "Aperçu"}, "core", "📖"),
+    ("genome-mirror", {"en": "Evolutionary Genome Mirror", "vi": "Gương Bộ gen Tiến hóa", "fr": "Miroir Génomique Évolutif"}, "core", "🧬"),
     ("book-comparison", {"en": "Flatland Book vs Simulation", "vi": "Tiểu thuyết Abbott vs Mô phỏng", "fr": "Livre Flatland vs Simulation"}, "core", "📐"),
     ("quickstart", {"en": "Quickstart", "vi": "Bắt đầu nhanh", "fr": "Démarrage rapide"}, "core", "⚡"),
     ("how-the-world-works", {"en": "How the world works", "vi": "Nguyên lý vận hành", "fr": "Fonctionnement du monde"}, "core", "⚙️"),
@@ -223,7 +224,7 @@ This project is **developed from the Flatland idea rather than mimicking the boo
 - **Realistic Energy & Metabolism**: Infant low metabolism ($0.45\times$ energy decay), combat stamina expenditure, and autonomous field food reserve management via baskets.
 - **Settlements & Diplomacy**: Walled houses with creature-sized doors, multi-house clan territories, settlement food larders, mutual coalitions, tributary pacts, and schisms.
 - **Geometric Physics & Morphological Evolution (K∈[3,24])**: Polar genomes $(r_i,\phi_i)$ $K\in[3,24]$ (`KMAX 24`, `morphology_engine.py`) with SoA `physical_traits` trait baking ($A,P,I_{zz},\theta_{\min},asym,D_{mult}$) and SAT narrowphase (broadphase $r_{\max}$ + circle fallback $K\ge24$ & $asym<0.05$ + edge normals); annealing $\lambda(g)$ blends Abbott templates → free evolution, energetic asymmetry, neural courtship, and extinction safeguards ($\eta(N)$, Tier1/2/3 genesis, mercy).
-- **Interactive Map Lenses (Hotkeys 1–4)**: 4 real-time visualization perspectives to analyze the living world: **Classic** (Abbott geometric social castes), **Mutants** (polar morphology irregularity & aberration heatmap), **Epochs** (demographic generational depth cohorts), and **Dynasty** (clan allegiance crests and territorial borders).
+- **Evolutionary Genome Mirror**: Dynamic visual phenotype rendering where each creature's body, corolla aura, and chromatic luminescence directly mirror its living genome, generational depth (Gen 0 → 2000+), and physical mutations across millennia.
 - **Real-Time Synchronization**: Deterministic fixed-rate engine loop streaming state over WebSocket (`/ws`) at ~30–60 FPS with durable SQLite historical chronicle storage.
 """,
     "vi": r"""
@@ -246,7 +247,7 @@ Dự án được **phát triển từ ý niệm cốt lõi của Xứ Phẳng c
 - **Năng lượng & Trao đổi chất thực tế**: Con non tiêu hao ít năng lượng ($0.45\times$), thể lực sụt giảm khi tác chiến, và thói quen dự trữ thức ăn trong túi cói.
 - **Ấp định cư & Bang giao**: Nhà tường kín có cửa ra vào vừa vặn kích thước cơ thể, lãnh thổ thị tộc đa công trình, kho lương chung, khối liên minh phòng thủ, nộp cống và phân liệt ly khai khi bất mãn.
 - **Vật lý hình học & Đột biến hình thái (K∈[3,24])**: Bộ gen cực $(r_i,\phi_i)$ $K\in[3,24]$ (`KMAX 24`, `morphology_engine.py`) với đặc tính thể chất tích hợp ($A,P,I_{zz},\theta_{\min},asym,D_{mult}$) và va chạm đa giác SAT; cơ chế ủ nhiệt $\lambda(g)$ dung hòa giữa chuẩn mực Abbott cổ điển và tiến hóa tự do, ghép đôi nơ-ron, cùng mạng lưới bảo hộ chống tuyệt diệt ($\eta(N)$, Phép Miracle Khai Thế Cấp 1/2/3).
-- **Thấu kính bản đồ tương tác (Phím tắt 1–4)**: 4 góc nhìn trực quan thời gian thực giúp phân tích thế giới: **Đẳng cấp** (giai tầng hình học Abbott), **Đột biến** (bản đồ nhiệt dị dạng hình học cực K∈[3,24]), **Kỷ nguyên** (độ sâu thế hệ dòng dõi) và **Thị tộc** (màu cờ hiệu bang phái và ranh giới lãnh thổ).
+- **Gương Phản chiếu Bộ gen Tiến hóa**: Trực quan hóa kiểu hình sinh động nơi thân thể, vành nhật hoa và ánh sáng phát quang phản chiếu trực tiếp bộ gen sống, độ sâu thế hệ (Gen 0 → 2000+) và đột biến thể chất qua hàng thiên niên kỷ.
 - **Đồng bộ hóa thời gian thực**: Vòng lặp mô phỏng xác định truyền phát trạng thái thế giới qua WebSocket (`/ws`) ở tốc độ ~30–60 FPS kết hợp lưu trữ biên niên sử bền vững trên SQLite.
 """,
     "fr": r"""
@@ -269,7 +270,7 @@ Ce projet est **développé à partir de l'idée de Flatland plutôt que d'imite
 - **Métabolisme & Dynamique énergétique réalistes** : Faible dépense chez les nouveau-nés ($0.45\times$), coût d'endurance au combat et gestion de réserves portatives via des paniers.
 - **Colonies & Diplomatie** : Bâtisses closes avec portes ajustées, territoires multi-maisons, greniers communautaires, coalitions de défense mutuelle, tributs et scissions claniques.
 - **Physique géométrique & Évolution morphologique (K∈[3,24])** : Génomes polaires $(r_i,\phi_i)$ $K\in[3,24]$ (`KMAX 24`, `morphology_engine.py`) avec calcul des propriétés physiques SoA ($A,P,I_{zz},\theta_{\min},asym,D_{mult}$) et détection fine SAT ; le recuit morphologique $\lambda(g)$ assure la transition des gabarits d'Abbott vers une spéciation libre, parade nuptiale neuronale et sauvegardes contre l'extinction ($\eta(N)$, miracles de la Genèse).
-- **Lentilles cartographiques interactives (Touches 1–4)** : 4 perspectives visuelles en temps réel pour analyser l'écosystème : **Classique** (castes géométriques d'Abbott), **Mutants** (carte thermique des irrégularités morphologiques K∈[3,24]), **Époques** (cohortes générationnelles) et **Dynastie** (blasons claniques et frontières territoriales).
+- **Miroir Génomique Évolutif** : Rendu visuel phénotypique dynamique où le corps, la corolle et la luminescence de chaque créature reflètent son génome vivant, sa profondeur générationnelle (Gén 0 → 2000+) et ses mutations physiques à travers les millénaires.
 - **Synchronisation en temps réel** : Moteur déterministe diffusant l'état du monde via WebSocket (`/ws`) à ~30–60 FPS avec persistance historique sur SQLite.
 """,
 }

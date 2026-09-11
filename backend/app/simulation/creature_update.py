@@ -863,11 +863,14 @@ class CreatureUpdateMixin:
             # A meal given up on (unreachable behind stone or wall) is ignored
             # until its memory fades — the hungry look elsewhere instead of
             # grinding against the obstacle until they starve.
-            if cfg.food_giveup_ticks > 0 and (
-                self.tick - c.give_ups.get(e.id, -cfg.food_giveup_ticks)
-                < cfg.food_giveup_ticks
-            ):
-                continue
+            if cfg.food_giveup_ticks > 0 and e.id in c.give_ups:
+                # If creature is right next to food (<=6m) or starving, clear the grudge
+                if d2 <= 36.0 or c.status == "starving":
+                    c.give_ups.pop(e.id, None)
+                elif self.tick - c.give_ups[e.id] < cfg.food_giveup_ticks:
+                    continue
+                else:
+                    c.give_ups.pop(e.id, None)
             # Diet & preference (§O): herbivore↔plants, carnivore↔meat, omnivore both; strictness gates.
             if cfg.diet_strictness > 0:
                 if c.is_herbivore and e.kind == "corpse":
@@ -877,17 +880,18 @@ class CreatureUpdateMixin:
                     if self.rng.random() < cfg.diet_strictness:
                         continue
                 # higher castes prefer richer food when strict: skip grass if berry nearby (approx)
+                # but only if not hungry or starving — hungry creatures never reject edible grass
                 if not c.is_herbivore and not c.is_predator and e.kind == "food" and cfg.diet_strictness > 0.5:
                     if isinstance(e, Food) and e.variant == "grass":
-                        if self.rng.random() < 0.7:
+                        if c.status not in ("hungry", "starving") and c.energy >= 0.65 * cfg.energy_max and self.rng.random() < 0.7:
                             continue
                 # herbivores avoid poisonous when strict
                 if c.is_herbivore and isinstance(e, Food) and e.variant == "poisonous" and cfg.diet_strictness > 0.3:
                     if self.rng.random() < cfg.diet_strictness:
                         continue
-                # trait greedy: prefer richer food (grain/berry/corpse) over grass
+                # trait greedy: prefer richer food (grain/berry/corpse) over grass when well-fed
                 if c.trait == "greedy" and isinstance(e, Food) and e.variant == "grass":
-                    if self.rng.random() < 0.45:
+                    if c.status not in ("hungry", "starving") and self.rng.random() < 0.45:
                         continue
 
             effective_d2 = d2
@@ -984,8 +988,8 @@ class CreatureUpdateMixin:
             c.signal_cooldown -= 1
         # §Q Communication — food and alarm calls
         if cfg.communication_enabled:
-            # Food call: well-fed finds food → calls clan-mates
-            if target is not None and c.energy / cfg.energy_max > cfg.hungry_ratio and c.signal_cooldown == 0:
+            # Food call: finds food → calls clan-mates
+            if target is not None and c.signal_cooldown == 0:
                 if self.rng.random() < cfg.food_call_rate:
                     self.signals.append({"x": c.x, "y": c.y, "kind": "food", "sender": c.id, "clan_id": c.clan_id or None, "born_tick": self.tick, "ttl": 15, "food_x": target.x, "food_y": target.y})
                     c.signal_cooldown = 8
@@ -1314,15 +1318,18 @@ class CreatureUpdateMixin:
                         ignore_p = 0.65
                     if self.rng.random() < ignore_p:
                         continue
-                if (kind == "food" or kind == "trail") and c.status in ("hungry", "starving"):
+                if kind in ("food", "trail"):
                     # §AN B.2: scent trails point at the patch like a food call;
                     # food signals point to food_x/food_y if present, else sender pos
                     fx = sg.get("food_x", sg["x"])
                     fy = sg.get("food_y", sg["y"])
-                    df2 = w.distance_sq(c.x, c.y, fx, fy)
-                    if df2 < best_food_sq:
-                        best_food_sq = df2
-                        signal_food_target = (fx, fy)
+                    if cfg.knowledge_enabled:
+                        self._learn(c, "food", fx, fy, conf=0.85)
+                    if c.status in ("hungry", "starving"):
+                        df2 = w.distance_sq(c.x, c.y, fx, fy)
+                        if df2 < best_food_sq:
+                            best_food_sq = df2
+                            signal_food_target = (fx, fy)
                 elif kind == "prey_scent" and c.is_predator:
                     # §AR S-4: a nose to the ground — wolves track fresh trails
                     # even before hunger bites.
@@ -1616,6 +1623,12 @@ class CreatureUpdateMixin:
                 u_eat += 0.25
             if c.status == "starving":
                 u_eat += 0.5
+            # Proximity urge: when hungry/starving and food is in immediate vicinity (<=8m),
+            # eating takes top priority so creatures don't abandon food outside shelter to starve
+            if c.status in ("hungry", "starving"):
+                td2 = w.distance_sq(c.x, c.y, target.x, target.y)
+                if td2 <= 64.0:
+                    u_eat += 0.8 if c.status == "hungry" else 1.2
             # §AS L-2: the harvest order — autumn hands work faster.
             if harvest_order:
                 farmer_spec = self.clans.get(c.clan_id, {}).get("specialization", {}).get("farmer", 0.33) if c.clan_id else 0.33
@@ -1628,7 +1641,7 @@ class CreatureUpdateMixin:
 
         u_signal_food = 0.0
         if signal_food_target is not None and target is None and c.status in ("hungry", "starving"):
-            u_signal_food = 0.75
+            u_signal_food = 1.0 if c.status == "hungry" else 1.45
 
         # §BE-E1 lower utility when well-fed so it doesn't hijack foraging
         if danger_avoid_target is not None and flee_target is None:
@@ -1708,6 +1721,13 @@ class CreatureUpdateMixin:
                     if w.distance_sq(c.x, c.y, rx, ry) > 4.0:
                         waypoint_target = (rx, ry)
                         u_waypoint = 0.55
+                elif c.status in ("hungry", "starving") and target is None and signal_food_target is None:
+                    food_fact = self._fact_fresh(c, "food") if cfg.knowledge_enabled else None
+                    if food_fact is not None:
+                        fx, fy = food_fact.get("x", c.x), food_fact.get("y", c.y)
+                        if w.distance_sq(c.x, c.y, fx, fy) > 4.0:
+                            waypoint_target = (fx, fy)
+                            u_waypoint = 0.75 if c.status == "hungry" else 0.95
                 elif c.personality == "explorer" and target is None and "patrol" in c.waypoints:
                     px, py = c.waypoints["patrol"]
                     if w.distance_sq(c.x, c.y, px, py) > 4.0:
@@ -2130,8 +2150,13 @@ class CreatureUpdateMixin:
                             c.angle = self.rng.uniform(0, 2 * math.pi)
                     else:
                         c.angle += math.pi + self.rng.uniform(-0.4, 0.4)
-                    if target is not None and cfg.food_giveup_ticks > 0:
-                        self._give_up_on(c, target)  # meal sits behind a wall
+                    if (
+                        target is not None
+                        and cfg.food_giveup_ticks > 0
+                        and c.blocked_ticks >= 2
+                        and _path_crosses_wall(c.x, c.y, target.x, target.y, h, predator_blocked=c.is_predator)
+                    ):
+                        self._give_up_on(c, target, blocking_entity=h)  # meal sits behind a wall
                     break
         if not was_blocked:
             c.blocked_ticks = 0
@@ -2159,7 +2184,7 @@ class CreatureUpdateMixin:
             hit_rock = self._resolve_rock_collision(c)
             if hit_rock is not None and target is not None and cfg.food_giveup_ticks > 0:
                 if self._segment_hits_circle(c.x, c.y, target.x, target.y, hit_rock, pad=c.radius):
-                    self._give_up_on(c, target)
+                    self._give_up_on(c, target, blocking_entity=hit_rock)
 
         # §AO Phase D: blind collisions in pitch darkness — a stumbling
         # polygon meets an unsheltered moving line and the line cuts deep.
@@ -2262,6 +2287,15 @@ class CreatureUpdateMixin:
             c.meals += 1
             c.give_ups.clear()  # fed: old grudges against unreachable food fade
             self._eaters_this_tick.append(c.id)
+            if cfg.communication_enabled and c.clan_id and c.signal_cooldown == 0:
+                self.signals.append({
+                    "x": round(c.x, 2), "y": round(c.y, 2), "kind": "food",
+                    "sender": c.id, "clan_id": c.clan_id, "born_tick": self.tick,
+                    "ttl": 15, "food_x": round(target.x, 2), "food_y": round(target.y, 2),
+                })
+                c.signal_cooldown = 10
+            if cfg.knowledge_enabled:
+                self._learn(c, "food", target.x, target.y, conf=0.9)
             # §AT-4 H-2: a meal lifts the spirit.
             c.morale = min(100.0, c.morale + MORALE_EAT_RESTORE)
             gain = cfg.energy_from_food

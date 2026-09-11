@@ -400,6 +400,197 @@ HOW_IT_WORKS_MD_I18N = {
 
 
 # ---------------------------------------------------------------------
+# Evolutionary Genome Mirror & Phenotypes (GENOME_MIRROR_MD_I18N)
+# ---------------------------------------------------------------------
+
+GENOME_MIRROR_EN = r"""
+# Evolutionary Genome Mirror & Visual Phenotypes (§BK-8 / §BK-9)
+
+Flatland unifies canvas visualization into an organic **Evolutionary Genome Mirror** where each creature's body, corolla aura, and chromatic luminescence dynamically mirror its living genome, generational lineage, and morphological mutations across millennia (from Gen 0 to Gen 2000+).
+
+Static caste colourings are superseded by continuous visual phenotypes derived from the creature's polar morphology genome $(r_i, \phi_i)$, generational depth, and physical traits.
+
+---
+
+## 1. Generational Heritage Spectrum (Epochs: Gen 0 → 2000+)
+
+Every creature's primary hue evolves dynamically according to its ancestral generation, tracking lineage progression from the founding ancestors to celestial ancients:
+
+| Epoch Cohort | Generation Range | Palette & Visual Signature | Ancestral Significance |
+|---|---|---|---|
+| **Genesis Founders** | Gen 0–4 | Primordial Sky Cyan (`#38bdf8`) | Genesis spark pulsing with 4-point cardinal flare |
+| **Pioneers** | Gen 5–24 | Early Pioneer Aqua (`#06b6d4`) | Formative explorers settling the world perimeter |
+| **Dynastic Lines** | Gen 25–74 | Formative Dynastic Jade (`#10b981`) | Concentric gold Dynasty Core Ring marking established lineage |
+| **Imperial Eras** | Gen 75–199 | Imperial Classical Violet (`#8b5cf6`) | Golden age of classical geometry and grand phalanxes |
+| **Sovereign Houses** | Gen 200–499 | Ancient Sovereign Magenta (`#ec4899`) | Ancient aristocratic houses with deep generational memory |
+| **Solar Empires** | Gen 500–999 | Millennial Solar Ember (`#f97316`) | Solar epoch dynasties surviving long ages of famine and strife |
+| **Eon Sovereigns** | Gen 1000–1999 | Eon Sovereign Gold (`#facc15`) | Trans-millennial dynasties with unbroken ancestral crowns |
+| **Celestial Transcendants** | Gen 2000+ | Transcendent Celestial Diamond Starlight (`#fef08a`) | Mythical ancients with celestial diamond starlight luminescence |
+
+---
+
+## 2. Millennial Coronas & Orbital Halos
+
+As creatures belong to deeper generational lines, radiant astronomical coronas and orbital halos illuminate their perimeter:
+
+- **Gen 50+ (Starburst Corona)**: 8-ray Celestial Starburst Corona (`#fde047`) projecting outward from the creature vertices.
+- **Gen 200+ (Sovereign Sunburst)**: 12-ray Sovereign Sunburst Corona (`#fbbf24`) with intensified radiance during rapid motion.
+- **Gen 500+ (Astral Corona & Halo)**: 16-ray Radiant Astral Corona (`#f59e0b`) surrounded by a dashed concentric orbital halo ring.
+- **Gen 1000+ (Solar Eon Corona)**: 20-ray Solar Eon Corona (`#facc15`) featuring dual-layer geometric ray emission.
+- **Gen 2000+ (Cosmic Starlight Corona)**: 24-ray Cosmic Starlight Corona (`#fef08a`) accompanied by 8 orbiting diamond starlight cardinal flares.
+
+---
+
+## 3. Genomic Mutation & Aberration Mirroring
+
+Irregularity and genetic divergence from Abbott templates distort the creature's physical geometry and chromatic aura:
+
+| Genetic Tier | Irregularity ($irr$) | Visual Expression & Phenotype |
+|---|---|---|
+| **Orthodox** | $irr < 0.04$ | Crisp geometric edges, clean caste archetype contours, stable hue |
+| **Minor Genetic Drift** | $0.04 \le irr < 0.12$ | Subtle chromatic drift shifting toward violet and amber |
+| **Aberrant Speciation** | $0.12 \le irr < 0.22$ | Deep vibrant magenta and crimson rose (`#f43f5e`) body hues |
+| **Radical Mutant Radiation** | $irr \ge 0.22$ | Bioluminescent chaotic aura with dynamic vertex breathing |
+
+---
+
+## 4. Morphological Trait Expressions
+
+Creature morphology directly impacts their combat, physics, and visual aesthetics:
+
+- **Razor Apex Glint ($D_{mult}$)**: Attack impulse multiplier derived from tip sharpness. The sharpest vertex emits a metallic sparkle glint proportional to offensive lethality.
+- **Inertia Armor ($I_{zz}$ / Area)**: High rotational inertia bodies feature a thickened double-walled kinetic shell that visually hardens defense against physical impacts.
+- **Ancestral Crystalline Core**: Ancient elders and deep lineages develop a solidified crystalline patina core representing genetic resilience.
+"""
+
+GENOME_MIRROR_VI = r"""
+# Gương Phản chiếu Bộ gen Tiến hóa & Kiểu hình Trực quan (§BK-8 / §BK-9)
+
+Flatland hợp nhất trực quan hóa bản đồ thành **Gương Phản chiếu Bộ gen Tiến hóa** tự nhiên, nơi thân thể, hào quang nhật hoa và ánh sáng phát quang của mỗi sinh vật phản chiếu trực tiếp bộ gen sống, đột biến hình thái và dòng dõi huyết thống trải dài hàng nghìn năm (từ Gen 0 đến Gen 2000+).
+
+Màu sắc đẳng cấp tĩnh trước đây được thay thế hoàn toàn bởi các kiểu hình trực quan liên tục được tính toán từ bộ gen hình thái cực $(r_i, \phi_i)$, độ sâu thế hệ và các đặc tính thể chất.
+
+---
+
+## 1. Phổ màu Kỷ nguyên Huyết thống (Thế hệ: Gen 0 → 2000+)
+
+Sắc thái cơ thể chủ đạo của mỗi sinh vật tiến hóa động dựa trên thế hệ tổ tiên, ghi dấu quá trình phát triển dòng dõi từ những tổ phụ khai thiên lập địa đến các bậc cổ xưa thần thoại:
+
+| Kỷ nguyên Dòng dõi | Khoảng Thế hệ | Sắc thái & Dấu ấn Trực quan | Ý nghĩa Lịch sử |
+|---|---|---|---|
+| **Tổ phụ Khai thiên** | Gen 0–4 | Lam trời Sơ nguyên (`#38bdf8`) | Đốm sáng Sáng thế 4 cánh nhấp nháy tại tâm |
+| **Tiên phong Định cư** | Gen 5–24 | Lục lam Tiên phong (`#06b6d4`) | Lực lượng khai phá định hình biên giới thế giới |
+| **Gia tộc Định hình** | Gen 25–74 | Lục bảo Vương triều (`#10b981`) | Vòng lõi Huyết thống Hoàng kim đồng tâm kiên định |
+| **Thời kỳ Đế chế** | Gen 75–199 | Tím thẫm Cổ điển (`#8b5cf6`) | Thời kỳ hoàng kim của kỷ luật hình học và đội hình phalanx |
+| **Vương triều Thượng cổ** | Gen 200–499 | Cánh sen Uy nghiêm (`#ec4899`) | Các đại gia tộc cổ xưa với ký ức dòng dõi sâu sắc |
+| **Kỷ nguyên Thái dương** | Gen 500–999 | Hổ phách Rực lửa (`#f97316`) | Dòng dõi thái dương vượt qua ngàn năm đói kém và chiến tranh |
+| **Đế vương Vĩnh hằng** | Gen 1000–1999 | Vàng kim Vương giả (`#facc15`) | Các triều đại trường tồn với vương miện tổ tiên bất diệt |
+| **Hóa thần Thiên giới** | Gen 2000+ | Ánh sao Kim cương Tinh tú (`#fef08a`) | Bậc cổ xưa thần thoại tỏa ánh hào quang tinh tú rực rỡ |
+
+---
+
+## 2. Vành nhật hoa & Vòng quỹ đạo Hào quang Thiên cổ
+
+Khi sinh vật thuộc về những dòng dõi thế hệ càng sâu, vành nhật hoa thiên văn và các vòng quỹ đạo hào quang sẽ tỏa sáng quanh thân thể:
+
+- **Gen 50+ (Nhật hoa Tinh tú)**: Vành nhật hoa Tinh tú 8 tia sáng (`#fde047`) vươn rộng từ các đỉnh góc.
+- **Gen 200+ (Nhật hoa Mặt trời Vương giả)**: Vành nhật hoa Mặt trời 12 tia sáng (`#fbbf24`) rực sáng mãnh liệt khi di chuyển nhanh.
+- **Gen 500+ (Nhật hoa Tinh vân & Vòng quỹ đạo)**: Vành nhật hoa Tinh vân 16 tia sáng (`#f59e0b`) kèm vòng hào quang quỹ đạo nét đứt đồng tâm.
+- **Gen 1000+ (Nhật hoa Thái dương Vĩnh hằng)**: Vành nhật hoa 20 tia sáng (`#facc15`) phóng tia năng lượng hình học hai lớp.
+- **Gen 2000+ (Nhật hoa Vũ trụ Tinh tú)**: Vành nhật hoa Vũ trụ 24 tia sáng (`#fef08a`) kèm 8 Ngôi sao Kim cương bay quanh theo các phương vị.
+
+---
+
+## 3. Phản chiếu Đột biến & Dị dạng Hình thái
+
+Độ bất đối xứng và mức độ lệch chuẩn khỏi khuôn mẫu Abbott tạo nên các biến đổi hình học và hào quang sắc tộc:
+
+| Cấp độ Di truyền | Độ bất đối xứng ($irr$) | Biểu hiện Trực quan & Kiểu hình |
+|---|---|---|
+| **Chuẩn tắc (Orthodox)** | $irr < 0.04$ | Cạnh hình học sắc nét, đường nét đẳng cấp rõ ràng, sắc màu ổn định |
+| **Lệch nhẹ (Minor Drift)** | $0.04 \le irr < 0.12$ | Chuyển dịch sắc thái nhẹ sang tím và hổ phách |
+| **Phân nhánh Dị hình** | $0.12 \le irr < 0.22$ | Chuyển sắc sang tím thẫm và đỏ thẫm rực rỡ (`#f43f5e`) |
+| **Đột biến Phóng xạ Cực độ** | $irr \ge 0.22$ | Tỏa Hào quang Phát quang sinh học hỗn loạn với các đỉnh gai micro-dao động |
+
+---
+
+## 4. Biểu hiện Đặc tính Thể chất
+
+Hình thái sinh vật tác động trực tiếp đến khả năng chiến đấu, cơ chế vật lý và diện mạo thẩm mỹ:
+
+- **Lưỡi dao Sát thương ($D_{mult}$)**: Hệ số xung lực va chạm từ độ bén góc nhọn. Đỉnh nhọn nhất phát ra tia sáng ánh kim tỷ lệ thuận với sát thương.
+- **Giáp Quán tính ($I_{zz}$ / Diện tích)**: Các cá thể có mômen quán tính lớn được bao bọc bởi lớp vỏ giáp động lực học hai lớp dày dặn gia cố khả năng chống chịu va chạm.
+- **Lõi Tinh thể Cổ xưa**: Trưởng lão lớn tuổi và các dòng dõi trường tồn hình thành lõi tinh thể ngọc hóa đại diện cho sức sống bền bỉ.
+"""
+
+GENOME_MIRROR_FR = r"""
+# Miroir Génomique Évolutif & Phénotypes Visuels (§BK-8 / §BK-9)
+
+Flatland unifie la visualisation cartographique en un **Miroir Génomique Évolutif** organique où le corps, l'aura de corolle et la luminescence chromatique de chaque créature reflètent dynamiquement son génome vivant, sa lignée générationnelle et ses mutations morphologiques à travers les millénaires (de la Gén 0 à la Gén 2000+).
+
+Les teintes statiques de caste sont remplacées par des phénotypes visuels continus calculés à partir du génome polaire $(r_i, \phi_i)$, de la profondeur de lignée et des traits physiques.
+
+---
+
+## 1. Spectre des Époques Générationnelles (Gén 0 → 2000+)
+
+La teinte corporelle dominante de chaque créature évolue dynamiquement selon sa génération ancestrale, illustrant la progression de la lignée depuis les fondateurs primordiaux jusqu'aux anciens célestes :
+
+| Cohorte d'Époque | Plage de Générations | Palette & Signature Visuelle | Signification Ancestrale |
+|---|---|---|---|
+| **Fondateurs de la Genèse** | Gén 0–4 | Cyan ciel primordial (`#38bdf8`) | Étincelle de genèse à 4 branches pulsant au centre |
+| **Pionniers** | Gén 5–24 | Aqua d'exploration précoce (`#06b6d4`) | Explorateurs fondateurs établissant le périmètre du monde |
+| **Dynasties formatrices** | Gén 25–74 | Jade dynastique (`#10b981`) | Anneau central doré concentrique marquant la lignée établie |
+| **Ères impériales** | Gén 75–199 | Violet classique impérial (`#8b5cf6`) | Âge d'or de la géométrie classique et des grandes phalanges |
+| **Souverains anciens** | Gén 200–499 | Magenta souverain ancien (`#ec4899`) | Anciennes maisons aristocratiques à mémoire séculaire |
+| **Empires solaires** | Gén 500–999 | Braise solaire millénaire (`#f97316`) | Dynasties solaires ayant survécu aux grandes famines |
+| **Souverains des éons** | Gén 1000–1999 | Or souverain (`#facc15`) | Lignées trans-millénaires aux couronnes ancestrales ininterrompues |
+| **Transcendants célestes** | Gén 2000+ | Étoile de diamant céleste (`#fef08a`) | Entités mythiques rayonnant d'une luminescence stellaire |
+
+---
+
+## 2. Couronnes Millénaires & Halos Orbitaux
+
+À mesure que les créatures s'inscrivent dans des lignées plus profondes, des couronnes astronomiques et des halos orbitaux illuminent leur contour :
+
+- **Gén 50+ (Couronne Stellaire)** : Couronne céleste à 8 rayons (`#fde047`) rayonnant depuis les sommets.
+- **Gén 200+ (Couronne Solaire Souveraine)** : Couronne solaire à 12 rayons (`#fbbf24`) s'intensifiant lors des déplacements rapides.
+- **Gén 500+ (Couronne Astrale & Halo)** : Couronne astrale à 16 rayons (`#f59e0b`) ceinte d'un anneau orbital concentrique en pointillés.
+- **Gén 1000+ (Couronne Solaire des Éons)** : Couronne solaire à 20 rayons (`#facc15`) avec double couche d'émission géométrique.
+- **Gén 2000+ (Couronne Cosmique Stellaire)** : Couronne cosmique à 24 rayons (`#fef08a`) accompagnée de 8 étoiles de diamant en orbite cardinale.
+
+---
+
+## 3. Expression des Mutations Génomiques & Aberrations
+
+L'irrégularité géométrique et la dérive par rapport aux modèles d'Abbott modulent la morphologie et l'aura chromatique :
+
+| Palier Génétique | Irrégularité ($irr$) | Phénotype & Expression Visuelle |
+|---|---|---|
+| **Orthodoxe** | $irr < 0.04$ | Arêtes nettes, géométrie pure des castes d'origine, teinte stable |
+| **Dérive mineure** | $0.04 \le irr < 0.12$ | Glissement chromatique subtil vers le violet et l'ambre |
+| **Spéciation aberrante** | $0.12 \le irr < 0.22$ | Teintes profondes magenta et rose cramoisi vif (`#f43f5e`) |
+| **Mutation extrême** | $irr \ge 0.22$ | Aura bioluminescente chaotique avec pulsation dynamique des sommets |
+
+---
+
+## 4. Traits Morphologiques & Armures
+
+La morphologie des créatures impacte directement leur combat, leur physique et leur rendu graphique :
+
+- **Lames acérées ($D_{mult}$)** : Multiplicateur d'impulsion d'attaque lié à l'acuité des angles. Le sommet le plus aigu émet un éclat métallique scintillant.
+- **Armure d'inertie ($I_{zz}$ / Surface)** : Double coque cinétique épaisse renforçant visuellement la défense contre les impacts.
+- **Noyau cristallin ancestral** : Patine interne durcie avec l'âge et la profondeur de lignée.
+"""
+
+GENOME_MIRROR_MD_I18N = {
+    "en": GENOME_MIRROR_EN,
+    "vi": GENOME_MIRROR_VI,
+    "fr": GENOME_MIRROR_FR,
+}
+
+
+# ---------------------------------------------------------------------
 # Configuration & ops (CONFIG_OPS_MD_I18N)
 # ---------------------------------------------------------------------
 

@@ -884,8 +884,9 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
         rr = rock["r"] + pad
         return (px_ - cx) ** 2 + (py_ - cy) ** 2 <= rr * rr
 
-    def _warn_unreachable_food(self, c: Creature, target: Entity) -> None:
-        """Warn nearby creatures about unreachable food so they also seek food elsewhere."""
+    def _warn_unreachable_food(self, c: Creature, target: Entity, blocking_entity: Any = None) -> None:
+        """Warn nearby creatures about unreachable food so they also seek food elsewhere.
+        Does not warn creatures that have an unobstructed path or are within close range (<=6m)."""
         r = max(14.0, self.config.signal_radius)
         r2 = r * r
         creatures = self._cached_creatures if self._cached_creatures else self.world.entities.values()
@@ -893,9 +894,20 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
             if isinstance(other, Creature) and other.id != c.id:
                 if self.world.distance_sq(c.x, c.y, other.x, other.y) <= r2:
                     if other.clan_id == c.clan_id or not self.config.territory_enabled:
+                        # If other is already right next to the food (<=6m), never blacklist it for them
+                        if self.world.distance_sq(other.x, other.y, target.x, target.y) <= 36.0:
+                            continue
+                        if blocking_entity is not None:
+                            if isinstance(blocking_entity, dict) and "r" in blocking_entity:
+                                if not self._segment_hits_circle(other.x, other.y, target.x, target.y, blocking_entity, pad=other.radius):
+                                    continue
+                            elif hasattr(blocking_entity, "walls") or hasattr(blocking_entity, "door_side"):
+                                from .settlement import _path_crosses_wall
+                                if not _path_crosses_wall(other.x, other.y, target.x, target.y, blocking_entity, predator_blocked=other.is_predator):
+                                    continue
                         other.give_ups[target.id] = self.tick
 
-    def _give_up_on(self, c: Creature, target: Entity) -> None:
+    def _give_up_on(self, c: Creature, target: Entity, blocking_entity: Any = None) -> None:
         """A meal is unreachable (behind stone or wall): abandon it for a while
         and seek food somewhere else — no creature starves grinding at an obstacle.
         Grudges are per-meal and shared with nearby clan members."""
@@ -908,7 +920,7 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
             for k in expired:
                 del grudges[k]
         grudges[target.id] = self.tick
-        self._warn_unreachable_food(c, target)
+        self._warn_unreachable_food(c, target, blocking_entity=blocking_entity)
 
     # ------------------------------------------------------------- §X knowledge
     def _fact_fresh(self, c: Creature, key, ttl: int | None = None) -> dict | None:
