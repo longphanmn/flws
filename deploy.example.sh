@@ -32,12 +32,12 @@ WS_URL="${WS_URL:-${VITE_WS_URL:-}}"
 DEPLOY_GH_PAGES=1
 GH_PAGES_ONLY=0
 
-# Multi-repo auto-detection for frontend (flws-web) and landing page (flws-page / flws)
+# Multi-repo auto-detection for frontend (flws-web) and landing page (flws-page)
 if [ -z "${FRONTEND_DIR:-}" ]; then
   if [ -d "$LOCAL_DIR/../flws-web" ]; then
     FRONTEND_DIR="$(cd "$LOCAL_DIR/../flws-web" && pwd)"
   else
-    FRONTEND_DIR="$LOCAL_DIR/frontend"
+    FRONTEND_DIR="$LOCAL_DIR/../flws-web"
   fi
 fi
 
@@ -45,7 +45,7 @@ if [ -z "${LANDING_DIR:-}" ]; then
   if [ -d "$LOCAL_DIR/../flws-page" ]; then
     LANDING_DIR="$(cd "$LOCAL_DIR/../flws-page" && pwd)"
   else
-    LANDING_DIR="$LOCAL_DIR/../flws"
+    LANDING_DIR="$LOCAL_DIR/../flws-page"
   fi
 fi
 
@@ -517,8 +517,8 @@ if [ "$DEPLOY_GH_PAGES" = "1" ]; then
     fi
   fi
   echo "[deploy] Demo target API link from .env: $DEMO_API_URL (WS: $DEMO_WS_URL)"
-  FRONTEND_URL="${FRONTEND_URL:-${DEMO_URL:-https://longphanmn.github.io/flatland/demo}}"
-  LANDING_URL="${LANDING_URL:-https://longphanmn.github.io/flatland}"
+  FRONTEND_URL="${FRONTEND_URL:-${DEMO_URL:-https://longphanmn.github.io/flws-web/}}"
+  LANDING_URL="${LANDING_URL:-https://longphanmn.github.io/flws-page/}"
   (
     cd "$FRONTEND_DIR"
     VITE_BASE="./" VITE_IS_DEMO="true" VITE_DEMO_API_URL="$DEMO_API_URL" VITE_DEMO_WS_URL="$DEMO_WS_URL" FRONTEND_URL="$FRONTEND_URL" LANDING_URL="$LANDING_URL" npm run build
@@ -710,8 +710,8 @@ print("[deploy] Static docs and wiki generated successfully.")
         echo "[deploy] GitHub Pages demo already up-to-date"
       fi
     )
-    echo "  GitHub Pages Landing: ${LANDING_URL:-https://longphanmn.github.io/flatland/}"
-    echo "  GitHub Pages Demo:    ${FRONTEND_URL:-https://longphanmn.github.io/flatland/demo/}"
+    echo "  GitHub Pages Landing: ${LANDING_URL:-https://longphanmn.github.io/flws-page/}"
+    echo "  GitHub Pages Demo:    ${FRONTEND_URL:-https://longphanmn.github.io/flws-web/}"
   else
     echo "[deploy] Notice: GitHub Pages workspace not found at $GH_PAGES_DIR, skipping gh-pages deploy"
   fi

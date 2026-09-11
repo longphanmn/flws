@@ -1,6 +1,6 @@
 # Flatland — 2D Autonomous World Simulation
 
-[![GitHub Repo](https://img.shields.io/badge/GitHub-longphanmn%2Fflatland-181717.svg?logo=github)](https://github.com/longphanmn/flatland)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-longphanmn%2Fflws-181717.svg?logo=github)](https://github.com/longphanmn/flws)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg)](https://fastapi.tiangolo.com/)
@@ -9,8 +9,8 @@
 
 **Flatland** is an autonomous 2D artificial life and ecosystem simulation developed from the foundational ideas of **Edwin A. Abbott's 1884 classic *Flatland: A Romance of Many Dimensions***. Rather than rigidly mimicking or reenacting the 19th-century novella, this project takes Flatland's core geometric premises — 2D spatial existence, vertex-based caste hierarchy, atmospheric perception, and higher-dimensional observation — and transforms them into a **living, autonomous evolutionary world that dynamically changes and expands over time**.
 
-> **Landing Page**: [https://longphanmn.github.io/flws-page/](https://longphanmn.github.io/flws-page/) *(Legacy: [https://longphanmn.github.io/flatland/](https://longphanmn.github.io/flatland/))*  
-> **Live Web App**: [https://longphanmn.github.io/flws-web/](https://longphanmn.github.io/flws-web/) *(Legacy: [https://longphanmn.github.io/flatland/demo/](https://longphanmn.github.io/flatland/demo/))*  
+> **Landing Page**: [https://longphanmn.github.io/flws-page/](https://longphanmn.github.io/flws-page/)  
+> **Live Web App**: [https://longphanmn.github.io/flws-web/](https://longphanmn.github.io/flws-web/)  
 > **Source Repositories**:
 > - Backend Simulation Engine: [`flws`](https://github.com/longphanmn/flws) (FastAPI, Simulation Loop, SoA, Micro-RNN)
 > - Web Frontend Client: [`flws-web`](https://github.com/longphanmn/flws-web) (React 18, Canvas2D 60 FPS, Observatory)
@@ -119,8 +119,8 @@ Evolution emerges 100% autonomously without artificial intervention:
 
 ### Clone & Launch
 ```bash
-git clone https://github.com/longphanmn/flatland.git
-cd flatland
+git clone https://github.com/longphanmn/flws.git
+cd flws
 ./run.sh          # Starts FastAPI backend (:8000) and Vite frontend (:5173)
 ./run.sh tui      # Launches terminal client attached to local backend
 ```
@@ -313,12 +313,12 @@ Flatland is organized into three specialized GitHub repositories with unified sa
 ## Authors & Attribution
 
 - **Repositories**:
-  - Backend Engine: [https://github.com/longphanmn/flws](https://github.com/longphanmn/flws) *(or [flatland](https://github.com/longphanmn/flatland))*
+  - Backend Engine: [https://github.com/longphanmn/flws](https://github.com/longphanmn/flws)
   - Web Frontend Client: [https://github.com/longphanmn/flws-web](https://github.com/longphanmn/flws-web)
   - Landing Page (Private): [https://github.com/longphanmn/flws-page](https://github.com/longphanmn/flws-page)
 - **Live Deployments**:
-  - Web Simulation App: [https://longphanmn.github.io/flws-web/](https://longphanmn.github.io/flws-web/) *(Legacy: [demo/](https://longphanmn.github.io/flatland/demo/))*
-  - Landing Showcase: [https://longphanmn.github.io/flws-page/](https://longphanmn.github.io/flws-page/) *(Legacy: [flatland/](https://longphanmn.github.io/flatland/))*
+  - Web Simulation App: [https://longphanmn.github.io/flws-web/](https://longphanmn.github.io/flws-web/)
+  - Landing Showcase: [https://longphanmn.github.io/flws-page/](https://longphanmn.github.io/flws-page/)
 - **Developed by**: **[Long Phan](mailto:long@minhnhan.in)**  
   Email: [long@minhnhan.in](mailto:long@minhnhan.in)  
 - **AI Tooling & Development**: Built and engineered with **OpenCode** and **Antigravity**.

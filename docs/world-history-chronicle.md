@@ -1,8 +1,8 @@
 # Flatland World History, Chronicle & AI Storytelling (§BM)
 
-> **Landing Page**: [https://longphanmn.github.io/flatland/](https://longphanmn.github.io/flatland/)  
-> **Source Code**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)  
-> **Developed by [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · Demo: [longphanmn.github.io/flatland/demo/](https://longphanmn.github.io/flatland/demo/))  
+> **Landing Page**: [https://longphanmn.github.io/flws-page/](https://longphanmn.github.io/flws-page/)  
+> **Source Code**: [https://github.com/longphanmn/flws](https://github.com/longphanmn/flws)  
+> **Developed by [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · Demo: [longphanmn.github.io/flws-web/](https://longphanmn.github.io/flws-web/))  
 
 Flatland features a comprehensive multi-era historiography, analytics, and AI storytelling suite designed to chronicle the epic rise, evolution, conflicts, and collapse of polygon civilizations.
 

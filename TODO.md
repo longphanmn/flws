@@ -1,9 +1,9 @@
 # Flatland — World Simulation TODO
 
-[![GitHub Repo](https://img.shields.io/badge/GitHub-longphanmn%2Fflatland-181717.svg?logo=github)](https://github.com/longphanmn/flatland)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-longphanmn%2Fflws-181717.svg?logo=github)](https://github.com/longphanmn/flws)
 
 The Sphere model: The Sphere (God) sets **laws** from Spaceland, never touches individual creatures. Everything else emerges.  
-Repository: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)  
+Repository: [https://github.com/longphanmn/flws](https://github.com/longphanmn/flws)  
 Legend: [P0] foundational · [P1] core Flatland identity · [P2] flavor/observability · `- [ ]` open · `- [x]` done · *parked* = decided, not pending
 
 > **Active backlog only.** Completed roadmaps §F–§BO (748 items) → [`docs/roadmap-archive.md`](docs/roadmap-archive.md). This file tracks **open items in §BP** (and completed §BO) + 8 parked.

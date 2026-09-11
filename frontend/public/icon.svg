@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-<rect width="512" height="512" rx="96" fill="#0d1117"/>
-<g fill="none" stroke="#e3b341" stroke-width="14" stroke-linejoin="round">
-  <polygon points="256,84 384,212 384,340 256,428 128,340 128,212"/>
-  <circle cx="256" cy="256" r="64" fill="#0d1117" stroke="#3fb950" stroke-width="10"/>
-  <line x1="96" y1="400" x2="416" y2="400" stroke="#8b949e" stroke-width="8"/>
-</g>
-<text x="256" y="472" text-anchor="middle" font-family="monospace" font-size="42" fill="#e6edf3" letter-spacing="12">FLATLAND</text>
-</svg>

@@ -1,7 +1,0 @@
-User-agent: *
-Allow: /
-Allow: /wiki
-Allow: /guide
-Allow: /docs
-
-Sitemap: https://longphanmn.github.io/flatland/sitemap.xml

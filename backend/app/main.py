@@ -2677,6 +2677,12 @@ async def healthz(
 @app.get("/health.html", response_class=HTMLResponse)
 async def health_dashboard() -> HTMLResponse:
     candidates = [
+        Path(__file__).resolve().parent / "static" / "health.html",
+        Path(__file__).resolve().parent.parent / "static" / "health.html",
+        Path(__file__).resolve().parent.parent.parent / "flws-web" / "public" / "health.html",
+        Path("../flws-web/public/health.html"),
+        Path("/root/app/fl/flws-web/dist/health.html"),
+        Path("/root/app/fl/flws-web/public/health.html"),
         Path(__file__).resolve().parent.parent.parent / "frontend" / "public" / "health.html",
         Path(__file__).resolve().parent.parent.parent / "frontend" / "dist" / "health.html",
         Path("/root/app/fl/frontend/public/health.html"),
@@ -4184,6 +4190,8 @@ async def get_god_laws_md():
         Path("docs/god-laws.md"),
         Path("../docs/god-laws.md"),
         Path(__file__).resolve().parent.parent.parent / "docs" / "god-laws.md",
+        Path(__file__).resolve().parent.parent.parent / "flws-web" / "public" / "docs" / "god-laws.md",
+        Path("../flws-web/public/docs/god-laws.md"),
         Path(__file__).resolve().parent.parent / "public" / "docs" / "god-laws.md",
         Path("frontend/public/docs/god-laws.md"),
         Path("../frontend/public/docs/god-laws.md"),

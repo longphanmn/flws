@@ -1,10 +1,10 @@
 # God Laws — Flatland Simulation Reference
 
-[![GitHub Repo](https://img.shields.io/badge/GitHub-longphanmn%2Fflatland-181717.svg?logo=github)](https://github.com/longphanmn/flatland)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-longphanmn%2Fflws-181717.svg?logo=github)](https://github.com/longphanmn/flws)
 
-> **Landing Page**: [https://longphanmn.github.io/flatland/](https://longphanmn.github.io/flatland/)  
-> **Source Code**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)  
-> **Developed by [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · Demo: [longphanmn.github.io/flatland/demo/](https://longphanmn.github.io/flatland/demo/))  
+> **Landing Page**: [https://longphanmn.github.io/flws-page/](https://longphanmn.github.io/flws-page/)  
+> **Source Code**: [https://github.com/longphanmn/flws](https://github.com/longphanmn/flws)  
+> **Developed by [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · Demo: [longphanmn.github.io/flws-web/](https://longphanmn.github.io/flws-web/))  
 > Built and refined using **OpenCode** and **Antigravity** · Developed from the core concepts of **Edwin A. Abbott's *Flatland***.
 
 In Flatland, God (The Sphere) sets **universal laws of nature**, never intervening in individual lives. Every law has a specified range, default value, and ecological effect. Laws can be adjusted live via the in-app **⚖ The Sphere (God Panel)** or programmatically via `POST /api/laws` and `POST /api/presets/{name}`.

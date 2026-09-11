@@ -35,7 +35,7 @@ services:
 
   frontend:
     build:
-      context: ${FRONTEND_DIR:-./frontend}
+      context: ${FRONTEND_DIR:-../flws-web}
       dockerfile: Dockerfile
     image: flatland-frontend:local
     container_name: flatland-frontend
