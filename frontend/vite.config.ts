@@ -101,13 +101,17 @@ export default defineConfig(({ mode }) => {
       healthPage(),
       {
         name: 'flatland-html-transform',
-        transformIndexHtml(html: string) {
-          const frontend = cleanFrontendUrl || './'
-          const landing = cleanLandingUrl || '../'
-          return html
-            .replaceAll('%FRONTEND_URL%', frontend)
-            .replaceAll('%DEMO_URL%', frontend)
-            .replaceAll('%LANDING_URL%', landing)
+        enforce: 'pre',
+        transformIndexHtml: {
+          order: 'pre',
+          handler(html: string) {
+            const frontend = cleanFrontendUrl || 'https://longphanmn.github.io/flws-web'
+            const landing = cleanLandingUrl || 'https://longphanmn.github.io/flws-page'
+            return html
+              .replaceAll('%FRONTEND_URL%', frontend)
+              .replaceAll('%DEMO_URL%', frontend)
+              .replaceAll('%LANDING_URL%', landing)
+          },
         },
       },
     ],

@@ -1,7 +1,7 @@
 services:
   backend:
     build:
-      context: ./backend
+      context: ${BACKEND_DIR:-./backend}
       dockerfile: Dockerfile
     image: flatland-backend:local
     container_name: flatland-backend
@@ -35,7 +35,7 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: ${FRONTEND_DIR:-./frontend}
       dockerfile: Dockerfile
     image: flatland-frontend:local
     container_name: flatland-frontend

@@ -9,9 +9,12 @@
 
 **Flatland** is an autonomous 2D artificial life and ecosystem simulation developed from the foundational ideas of **Edwin A. Abbott's 1884 classic *Flatland: A Romance of Many Dimensions***. Rather than rigidly mimicking or reenacting the 19th-century novella, this project takes Flatland's core geometric premises — 2D spatial existence, vertex-based caste hierarchy, atmospheric perception, and higher-dimensional observation — and transforms them into a **living, autonomous evolutionary world that dynamically changes and expands over time**.
 
-> **Landing Page**: [https://longphanmn.github.io/flatland/](https://longphanmn.github.io/flatland/)  
-> **Live Demo**: [https://longphanmn.github.io/flatland/demo/](https://longphanmn.github.io/flatland/demo/)  
-> **Source Code**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)  
+> **Landing Page**: [https://longphanmn.github.io/flws-page/](https://longphanmn.github.io/flws-page/) *(Legacy: [https://longphanmn.github.io/flatland/](https://longphanmn.github.io/flatland/))*  
+> **Live Web App**: [https://longphanmn.github.io/flws-web/](https://longphanmn.github.io/flws-web/) *(Legacy: [https://longphanmn.github.io/flatland/demo/](https://longphanmn.github.io/flatland/demo/))*  
+> **Source Repositories**:
+> - Backend Simulation Engine: [`flws`](https://github.com/longphanmn/flws) (FastAPI, Simulation Loop, SoA, Micro-RNN)
+> - Web Frontend Client: [`flws-web`](https://github.com/longphanmn/flws-web) (React 18, Canvas2D 60 FPS, Observatory)
+> - Landing Page (Private): [`flws-page`](https://github.com/longphanmn/flws-page) (Showcase, Marketing, Lore)  
 > **Developed by [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in))  
 > Built and refined using **OpenCode** and **Antigravity**.  
 > Developed from the core mathematical and spatial ideas of **Edwin A. Abbott** (1884).
@@ -279,11 +282,43 @@ ws/
 
 ---
 
+## 🌐 Tri-Repository Architecture & Single-System Deployment (§BP)
+
+Flatland is organized into three specialized GitHub repositories with unified same-system deployment:
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                             Flatland Ecosystem                           │
+├──────────────────────────┬──────────────────────────┬────────────────────┤
+│   flws (Backend Engine)  │ flws-web (Web Frontend)  │ flws-page (Private)│
+│  FastAPI, Simulation     │ React 18, Vite, TS       │ Landing Showcase,  │
+│  SimEngine OS Thread     │ Canvas2D 60 FPS Viewport │ Interactive Canvas │
+│  NumPy SoA, Micro-RNN    │ Macro Observatory & HUD  │ Lore & CTA Portal  │
+├──────────────────────────┼──────────────────────────┼────────────────────┤
+│ Runs on Host:8000        │ Runs on Host:5173 / :80  │ Independent Docs   │
+│ Docker: flatland-backend │ Docker: flatland-frontend│ GitHub Pages       │
+│ Single-System Production │ Nginx Reverse Proxy      │ Marketing Site     │
+└──────────────────────────┴──────────────────────────┴────────────────────┘
+```
+
+- **Unified Same-System Deployment**:
+  - `docker-compose.yml` orchestrates **both** backend and frontend on the same host system. It supports parameterizing `${BACKEND_DIR:-./backend}` and `${FRONTEND_DIR:-./frontend}` (or sibling `../flws-web`).
+  - `deploy.sh` automatically detects multi-repo directory structures, synchronizes code to the production server (`root@192.168.1.21`), compiles native OpenMP C kernels, builds the frontend bundle, and manages background services while preserving live world state.
+- **Dual Independent GitHub Pages**:
+  - **Web Client**: Deployed independently from `flws-web` to `https://longphanmn.github.io/flws-web/` (connects dynamically via WebSocket/REST to live backend servers).
+  - **Landing Page**: Deployed independently from private `flws-page` to `https://longphanmn.github.io/flws-page/`.
+
+---
+
 ## Authors & Attribution
 
-- **Repository**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)
-- **Landing Page**: [https://longphanmn.github.io/flatland/](https://longphanmn.github.io/flatland/)
-- **Live Demo**: [https://longphanmn.github.io/flatland/demo/](https://longphanmn.github.io/flatland/demo/)
+- **Repositories**:
+  - Backend Engine: [https://github.com/longphanmn/flws](https://github.com/longphanmn/flws) *(or [flatland](https://github.com/longphanmn/flatland))*
+  - Web Frontend Client: [https://github.com/longphanmn/flws-web](https://github.com/longphanmn/flws-web)
+  - Landing Page (Private): [https://github.com/longphanmn/flws-page](https://github.com/longphanmn/flws-page)
+- **Live Deployments**:
+  - Web Simulation App: [https://longphanmn.github.io/flws-web/](https://longphanmn.github.io/flws-web/) *(Legacy: [demo/](https://longphanmn.github.io/flatland/demo/))*
+  - Landing Showcase: [https://longphanmn.github.io/flws-page/](https://longphanmn.github.io/flws-page/) *(Legacy: [flatland/](https://longphanmn.github.io/flatland/))*
 - **Developed by**: **[Long Phan](mailto:long@minhnhan.in)**  
   Email: [long@minhnhan.in](mailto:long@minhnhan.in)  
 - **AI Tooling & Development**: Built and engineered with **OpenCode** and **Antigravity**.

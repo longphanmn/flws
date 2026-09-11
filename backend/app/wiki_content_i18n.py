@@ -667,6 +667,13 @@ CONFIG_OPS_MD_I18N = {
 CODEBASE_MAP_EN = """
 # Codebase map
 
+## Tri-Repository Architecture & Single-System Deployment (§BP)
+Flatland is decoupled into three dedicated GitHub repositories with unified same-system deployment:
+- `flws` (`github.com/longphanmn/flws`): Backend simulation engine (FastAPI, SimEngine thread, NumPy SoA, micro-Elman RNN, polar geometry SAT, TUI, SQLite WAL). Listens on host port `:8000`.
+- `flws-web` (`github.com/longphanmn/flws-web`): Standalone web frontend simulation client (React 18, Vite, TypeScript, Canvas2D/WebGL 60 FPS viewport, Macro Observatory). Deployed to GitHub Pages (`https://longphanmn.github.io/flws-web/`) and runs on `:5173` / `:80` (Nginx reverse-proxying to backend).
+- `flws-page` (`github.com/longphanmn/flws-page` [private]): Official project landing page and showcase (interactive canvas, audio synthesizer badge, lore). Deployed to independent GitHub Pages (`https://longphanmn.github.io/flws-page/`).
+- **Same-System Orchestration**: `docker-compose.yml` and `deploy.sh` deploy and run both backend and frontend on the same host system.
+
 ## Backend (`backend/app/`)
 - `config.py:13` — `Config` dataclass: world geometry, densities, food, corpses, behaviour, life, reproduction, disease, environment, shelter, terrain, society, houses, chronicle. `from_env()` + `tick_interval`.
 - `entities.py:1` — `CasteTraits`, `CASTE_TRAITS`, `YIELD_RANK`, `caste_name()`, `Creature` (shape/sides/caste/age/lifespan/health/infected/clan_id/sleeping...), `Food` (growth), `Corpse`, `House` (size/door/clan).
@@ -726,6 +733,13 @@ CODEBASE_MAP_EN = """
 CODEBASE_MAP_VI = """
 # Bản đồ mã nguồn
 
+## Kiến trúc 3 Kho mã nguồn & Triển khai hệ thống (§BP)
+Flatland được phân rã thành 3 kho mã nguồn GitHub chuyên biệt với phương thức triển khai đồng nhất trên cùng một hệ thống:
+- `flws` (`github.com/longphanmn/flws`): Động cơ mô phỏng backend thuần túy (FastAPI, luồng SimEngine, SoA NumPy, micro-RNN Elman, SAT hình thái cực, TUI, SQLite WAL). Lắng nghe trên cổng `:8000`.
+- `flws-web` (`github.com/longphanmn/flws-web`): Khách web frontend độc lập (React 18, Vite, TypeScript, khung nhìn Canvas2D/WebGL 60 FPS, Đài thiên văn vĩ mô). Triển khai trên GitHub Pages (`https://longphanmn.github.io/flws-web/`) và chạy trên cổng `:5173` / `:80` (Nginx reverse-proxy sang backend).
+- `flws-page` (`github.com/longphanmn/flws-page` [riêng tư]): Trang đích giới thiệu chính thức (canvas sinh vật tương tác, huy hiệu âm thanh, cốt truyện). Triển khai trên GitHub Pages độc lập (`https://longphanmn.github.io/flws-page/`).
+- **Triển khai đồng nhất cùng hệ thống**: `docker-compose.yml` và `deploy.sh` tự động triển khai và vận hành cả backend lẫn frontend trên cùng một máy chủ mục tiêu.
+
 ## Cấu trúc Backend (`backend/app/`)
 - `config.py:13` — Dataclass `Config`: Hình học thế giới, mật độ sinh vật, thức ăn, xác chết, hành vi bầy đàn, sinh sản, dịch bệnh, môi trường, nhà ở, địa hình, xã hội và biên niên sử. Tự động đọc cấu hình từ biến môi trường qua `from_env()`.
 - `entities.py:1` — Định nghĩa các thực thể cốt lõi: `CasteTraits`, `CASTE_TRAITS`, `YIELD_RANK`, `caste_name()`, `Creature` (hình dạng, số cạnh, đẳng cấp, tuổi tác, máu, trạng thái nhiễm bệnh, bang phái, ngủ...), `Food` (độ chín sinh trưởng), `Corpse` (xác chết phân hủy), `House` (nhà ở, cửa ra vào, quyền sở hữu).
@@ -784,6 +798,13 @@ CODEBASE_MAP_VI = """
 
 CODEBASE_MAP_FR = """
 # Carte du code source
+
+## Architecture Tri-Dépôts & Déploiement Unifié (§BP)
+Flatland est découplé en trois dépôts GitHub spécialisés avec déploiement unifié sur le même système :
+- `flws` (`github.com/longphanmn/flws`) : Moteur de simulation backend pur (FastAPI, thread SimEngine, SoA NumPy, micro-Elman RNN, physique SAT polaire, TUI, SQLite WAL). Écoute sur le port hôte `:8000`.
+- `flws-web` (`github.com/longphanmn/flws-web`) : Client web frontend autonome (React 18, Vite, TypeScript, Canvas2D/WebGL 60 FPS, Observatoire macroscopique). Déployé sur GitHub Pages (`https://longphanmn.github.io/flws-web/`) et écoute sur `:5173` / `:80` (Nginx reverse-proxy vers backend).
+- `flws-page` (`github.com/longphanmn/flws-page` [privé]) : Page d'accueil et vitrine officielle (canevas interactif, badge sonore synthétisé, mythes). Déployé sur GitHub Pages indépendant (`https://longphanmn.github.io/flws-page/`).
+- **Déploiement unifié sur le même système** : `docker-compose.yml` et `deploy.sh` orchestrent et exécutent simultanément le backend et le frontend sur la même machine hôte.
 
 ## Architecture Backend (`backend/app/`)
 - `config.py:13` — Dataclass `Config` : Géométrie du monde, densités, nourriture, dépouilles, dynamique de groupe, reproduction, épidémies, météo, abris, maisons et annales. Détection automatique des variables d'environnement via `from_env()`.

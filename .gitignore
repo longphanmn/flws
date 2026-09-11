@@ -41,7 +41,8 @@ snapshot.json
 !.env.example
 .ga_id
 .gtm_id
-deploy*
+deploy.sh
+!deploy.example.sh
 .deployed-commit
 
 # OS & Editor Specific Files
