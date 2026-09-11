@@ -29,20 +29,6 @@ interface CreatureResponse {
   family?: Family
 }
 
-function Bar({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
-  const pct = Math.max(0, Math.min(100, (value / max) * 100))
-  return (
-    <div className="insp-bar">
-      <span className="chip" style={{ minWidth: 60 }}>{label}</span>
-      <div className="insp-track">
-        <div className="insp-fill" style={{ width: `${pct}%`, background: color }} />
-      </div>
-      <span className="chip" style={{ minWidth: 32, textAlign: 'right' }}>
-        <b>{Math.round(value)}</b>
-      </span>
-    </div>
-  )
-}
 
 function eventLine(ev: HistoryEvent, t: (k: string, v?: any) => string): string {
   switch (ev.type) {
@@ -764,7 +750,32 @@ ${events.map((ev) => `- Tick ${ev.tick}: ${ev.type}${ev.caste ? ` (${ev.caste})`
         <div className="chip" style={{ fontSize: 11, opacity: 0.9, margin: '4px 0 6px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <span style={{ background: CASTE_COLORS[e.caste ?? ''] ?? '#21262d', color: '#0d1117', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>{e.caste}</span>
           <span>{e.shape === 'line' ? t('inspector.female') : t('inspector.male')} · {e.stage} · Gen {e.generation ?? 0}</span>
-          {e.clan_id ? <span style={{ color: e.clan_color ?? '#58a6ff', fontWeight: 600 }}>{e.clan_name ?? `Clan ${e.clan_id}`} {totemEmoji(e.clan_totem)}</span> : null}
+          {e.clan_id != null && e.clan_id > 0 ? (
+            <button
+              type="button"
+              className="chip clan-link-chip"
+              onClick={() => onSelectClan?.(e.clan_id!)}
+              style={{
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                border: `1px solid ${e.clan_color ?? '#58a6ff'}`,
+                background: 'rgba(33,38,45,0.85)',
+                color: e.clan_color ?? '#58a6ff',
+                borderRadius: 4,
+                padding: '1px 6px',
+                fontSize: 11,
+                fontWeight: 600,
+                lineHeight: 1.3,
+              }}
+              title={t('inspector.openClanDetails', { name: e.clan_name ?? `Clan ${e.clan_id}` })}
+            >
+              <span className="dot-inline" style={{ background: e.clan_color ?? '#8b949e', width: 6, height: 6, borderRadius: '50%' }} />
+              <span>{e.clan_name ?? `Clan ${e.clan_id}`} {totemEmoji(e.clan_totem)}</span>
+              <span style={{ fontSize: 9, opacity: 0.85 }}>↗</span>
+            </button>
+          ) : null}
         </div>
       )}
 
@@ -855,33 +866,73 @@ ${events.map((ev) => `- Tick ${ev.tick}: ${ev.type}${ev.caste ? ` (${ev.caste})`
 
       {e && activeTab === 'vitals' && (
         <>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <Bar label={t('inspector.energy')} value={e.energy ?? 0} max={100} color="#d29922" />
-            <Bar label={t('inspector.health')} value={e.health ?? 0} max={100} color="#3fb950" />
-            {typeof e.chill === 'number' && e.chill > 0.5 && <Bar label={t('inspector.chill')} value={e.chill} max={24} color="#79c0ff" />}
-          </div>
-          <div className="insp-grid insp-2col" style={{ marginTop: 8 }}>
-            <span className="chip">{t('inspector.age')} <b>{e.age ?? 0}</b> / {Math.round(e.lifespan ?? 0)}</span>
-            <span className="chip">{t('inspector.meals')} <b>{e.meals ?? 0}</b> · {t('inspector.sides')} <b>{e.sides}</b></span>
-            {typeof e.irregularity === 'number' && e.irregularity > 0 && <span className="chip" style={{ color: '#f85149' }}>{t('inspector.irregularity')} <b>{e.irregularity}</b></span>}
-            {e.clan_id != null && e.clan_id > 0 && (
-              <button type="button" className="chip clan-link-chip" onClick={() => onSelectClan?.(e.clan_id!)} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, border: `1px solid ${e.clan_color ?? '#58a6ff'}`, background: 'rgba(33,38,45,0.85)', color: '#e6edf3', borderRadius: 6, padding: '4px 8px', fontSize: 12, fontWeight: 600 }}>
-                <span className="dot-inline" style={{ background: e.clan_color ?? '#8b949e', width: 7, height: 7, borderRadius: '50%' }} />
-                <span>{e.clan_name ?? `Clan ${e.clan_id}`}</span><span style={{ fontSize: 10, color: '#58a6ff' }}>↗</span>
-              </button>
+          <div className="insp-grid insp-2col">
+            <span className="chip" style={{ justifyContent: 'space-between' }}>
+              <span>{t('inspector.age')}</span>
+              <b>{e.age ?? 0} / {Math.round(e.lifespan ?? 0)}</b>
+            </span>
+            <span className="chip" style={{ justifyContent: 'space-between' }}>
+              <span>{t('inspector.meals')}</span>
+              <b>{e.meals ?? 0}</b>
+            </span>
+            {typeof e.body_temp === 'number' && (
+              <span className="chip" style={{ justifyContent: 'space-between' }}>
+                <span>🌡️ {t('inspector.bodyTemp')}</span>
+                <b>{e.body_temp.toFixed(1)}°C</b>
+              </span>
             )}
-            {e.trait && <span className="chip"> {e.trait === 'greedy' ? '⬔' : e.trait === 'peaceful' ? '◯' : e.trait === 'paranoid' ? '⬥' : e.trait === 'bold' ? '▲' : '•'} {e.trait}</span>}
-            {(e as any).archetype && <span className="chip" style={{ gridColumn: '1 / -1', background: (e as any).archetype==='Apex Hunter' ? 'rgba(255,123,114,0.18)' : (e as any).archetype==='Nocturnal Forager' ? 'rgba(121,192,255,0.18)' : (e as any).archetype==='Granary Courier' ? 'rgba(63,185,80,0.16)' : 'rgba(210,168,255,0.16)', border: `1px solid ${(e as any).archetype==='Apex Hunter' ? '#ff7b72' : (e as any).archetype==='Nocturnal Forager' ? '#79c0ff' : (e as any).archetype==='Granary Courier' ? '#3fb950' : '#d2a8ff'}`, color: '#e6edf3', fontWeight: 700 }} >{(e as any).archetype==='Apex Hunter'?'⚔':(e as any).archetype==='Nocturnal Forager'?'🌙':(e as any).archetype==='Granary Courier'?'🧺':'🛡️'} {(e as any).archetype}</span>}
+            {typeof e.irregularity === 'number' && e.irregularity > 0 && (
+              <span className="chip" style={{ color: '#f85149', justifyContent: 'space-between' }}>
+                <span>{t('inspector.irregularity')}</span>
+                <b>{e.irregularity}</b>
+              </span>
+            )}
+            {e.trait && (
+              <span className="chip" style={{ justifyContent: 'space-between' }}>
+                <span>{t('inspector.traitLabel')}</span>
+                <b>{e.trait === 'greedy' ? '⬔' : e.trait === 'peaceful' ? '◯' : e.trait === 'paranoid' ? '⬥' : e.trait === 'bold' ? '▲' : '•'} {e.trait}</b>
+              </span>
+            )}
+            {(e as any).archetype && (
+              <span
+                className="chip"
+                style={{
+                  gridColumn: '1 / -1',
+                  background: (e as any).archetype === 'Apex Hunter' ? 'rgba(255,123,114,0.18)' : (e as any).archetype === 'Nocturnal Forager' ? 'rgba(121,192,255,0.18)' : (e as any).archetype === 'Granary Courier' ? 'rgba(63,185,80,0.16)' : 'rgba(210,168,255,0.16)',
+                  border: `1px solid ${(e as any).archetype === 'Apex Hunter' ? '#ff7b72' : (e as any).archetype === 'Nocturnal Forager' ? '#79c0ff' : (e as any).archetype === 'Granary Courier' ? '#3fb950' : '#d2a8ff'}`,
+                  color: '#e6edf3',
+                  fontWeight: 700,
+                }}
+              >
+                {(e as any).archetype === 'Apex Hunter' ? '⚔' : (e as any).archetype === 'Nocturnal Forager' ? '🌙' : (e as any).archetype === 'Granary Courier' ? '🧺' : '🛡️'} {(e as any).archetype}
+              </span>
+            )}
           </div>
           {/* §BG-9 Polar Radar & §BG-10 Biomech HUD */}
           <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
             <PolarRadar e={e} />
             <BiomechHUD e={e} />
             <div className="insp-2col" style={{ fontSize: 11 }}>
-              <span className="chip" style={{ justifyContent: 'space-between', background: '#161b22' }}>{t('inspector.sidesLabel')} <b>{e.sides}</b> {(e as any).morph_k && (e as any).morph_k !== e.sides ? <span style={{ color: '#d2a8ff' }}>→{ (e as any).morph_k}</span> : null}</span>
-              <span className="chip" style={{ justifyContent: 'space-between', background: '#161b22' }}>{t('inspector.shapeLabel')} <b>{e.shape}</b></span>
-              <span className="chip" style={{ justifyContent: 'space-between', background: '#161b22' }}>{t('inspector.stageLabel')} <b>{e.stage}</b></span>
-              <span className="chip" style={{ justifyContent: 'space-between', background: '#161b22' }}>Gen <b>{e.generation ?? 0}</b></span>
+              <span className="chip" style={{ justifyContent: 'space-between', background: '#161b22' }}>
+                <span>{t('inspector.sidesLabel')}</span>
+                <b>{e.sides} {(e as any).morph_k && (e as any).morph_k !== e.sides ? <span style={{ color: '#d2a8ff' }}>→ {(e as any).morph_k}</span> : null}</b>
+              </span>
+              <span className="chip" style={{ justifyContent: 'space-between', background: '#161b22' }}>
+                <span>{t('inspector.speed')}</span>
+                <b>{typeof (e as any).speed === 'number' ? (e as any).speed.toFixed(2) : '1.00'}</b>
+              </span>
+              {typeof e.radius === 'number' && (
+                <span className="chip" style={{ justifyContent: 'space-between', background: '#161b22' }}>
+                  <span>{t('inspector.radius')}</span>
+                  <b>{e.radius.toFixed(2)}</b>
+                </span>
+              )}
+              {typeof (e as any).iso_angle === 'number' && (e as any).iso_angle > 0 && (
+                <span className="chip" style={{ justifyContent: 'space-between', background: '#161b22' }}>
+                  <span>{t('inspector.apexAngle')}</span>
+                  <b>{(e as any).iso_angle.toFixed(1)}°</b>
+                </span>
+              )}
             </div>
           </div>
         </>
