@@ -13,16 +13,35 @@ const params = typeof window !== 'undefined' ? new URLSearchParams(window.locati
 const paramBackend = params?.get('backend') || null
 const paramWs = params?.get('ws') || null
 
+function decodeEnvUrl(val: unknown): string {
+  if (typeof val !== 'string' || !val) return ''
+  try {
+    if (typeof window !== 'undefined' && window.atob && /^[A-Za-z0-9+/=]+$/.test(val) && val.length % 4 === 0) {
+      const decoded = window.atob(val)
+      if (decoded.startsWith('http://') || decoded.startsWith('https://') || decoded.startsWith('ws://') || decoded.startsWith('wss://')) {
+        return decoded
+      }
+    }
+  } catch {
+    // ignore decoding errors
+  }
+  return val
+}
+
 // Configured from .env (API_URL / BACKEND_URL / VITE_BACKEND_URL) via Vite define/import.meta.env
-const envApiUrl = (typeof __ENV_API_URL__ !== 'undefined' && __ENV_API_URL__) ||
+const envApiUrl = decodeEnvUrl(
+  (typeof __ENV_API_URL__ !== 'undefined' && __ENV_API_URL__) ||
   ((import.meta as any).env?.VITE_DEMO_API_URL as string) ||
   ((import.meta as any).env?.API_URL as string) ||
-  'https://world.minhnhan.in'
+  ''
+)
 
-const envWsUrl = (typeof __ENV_WS_URL__ !== 'undefined' && __ENV_WS_URL__) ||
+const envWsUrl = decodeEnvUrl(
+  (typeof __ENV_WS_URL__ !== 'undefined' && __ENV_WS_URL__) ||
   ((import.meta as any).env?.VITE_DEMO_WS_URL as string) ||
   ((import.meta as any).env?.WS_URL as string) ||
   ''
+)
 
 export const DEFAULT_REMOTE_BACKEND = envApiUrl.replace(/\/+$/, '')
 export const DEFAULT_REMOTE_WS = envWsUrl || (
@@ -57,7 +76,7 @@ export function getWebSocketUrl(): string {
 /**
  * Resolves user-facing documentation / page links.
  * When running in demo mode (e.g. GitHub Pages), resolves to local demo paths
- * so the backend domain (world.minhnhan.in) is completely hidden from demo visitors.
+ * so the backend domain is completely hidden from demo visitors.
  */
 export function docUrl(path: string): string {
   if (isDemoEnvironment) {

@@ -224,10 +224,10 @@ WIKI_TEMPLATE = """<!doctype html>
 <meta name="keywords" content="Flatland, World Simulation, Wiki, Guide, Presets, Simulation Mechanics, Long Phan, long@minhnhan.in, Artificial Life">
 <meta name="author" content="Long Phan <long@minhnhan.in>">
 <meta name="robots" content="index, follow">
-<link rel="canonical" href="https://world.minhnhan.in/wiki?lang={lang}">
+<link rel="canonical" href="/wiki?lang={lang}">
 <meta property="og:title" content="{og_title}">
 <meta property="og:description" content="{og_desc}">
-<meta property="og:url" content="https://world.minhnhan.in/wiki?lang={lang}">
+<meta property="og:url" content="/wiki?lang={lang}">
 <meta property="og:type" content="article">
 <style>
 :root {{

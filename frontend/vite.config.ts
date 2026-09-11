@@ -64,7 +64,7 @@ export default defineConfig(({ mode }) => {
   const rootDir = path.resolve(__dirname, '..')
   const env = loadEnv(mode, rootDir, ['API_', 'BACKEND_', 'VITE_', 'WS_'])
 
-  const rawApiUrl = process.env.VITE_DEMO_API_URL || process.env.API_URL || env.API_URL || env.VITE_BACKEND_URL || env.BACKEND_URL || 'https://world.minhnhan.in'
+  const rawApiUrl = process.env.VITE_DEMO_API_URL || process.env.API_URL || env.API_URL || env.VITE_BACKEND_URL || env.BACKEND_URL || ''
   const cleanApiUrl = rawApiUrl.replace(/\/+$/, '')
 
   let rawWsUrl = process.env.VITE_DEMO_WS_URL || process.env.WS_URL || env.WS_URL || env.VITE_WS_URL || ''
@@ -83,15 +83,15 @@ export default defineConfig(({ mode }) => {
     envDir: rootDir,
     envPrefix: ['VITE_', 'API_', 'BACKEND_', 'WS_'],
     define: {
-      '__ENV_API_URL__': JSON.stringify(cleanApiUrl),
-      '__ENV_WS_URL__': JSON.stringify(rawWsUrl),
+      '__ENV_API_URL__': JSON.stringify(isDemo && cleanApiUrl ? Buffer.from(cleanApiUrl).toString('base64') : cleanApiUrl),
+      '__ENV_WS_URL__': JSON.stringify(isDemo && rawWsUrl ? Buffer.from(rawWsUrl).toString('base64') : rawWsUrl),
       '__VITE_IS_DEMO__': JSON.stringify(isDemo),
     },
     plugins: [react(), healthPage()],
   server: {
     host: '0.0.0.0',
     port: 5173,
-    // production is reached via http://world.minhnhan.in → :5173, allow all for Edge/Safari
+    // production is reached via reverse proxy → :5173, allow all for Edge/Safari
     allowedHosts: true,
     cors: true,
     proxy: proxyConfig,

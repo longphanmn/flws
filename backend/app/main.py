@@ -907,8 +907,6 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "http://world.minhnhan.in",
-        "https://world.minhnhan.in",
     ],
     allow_origin_regex="https?://.*",
     allow_methods=["*"],
@@ -4140,36 +4138,38 @@ async def get_wiki_json(lang: str = "en"):
 
 
 @app.get("/robots.txt", response_class=PlainTextResponse)
-async def get_robots_txt():
+async def get_robots_txt(request: Request):
     """Robots.txt for SEO."""
+    base = str(request.base_url).rstrip("/")
     return PlainTextResponse(
-        "User-agent: *\nAllow: /\nAllow: /wiki\nAllow: /guide\nAllow: /docs\n\nSitemap: https://world.minhnhan.in/sitemap.xml\n",
+        f"User-agent: *\nAllow: /\nAllow: /wiki\nAllow: /guide\nAllow: /docs\n\nSitemap: {base}/sitemap.xml\n",
         media_type="text/plain",
     )
 
 
 @app.get("/sitemap.xml", response_class=HTMLResponse)
-async def get_sitemap_xml():
+async def get_sitemap_xml(request: Request):
     """Sitemap.xml for SEO."""
-    xml_content = """<?xml version="1.0" encoding="UTF-8"?>
+    base = str(request.base_url).rstrip("/")
+    xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://world.minhnhan.in/</loc>
+    <loc>{base}/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://world.minhnhan.in/wiki</loc>
+    <loc>{base}/wiki</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://world.minhnhan.in/guide</loc>
+    <loc>{base}/guide</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://world.minhnhan.in/docs</loc>
+    <loc>{base}/docs</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
