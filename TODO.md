@@ -10,7 +10,7 @@ Legend: [P0] foundational · [P1] core Flatland identity · [P2] flavor/observab
 
 ---
 
-## §BO Production Performance Optimization & Zero-Allocation Engine — Backlog (7/8) — 2026-09-11
+## §BO Production Performance Optimization & Zero-Allocation Engine — Backlog (8/8) — 2026-09-11
 
 > **Context**: Live production profiling (PID 1644998, 192.168.1.21) revealed tick latency spikes up to **80–136ms** with overruns when population expands towards 350–400 creatures (against the 100ms budget for 10.0 TPS). Bottlenecks:
 > 1. Signal hearing loop in `creature_update.py` recomputing tick constants, allocating 9,000+ tuples for dict grid queries, sorting via Python lambdas, and allocating generator expressions.
@@ -50,7 +50,7 @@ Legend: [P0] foundational · [P1] core Flatland identity · [P2] flavor/observab
   - Update `deploy.sh` to run `npm run build` and launch `./node_modules/.bin/vite preview --host 0.0.0.0 --port 5173`.
 
 ### Verification & Production Deployment [P0]
-- [ ] [P0] **BO-8 Verification, Production Deploy & Live Profiling**
+- [x] [P0] **BO-8 Verification, Production Deploy & Live Profiling**
   - Run the full 513-test suite to guarantee zero regression.
   - Run `bench_tick.py` and `test_tick_budget.py` (both 170 and 360 pop) to measure latency improvements.
   - Deploy to production via `./deploy.sh` (preserving world state).
