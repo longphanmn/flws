@@ -494,6 +494,15 @@
   var currentRange = localStorage.getItem("fl_health_range") || "1h";
 
   function updateExternalLinks() {
+    if (isDemo) {
+      var rawLink = document.querySelector('a[href*="/healthz"]');
+      if (rawLink) rawLink.style.display = "none";
+      var teleLink = document.querySelector('a[href*="/api/perf/telemetry"]');
+      if (teleLink) teleLink.style.display = "none";
+      var docsLink = document.querySelector('a[href*="/docs"]');
+      if (docsLink) docsLink.href = "./docs/";
+      return;
+    }
     var base = API_BASE || "";
     var rawLink = document.querySelector('a[href*="/healthz"]');
     if (rawLink) rawLink.href = (base || "") + "/healthz" + (currentRange ? "?range=" + encodeURIComponent(currentRange) : "");

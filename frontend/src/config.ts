@@ -54,10 +54,40 @@ export function getWebSocketUrl(): string {
   return `${proto}://${host}/ws`
 }
 
+/**
+ * Resolves user-facing documentation / page links.
+ * When running in demo mode (e.g. GitHub Pages), resolves to local demo paths
+ * so the backend domain (world.minhnhan.in) is completely hidden from demo visitors.
+ */
+export function docUrl(path: string): string {
+  if (isDemoEnvironment) {
+    const isGh = typeof window !== 'undefined' && window.location.hostname.endsWith('github.io')
+    const base = isGh ? '/flatland/demo' : '.'
+    if (path.startsWith('/wiki')) {
+      const rest = path.slice('/wiki'.length)
+      return `${base}/wiki/${rest}`
+    }
+    if (path.startsWith('/docs')) {
+      const rest = path.slice('/docs'.length)
+      return `${base}/docs/${rest}`
+    }
+    if (path.startsWith('/health')) {
+      const rest = path.slice('/health'.length)
+      return `${base}/health/${rest}`
+    }
+    if (path.startsWith('/openapi.json')) {
+      return `${base}/openapi.json`
+    }
+    if (path.startsWith('/api/wiki')) {
+      return `${base}/wiki/`
+    }
+    return `${base}/${path.replace(/^\/+/, '')}`
+  }
+  return path.startsWith('/') ? path : `/${path}`
+}
+
 export function apiUrl(path: string): string {
-  const base = getBackendBaseUrl()
-  const cleanPath = path.startsWith('/') ? path : `/${path}`
-  return `${base}${cleanPath}`
+  return docUrl(path)
 }
 
 /**

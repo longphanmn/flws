@@ -119,7 +119,7 @@ export default function Wiki({ open, onClose }: { open: boolean; onClose: () => 
               <li><a href="https://longphanmn.github.io/flatland/" target="_blank" rel="noreferrer">🌐 {t('wiki.docLanding') || 'Landing Page & Project Overview (longphanmn.github.io/flatland)'} ↗</a></li>
               <li><a href={apiUrl(`/wiki?lang=${activeLang}`)} target="_blank" rel="noreferrer">📖 {t('wiki.docWiki')} ↗</a></li>
               <li><a href={apiUrl('/docs')} target="_blank" rel="noreferrer">⚡ {t('wiki.docApi')} ↗</a> + <a href={apiUrl('/openapi.json')} target="_blank" rel="noreferrer">/openapi.json ↗</a></li>
-              <li><a href="./docs/god-laws.md" target="_blank" rel="noreferrer">📜 {t('wiki.docLaws')} ↗</a></li>
+              <li><a href={apiUrl('/docs/god-laws.md')} target="_blank" rel="noreferrer">📜 {t('wiki.docLaws')} ↗</a></li>
               <li><a href={apiUrl('/health')} target="_blank" rel="noreferrer">🏥 {t('wiki.docHealth') || 'Engine Health & Telemetry Dashboard (/health)'} ↗</a></li>
             </ul>
           </div>
@@ -230,7 +230,7 @@ curl ${location.origin}/api/history?limit=5 | jq`}</code></pre>
                       <tr key={name} style={{ borderBottom: '1px solid #21262d' }}>
                         <td style={{ padding: '6px 10px' }}><code>{name}</code> <span style={{ color: '#8b949e', fontSize: 11 }}>({lawLabel})</span></td>
                         <td style={{ padding: '6px 10px', color: '#ffa657' }}>{String(cur ?? det?.default ?? '—')}</td>
-                        <td style={{ padding: '6px 10px', fontSize: 11, color: '#c9d1d9', maxWidth: 300 }}>{hintText} <a href="./docs/god-laws.md" target="_blank" rel="noreferrer" style={{ color: '#58a6ff', fontSize: 10 }}>md ↗</a> · <a href={apiUrl('/wiki#god-laws')} target="_blank" rel="noreferrer" style={{ color: '#58a6ff', fontSize: 10 }}>wiki ↗</a></td>
+                        <td style={{ padding: '6px 10px', fontSize: 11, color: '#c9d1d9', maxWidth: 300 }}>{hintText} <a href={apiUrl('/docs/god-laws.md')} target="_blank" rel="noreferrer" style={{ color: '#58a6ff', fontSize: 10 }}>md ↗</a> · <a href={apiUrl('/wiki#god-laws')} target="_blank" rel="noreferrer" style={{ color: '#58a6ff', fontSize: 10 }}>wiki ↗</a></td>
                       </tr>
                     )
                   })}
