@@ -19,35 +19,11 @@
       "softcap_active": "Softcap Active"
     },
     "lenses": {
-      "toolbarLabel": "Map Lenses",
-      "hintTitle": "Map Lens Modes",
-      "hintDesc": "Switch map perspectives (hotkeys 1–4) to reveal biological castes, genetic mutations, genealogical epochs, and clan allegiances.",
+      "toolbarLabel": "Evolutionary Genome Mirror",
+      "hintTitle": "Evolutionary Genome Mirror",
+      "hintDesc": "Creatures visually mirror their living genome, morphological mutations, and generational lineage across millennia (Gen 0 → 2000+).",
       "hintWikiLink": "Open in Wiki",
-      "close": "Close",
-      "classic": {
-        "label": "Classic",
-        "num": "1",
-        "title": "Classic Caste Lens (1)",
-        "hint": "Colors creatures by Edwin A. Abbott geometric caste hierarchy: Lines (Women), Triangles (Soldiers/Artisans), Squares (Gentlemen), Polygons (Nobles), and Circles (Priests)."
-      },
-      "mutants": {
-        "label": "Mutants",
-        "num": "2",
-        "title": "Mutant & Aberration Heatmap (2)",
-        "hint": "Visualizes morphological irregularity: normal citizens are dimmed, while mutants glow from cyan (minor) to radiant crimson (severe aberrations)."
-      },
-      "generations": {
-        "label": "Epochs",
-        "num": "3",
-        "title": "Generational Epochs Lens (3)",
-        "hint": "Demographic depth cohorts: colors creatures by their generation from primordial founders (blue) to ancient dynasties (gold/yellow)."
-      },
-      "dynasty": {
-        "label": "Dynasty",
-        "num": "4",
-        "title": "Clan Dynasty Lens (4)",
-        "hint": "Faction allegiance: highlights creatures by their ancestral clan crest colors, dimming unsworn wanderers to reveal tribal borders."
-      }
+      "close": "Close"
     },
     "controls": {
       "pause": "Pause (Space)",
@@ -623,16 +599,16 @@
     "spherePanelDesc": "The Sphere Panel (⚖ The Sphere) — Adjust carrying capacity, food growth, metabolism, disease, and apply presets.",
     "inspectorDesc": "Creature Inspector — Tap any creature to view its live vitals, personality, tools, skill mastery, and family lineage.",
     "controlsDesc": "Controls: Space pause, S step, R reset seed, F fit camera, +/- zoom, drag to pan.",
-    "lensesTitle": "Map Lenses & Visual Perspectives",
-    "lensesIntro": "The simulation provides 4 specialized map lenses (switchable via the bottom-left toolbar or hotkeys 1–4) that dynamically transform entity rendering to highlight different dimensions of the ecosystem:",
-    "lensClassicName": "1. Classic Caste Lens (Key 1)",
-    "lensClassicDesc": "Follows Edwin A. Abbott's classical Flatland geometric hierarchy. Entities are rendered with distinct social caste colors: Women (pink lines), Soldiers (orange isosceles triangles), Artisans (yellow equilateral triangles), Gentlemen (green squares), Nobles (blue pentagons/hexagons), and Priests (radiant violet circles).",
-    "lensMutantsName": "2. Mutant & Aberration Heatmap (Key 2)",
-    "lensMutantsDesc": "Visualizes morphological irregularity and genetic mutation severity. Pristine regular citizens are dimmed into subtle slate, while irregular mutants glow with radiant chromatic intensity: Cyan (minor divergence <0.12), Purple (noticeable aberration <0.22), and Crimson Rose (severe mutants ≥0.22).",
-    "lensGenerationsName": "3. Generational Epochs Lens (Key 3)",
-    "lensGenerationsDesc": "Maps temporal demographic depth and evolutionary turnover across generational cohorts. Creatures are color-coded by their generational descent: Genesis founders (sky blue, gen ≤2), early expansion pioneers (emerald green, gen <10), established dynasties (lavender, gen <25), ancient elders (amber gold, gen <50), and millennial lineages (bright solar yellow, gen ≥50).",
-    "lensDynastyName": "4. Clan Dynasty & Territory Lens (Key 4)",
-    "lensDynastyDesc": "Highlights geopolitical faction allegiances and territorial dominance. Creatures sworn to a clan shine in their sacred clan crest color with rich saturation, while unaligned wanderers and pariahs fade to neutral dark gray, instantly exposing clan borders and tribal clusters across the world.",
+    "lensesTitle": "Evolutionary Genome Mirror & Visual Phenotypes",
+    "lensesIntro": "Flatland dynamically visualizes each creature's living genome, morphological mutations, and generational lineage across millennia (Gen 0 → 2000+):",
+    "lensEpochsName": "1. Generational Heritage Spectrum (Gen 0 → 2000+)",
+    "lensEpochsDesc": "Evolutionary palette transitions from Primordial Cyan (Gen 0) through Dynastic Jade, Imperial Violet, Sovereign Magenta, and Solar Gold to Transcendent Celestial Starlight (Gen 2000+).",
+    "lensCoronasName": "2. Millennial Coronas & Orbital Halos",
+    "lensCoronasDesc": "Lineages past Gen 50 earn radiant starburst coronas scaling up to 24 coronal rays with orbiting diamond starlight flares at Gen 2000+.",
+    "lensMutantsName": "3. Genomic Mutation & Aberration Heatmap",
+    "lensMutantsDesc": "Morphological irregularity shifts body hues toward radiant violet and crimson, with radical mutants emitting bioluminescent chaotic auras.",
+    "lensTraitsName": "4. Morphological Trait Expression",
+    "lensTraitsDesc": "Razor blades glint on sharpest apex vertices (Dmult), inertia armor thickens kinetic shells (Izz), and crystalline core patinas solidify ancient ancestry.",
     "quickstartTitle": "Quickstart",
     "docsTitle": "Documentation Links",
     "docWiki": "Backend Living Wiki (/wiki) — Full documentation with presets & curl playground",

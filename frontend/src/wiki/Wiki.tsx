@@ -106,66 +106,69 @@ export default function Wiki({ open, onClose }: { open: boolean; onClose: () => 
             </ul>
 
             <h4 style={{ color: '#38bdf8', marginTop: 18, borderBottom: '1px solid #30363d', paddingBottom: 4 }}>
-              🔭 {t('wiki.lensesTitle') || 'Map Lenses & Visual Perspectives'}
+              🧬 {t('wiki.lensesTitle') || 'Evolutionary Genome Mirror & Visual Phenotypes'}
             </h4>
             <p style={{ margin: '6px 0 10px' }}>
               {t('wiki.lensesIntro')}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '10px 0 16px' }}>
               <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '8px 12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: '#38bdf8', marginBottom: 4 }}>
-                  <span style={{ background: '#38bdf8', color: '#0d1117', borderRadius: 4, padding: '1px 6px', fontSize: 11, fontWeight: 700 }}>1</span>
-                  <span>{t('wiki.lensClassicName')}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: '#facc15', marginBottom: 4 }}>
+                  <span style={{ background: '#facc15', color: '#0d1117', borderRadius: 4, padding: '1px 6px', fontSize: 11, fontWeight: 700 }}>1</span>
+                  <span>{t('wiki.lensEpochsName')}</span>
                 </div>
-                <div style={{ fontSize: 12, color: '#8b949e', marginBottom: 6 }}>{t('wiki.lensClassicDesc')}</div>
+                <div style={{ fontSize: 12, color: '#8b949e', marginBottom: 6 }}>{t('wiki.lensEpochsDesc')}</div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11 }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff70a6' }} /> Women</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f97316' }} /> Soldiers</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#facc15' }} /> Artisans</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ade80' }} /> Gentlemen</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#60a5fa' }} /> Nobles</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#a78bfa' }} /> Priests</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#38bdf8' }} /> Gen 0–4 Genesis</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#06b6d4' }} /> Gen 5–24 Pioneer</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} /> Gen 25–74 Dynastic</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#8b5cf6' }} /> Gen 75–199 Imperial</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ec4899' }} /> Gen 200–499 Sovereign</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f97316' }} /> Gen 500–999 Solar</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#facc15' }} /> Gen 1000–1999 Eon</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fef08a' }} /> Gen 2000+ Celestial</span>
+                </div>
+              </div>
+
+              <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '8px 12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: '#f59e0b', marginBottom: 4 }}>
+                  <span style={{ background: '#f59e0b', color: '#0d1117', borderRadius: 4, padding: '1px 6px', fontSize: 11, fontWeight: 700 }}>2</span>
+                  <span>{t('wiki.lensCoronasName')}</span>
+                </div>
+                <div style={{ fontSize: 12, color: '#8b949e', marginBottom: 6 }}>{t('wiki.lensCoronasDesc')}</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fde047' }} /> Gen 50+ Starburst (8 rays)</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fbbf24' }} /> Gen 200+ Sunburst (12 rays)</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b' }} /> Gen 500+ Astral + Halo (16 rays)</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#facc15' }} /> Gen 1000+ Solar Eon (20 rays)</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fef08a' }} /> Gen 2000+ Cosmic Starlight (24 rays + Orbiters)</span>
                 </div>
               </div>
 
               <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '8px 12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: '#f43f5e', marginBottom: 4 }}>
-                  <span style={{ background: '#f43f5e', color: '#0d1117', borderRadius: 4, padding: '1px 6px', fontSize: 11, fontWeight: 700 }}>2</span>
+                  <span style={{ background: '#f43f5e', color: '#0d1117', borderRadius: 4, padding: '1px 6px', fontSize: 11, fontWeight: 700 }}>3</span>
                   <span>{t('wiki.lensMutantsName')}</span>
                 </div>
                 <div style={{ fontSize: 12, color: '#8b949e', marginBottom: 6 }}>{t('wiki.lensMutantsDesc')}</div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11 }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#64748b' }} /> Normal (&lt;0.04)</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#06b6d4' }} /> Minor (0.04-0.12)</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#a855f7' }} /> Aberrant (0.12-0.22)</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f43f5e' }} /> Extreme (&ge;0.22)</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#38bdf8' }} /> Orthodox (&lt;0.04)</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#06b6d4' }} /> Minor Drift (0.04–0.12)</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#a855f7' }} /> Aberrant (0.12–0.22)</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f43f5e' }} /> Extreme Radiation (&ge;0.22)</span>
                 </div>
               </div>
 
               <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '8px 12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: '#10b981', marginBottom: 4 }}>
-                  <span style={{ background: '#10b981', color: '#0d1117', borderRadius: 4, padding: '1px 6px', fontSize: 11, fontWeight: 700 }}>3</span>
-                  <span>{t('wiki.lensGenerationsName')}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: '#38bdf8', marginBottom: 4 }}>
+                  <span style={{ background: '#38bdf8', color: '#0d1117', borderRadius: 4, padding: '1px 6px', fontSize: 11, fontWeight: 700 }}>4</span>
+                  <span>{t('wiki.lensTraitsName')}</span>
                 </div>
-                <div style={{ fontSize: 12, color: '#8b949e', marginBottom: 6 }}>{t('wiki.lensGenerationsDesc')}</div>
+                <div style={{ fontSize: 12, color: '#8b949e', marginBottom: 6 }}>{t('wiki.lensTraitsDesc')}</div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11 }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#38bdf8' }} /> Genesis (&le;2)</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} /> Pioneer (&lt;10)</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#c084fc' }} /> Dynastic (&lt;25)</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b' }} /> Ancient (&lt;50)</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#fef08a' }} /> Millennial (&ge;50)</span>
-                </div>
-              </div>
-
-              <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '8px 12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, color: '#c084fc', marginBottom: 4 }}>
-                  <span style={{ background: '#c084fc', color: '#0d1117', borderRadius: 4, padding: '1px 6px', fontSize: 11, fontWeight: 700 }}>4</span>
-                  <span>{t('wiki.lensDynastyName')}</span>
-                </div>
-                <div style={{ fontSize: 12, color: '#8b949e', marginBottom: 6 }}>{t('wiki.lensDynastyDesc')}</div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11 }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#58a6ff' }} /> Clan Sworn (Crest Color)</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#475569' }} /> Clanless / Neutral</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ffe08a' }} /> Razor Apex Glint (Dmult)</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#64748b' }} /> Inertia Armor (Izz)</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#94a3b8' }} /> Ancestral Crystalline Core</span>
                 </div>
               </div>
             </div>

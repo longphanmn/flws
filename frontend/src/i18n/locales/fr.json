@@ -19,35 +19,11 @@
       "softcap_active": "Soft-cap actif"
     },
     "lenses": {
-      "toolbarLabel": "Lentilles Cartographiques",
-      "hintTitle": "Modes de Lentilles de Carte",
-      "hintDesc": "Basculez les perspectives visuelles (raccourcis 1–4) pour révéler les castes biologiques, mutations génétiques, époques généalogiques et allégeances claniques.",
+      "toolbarLabel": "Miroir Génomique Évolutif",
+      "hintTitle": "Miroir Génomique Évolutif",
+      "hintDesc": "Les créatures reflètent visuellement leur génome vivant, leurs mutations morphologiques et leur lignée générationnelle à travers les millénaires (Gén 0 → 2000+).",
       "hintWikiLink": "Ouvrir dans le Wiki",
-      "close": "Fermer",
-      "classic": {
-        "label": "Classique",
-        "num": "1",
-        "title": "Lentille de Caste Classique (1)",
-        "hint": "Colore les créatures selon la hiérarchie géométrique d'Edwin A. Abbott : Lignes (Femmes), Triangles (Soldats/Artisans), Carrés (Gentilshommes), Polygones (Nobles) et Cercles (Prêtres)."
-      },
-      "mutants": {
-        "label": "Mutants",
-        "num": "2",
-        "title": "Carte Thermique des Mutants & Aberrations (2)",
-        "hint": "Visualise l'irrégularité morphologique : les citoyens normaux s'estompent, tandis que les mutants brillent du cyan (mineur) au cramoisi incandescent (anomalies sévères)."
-      },
-      "generations": {
-        "label": "Époques",
-        "num": "3",
-        "title": "Lentille des Époques Générationnelles (3)",
-        "hint": "Cohortes généalogiques : colore les créatures par génération, des ancêtres primordiaux (bleu) aux dynasties millénaires (or/jaune)."
-      },
-      "dynasty": {
-        "label": "Dynastie",
-        "num": "4",
-        "title": "Lentille Dynastique des Clans (4)",
-        "hint": "Allégeances de faction : met en valeur les créatures aux couleurs de leur blason clanique, estompant les solitaires pour révéler les frontières territoriales."
-      }
+      "close": "Fermer"
     },
     "controls": {
       "pause": "Pause (Espace)",
@@ -623,16 +599,16 @@
     "spherePanelDesc": "Panneau de la Sphère (⚖ La Sphère) — Ajustez la capacité limite, la croissance des récoltes, le métabolisme, les maladies et appliquez des préréglages.",
     "inspectorDesc": "Inspecteur de créature — Cliquez sur une créature pour observer ses constantes vitales, sa personnalité, ses outils, ses compétences et son arbre généalogique.",
     "controlsDesc": "Commandes : Espace (pause), S (pas à pas), R (nouvelle graine), F (ajuster caméra), +/- (zoom), glisser pour déplacer.",
-    "lensesTitle": "Modes de Lentilles Cartographiques",
-    "lensesIntro": "La simulation propose 4 lentilles visuelles spécialisées (activables via la barre inférieure gauche ou les touches 1 à 4), modifiant dynamiquement le rendu des entités pour mettre en lumière différentes dimensions de l'écosystème :",
-    "lensClassicName": "1. Lentille de Caste Classique (Touche 1)",
-    "lensClassicDesc": "Conforme à la hiérarchie géométrique originelle d'Edwin A. Abbott. Les entités portent leurs couleurs de caste sociale : Femmes (lignes roses), Soldats (triangles isocèles orange), Artisans (triangles équilatéraux jaunes), Gentilshommes (carrés verts), Nobles (polygones bleus) et Prêtres (cercles violets incandescents).",
-    "lensMutantsName": "2. Carte Thermique des Mutants & Aberrations (Touche 2)",
-    "lensMutantsDesc": "Révèle l'irrégularité morphologique et les dérives génétiques polar K∈[3,24]. Les citoyens réguliers s'effacent dans un gris discret, tandis que les mutants irradient selon la gravité de leur anomalie : Cyan (déviation légère <0,12), Violet intense (aberration marquée <0,22) et Cramoisi pourpre (mutants sévères ≥0,22).",
-    "lensGenerationsName": "3. Lentille des Époques Générationnelles (Touche 3)",
-    "lensGenerationsDesc": "Cartographie la profondeur temporelle et le renouvellement démographique à travers les générations : Fondateurs primordiaux (bleu azur, gén ≤2), pionniers d'expansion (vert émeraude, gén <10), dynasties établies (lavande, gén <25), aînés vénérables (or ambré, gén <50) et lignées millénaires (jaune solaire vif, gén ≥50).",
-    "lensDynastyName": "4. Lentille Dynastique & Territoriale des Clans (Touche 4)",
-    "lensDynastyDesc": "Met en évidence les allégeances géopolitiques et la domination spatiale. Les créatures inféodées à un clan rayonnent aux couleurs sacrées de leur blason, tandis que les vagabonds isolés deviennent gris neutre, découvrant instantanément les frontières claniques et les tensions territoriales à travers le monde.",
+    "lensesTitle": "Miroir Génomique Évolutif & Phénotypes Visuels",
+    "lensesIntro": "Flatland visualise dynamiquement le génome vivant, les mutations morphologiques et la lignée générationnelle de chaque créature à travers les millénaires (Gén 0 → 2000+) :",
+    "lensEpochsName": "1. Spectre des Époques Générationnelles (Gén 0 → 2000+)",
+    "lensEpochsDesc": "La palette évolutive progresse du Cyan primordial (Gén 0) au Jade dynastique, Violet impérial, Magenta souverain, Or solaire jusqu'à l'Étoile de diamant stellaire céleste (Gén 2000+).",
+    "lensCoronasName": "2. Couronnes Millénaires & Halos Orbitaux",
+    "lensCoronasDesc": "Les lignées au-delà de la Gén 50 arborent des couronnes stellaires éclatantes atteignant 24 rayons avec étoiles de diamant en orbite à la Gén 2000+.",
+    "lensMutantsName": "3. Carte Thermique des Mutations & Aberrations",
+    "lensMutantsDesc": "L'irrégularité morphologique fait virer les teintes corporelles vers le violet et le cramoisi éclatant, les mutants radicaux émettant des auras chaotiques bioluminescentes.",
+    "lensTraitsName": "4. Expression des Phénotypes Morphologiques",
+    "lensTraitsDesc": "Éclats métalliques acérés sur les pointes les plus aiguës (Dmult), blindage d'inertie renforcé (Izz) et patine cristalline interne solidifiant la lignée.",
     "quickstartTitle": "Démarrage rapide",
     "docsTitle": "Liens de documentation",
     "docWiki": "Wiki vivant du backend (/wiki) — Documentation exhaustive avec préréglages & bac à sable curl",

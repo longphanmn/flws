@@ -19,35 +19,11 @@
       "softcap_active": "Kiềm hãm"
     },
     "lenses": {
-      "toolbarLabel": "Thấu kính Bản đồ",
-      "hintTitle": "Các Chế độ Thấu kính Bản đồ",
-      "hintDesc": "Chuyển đổi góc nhìn trực quan (phím tắt 1–4) để quan sát đẳng cấp sinh học, đột biến hình thái, thế hệ dòng dõi và liên minh thị tộc.",
+      "toolbarLabel": "Gương Phản chiếu Bộ gen Tiến hóa",
+      "hintTitle": "Gương Phản chiếu Bộ gen Tiến hóa",
+      "hintDesc": "Sinh vật phản chiếu trực quan bộ gen sống, đột biến hình thái và huyết mạch dòng dõi trải dài qua nhiều thiên niên kỷ (Gen 0 → 2000+).",
       "hintWikiLink": "Xem trong Bách khoa thư",
-      "close": "Đóng",
-      "classic": {
-        "label": "Đẳng cấp",
-        "num": "1",
-        "title": "Thấu kính Đẳng cấp Cổ điển (1)",
-        "hint": "Hiển thị màu sắc theo đẳng cấp hình học Abbott: Phụ nữ (đoạn thẳng hồng), Binh sĩ/Thợ (tam giác cam/vàng), Quý tộc (hình vuông lục/đa giác lam), Giáo sĩ (hình tròn tím)."
-      },
-      "mutants": {
-        "label": "Đột biến",
-        "num": "2",
-        "title": "Bản đồ Nhiệt Đột biến & Dị dạng (2)",
-        "hint": "Quan sát độ lệch hình học: sinh vật chuẩn tắc mờ đi, trong khi các cá thể đột biến phát sáng từ lục lam (nhẹ), tím (rõ rệt) đến đỏ thẫm (dị tật nặng)."
-      },
-      "generations": {
-        "label": "Kỷ nguyên",
-        "num": "3",
-        "title": "Thấu kính Kỷ nguyên Thế hệ (3)",
-        "hint": "Hiển thị độ sâu dòng dõi theo thế hệ: từ tổ phụ khai thiên (lam nhạt), thế hệ định hình (lục ngọc), dòng dõi hưng thịnh (oải hương tím) đến thế hệ cổ xưa (hoàng kim)."
-      },
-      "dynasty": {
-        "label": "Thị tộc",
-        "num": "4",
-        "title": "Thấu kính Vương triều Thị tộc (4)",
-        "hint": "Phân chia theo gia tộc và cờ hiệu thị tộc: làm nổi bật sinh vật theo màu sắc thị tộc, làm mờ kẻ lang thang để hiển thị rõ ranh giới bang hội và lãnh thổ."
-      }
+      "close": "Đóng"
     },
     "controls": {
       "pause": "Tạm dừng (Space)",
@@ -623,16 +599,16 @@
     "spherePanelDesc": "Bảng Khối Cầu (⚖ Khối Cầu) — Tinh chỉnh sức tải môi trường, tốc độ sinh trưởng thực vật, trao đổi chất, mầm bệnh và áp dụng các mẫu cấu hình.",
     "inspectorDesc": "Kính soi cá thể — Chạm vào bất kỳ sinh vật nào để theo dõi sinh hiệu trực tiếp, tính cách, công cụ, kỹ năng và gia phả dòng tộc.",
     "controlsDesc": "Phím tắt: Space (tạm dừng), S (nhích 1 nhịp), R (đặt lại seed), F (vừa khung hình), +/- (thu phóng), kéo chuột để lia bản đồ.",
-    "lensesTitle": "Các Chế độ Thấu kính Bản đồ",
-    "lensesIntro": "Mô phỏng cung cấp 4 chế độ thấu kính trực quan (chuyển đổi qua thanh công cụ góc dưới bên trái hoặc phím số 1–4), tự động đổi màu sắc hiển thị sinh vật để làm nổi bật các khía cạnh sinh thái khác nhau:",
-    "lensClassicName": "1. Thấu kính Đẳng cấp Cổ điển (Phím 1)",
-    "lensClassicDesc": "Tuân thủ trật tự giai tầng hình học nguyên bản của Edwin A. Abbott. Mỗi sinh vật khoác màu sắc xã hội riêng biệt: Nữ giới (đoạn thẳng hồng), Binh sĩ (tam giác cân cam), Thợ thủ công (tam giác đều vàng), Quý tộc (hình vuông lục, đa giác lam) và Giáo sĩ (hình tròn tím phát quang).",
-    "lensMutantsName": "2. Bản đồ Nhiệt Đột biến & Dị dạng (Phím 2)",
-    "lensMutantsDesc": "Trực quan hóa độ bất đối xứng và mức độ đột biến hình thái polar K∈[3,24]. Công dân chuẩn tắc mờ đi thành màu xám tối, trong khi các cá thể đột biến rực sáng theo cấp độ: Lục lam (lệch nhẹ <0.12), Tím thẫm (dị dạng rõ <0.22) và Đỏ thẫm (đột biến nặng ≥0.22).",
-    "lensGenerationsName": "3. Thấu kính Kỷ nguyên Thế hệ (Phím 3)",
-    "lensGenerationsDesc": "Bản đồ hóa độ sâu dòng dõi và nhịp tiến hóa qua các tầng thế hệ: Tổ phụ sáng lập sơ khai (lam da trời, gen ≤2), thế hệ định cư tiên phong (lục bảo, gen <10), thế hệ thịnh vượng (oải hương tím, gen <25), trưởng lão cổ xưa (hổ phách vàng, gen <50) và dòng dõi nghìn năm (hoàng kim rực rỡ, gen ≥50).",
-    "lensDynastyName": "4. Thấu kính Vương triều & Lãnh thổ Thị tộc (Phím 4)",
-    "lensDynastyDesc": "Làm nổi bật liên minh chính trị và lãnh địa thị tộc. Sinh vật quy thuộc thị tộc sẽ rực sáng theo màu cờ hiệu đặc trưng của gia tộc, trong khi các cá thể lang thang không gia tộc mờ đi thành màu xám trung tính, phơi bày ranh giới lãnh thổ và các cụm bang phái trên toàn cõi Flatland.",
+    "lensesTitle": "Gương Phản chiếu Bộ gen Tiến hóa & Kiểu hình Trực quan",
+    "lensesIntro": "Flatland phản chiếu trực quan bộ gen sống, đột biến hình thái và huyết mạch dòng dõi trải dài qua nhiều thiên niên kỷ (Gen 0 → 2000+):",
+    "lensEpochsName": "1. Phổ màu Kỷ nguyên Huyết thống (Gen 0 → 2000+)",
+    "lensEpochsDesc": "Phổ màu tiến hóa chuyển dịch từ Lam trời sơ nguyên (Gen 0) qua Lục bảo vương triều, Tím hoàng gia, Cánh sen uy nghiêm, Vàng kim thái dương đến Ánh sao kim cương tinh tú (Gen 2000+).",
+    "lensCoronasName": "2. Vành nhật hoa & Hào quang Thiên cổ",
+    "lensCoronasDesc": "Các dòng dõi vượt qua Gen 50 nhận được vành nhật hoa tinh tú rực rỡ, mở rộng lên đến 24 tia sáng và 8 ngôi sao kim cương quay quanh quỹ đạo tại Gen 2000+.",
+    "lensMutantsName": "3. Bản đồ Nhiệt Đột biến & Dị dạng Hình thái",
+    "lensMutantsDesc": "Độ bất đối xứng hình thái làm biến đổi sắc thái thân thể sang tím và đỏ thẫm rực rỡ, các cá thể đột biến cực độ phát ra hào quang sinh học hỗn loạn.",
+    "lensTraitsName": "4. Biểu hiện Kiểu hình Đặc tính Vật lý",
+    "lensTraitsDesc": "Ánh kim lóe sáng tại đỉnh nhọn nhất (Dmult), vỏ giáp quán tính hai lớp gia cố chuyển động (Izz) và lõi tinh thể cổ xưa kết tinh huyết thống ngàn đời.",
     "quickstartTitle": "Khởi động nhanh",
     "docsTitle": "Liên kết tài liệu",
     "docWiki": "Living Wiki backend (/wiki) — Toàn bộ tài liệu kèm cấu hình & hướng dẫn curl",

@@ -160,9 +160,9 @@ Legend: [P0] foundational · [P1] core Flatland identity · [P2] flavor/observab
 - [x] [P1] **BK-6 Battle Veteran Wound Scars** — Render dark hash-mark notches and veteran scars along perimeter borders for creatures surviving grievous wounds (`scars > 0`).
 - [x] [P1] **BK-7 CreatureAvatar & Radar Complete Visual Parity** — Mirror all generational rings, genesis sparks, jagged mutant spires, and scars inside `CreatureAvatar.tsx` and the Inspector panel.
 
-### Phase 3: Interactive Map Lenses & Visual Filters [P2] — ✅ Done
-- [x] [P2] **BK-8 Canvas HUD Lens Switcher Toolbar** — Add a quick lens switcher bar / keyboard shortcuts (`1`: Classic, `2`: Mutants, `3`: Generations, `4`: Dynasty).
-- [x] [P2] **BK-9 Mutation & Generational Heatmap Shaders** — Render map in specialized analytic color-modes: Mutation Lens (dim normals, highlight irregulars in cyan $\to$ neon magenta) and Generational Epoch Lens (gradient from cold primordial blue to incandescent ancient gold).
+### Phase 3: Evolutionary Genome Mirror Lens (§BK-8 / §BK-9) [P2] — ✅ Done
+- [x] [P2] **BK-8 Canvas HUD Evolutionary Genome Mirror Toolbar** — Unified single-mode Genome Mirror HUD with interactive popover guide, replacing legacy 4-lens mode toggles.
+- [x] [P2] **BK-9 Evolutionary Genome & Millennial Corona Visualization (Gen 0 → 2000+)** — Render creatures dynamically mirroring their living genome across epochs: Primordial Cyan to Celestial Diamond Starlight (Gen 2000+), 8- to 24-ray starburst coronas with orbiting starlight diamond flares, and mutation aberration heatmap blending.
 
 ---
 
