@@ -58,7 +58,7 @@ Legend: [P0] foundational · [P1] core Flatland identity · [P2] flavor/observab
 
 ---
 
-## §BP Tri-Repository Architectural Split: Backend (flws), Web Frontend (flws-web) & Landing Page (flws-page) — Backlog (0/16) — 2026-09-11
+## §BP Tri-Repository Architectural Split: Backend (flws), Web Frontend (flws-web) & Landing Page (flws-page) — Completed (16/16) — 2026-09-11
 
 > **Context & Architecture**: The Flatland project is decoupling from a monorepo structure into three dedicated, specialized GitHub repositories with independent release cadences, distinct deployment pipelines, and two independent GitHub Pages sites:
 > 1. **`flws`** (`longphanmn/flws`): Pure backend simulation engine (FastAPI, SimEngine OS thread, NumPy SoA buffers, micro-Elman RNN controllers, polar SAT physics, TUI, SQLite persistence, and pytest suites).
@@ -71,65 +71,65 @@ Legend: [P0] foundational · [P1] core Flatland identity · [P2] flavor/observab
 > - **Universal Documentation & Wiki Parity**: All documentation (`README.md`, `docs/god-laws.md`, `docs/world-history-chronicle.md`), living wiki engines (`wiki_i18n.py`, `wiki_content_i18n.py`), and static wiki files (`wiki/index.html`, `wiki-vi.html`, `wiki-fr.html`) must cross-reference all 3 repositories and the 2 GitHub Pages.
 
 ### 1. Docker Compose & Same-System Unified Deployment [P0]
-- [ ] [P0] **BP-1 Multi-Repo Source Contexts in `docker-compose.yml`**
+- [x] [P0] **BP-1 Multi-Repo Source Contexts in `docker-compose.yml`**
   - Parameterize backend and frontend build contexts (`${BACKEND_DIR:-./backend}`, `${FRONTEND_DIR:-./frontend}`) to seamlessly support both monorepo layout and sibling multi-repo checkouts (`../flws-web`).
   - Maintain shared bridge network `flatland` so frontend Nginx container reverse-proxies `/api`, `/ws`, `/healthz`, and `/wiki` directly to `http://backend:8000`.
-- [ ] [P0] **BP-2 Same-System Production Runtime & Reverse Proxy Validation**
+- [x] [P0] **BP-2 Same-System Production Runtime & Reverse Proxy Validation**
   - Verify container port mappings (`${BACKEND_PORT:-8000}:8000` and `${FRONTEND_PORT:-5173}:80`) operate concurrently on a single host without port collisions.
   - Add multi-repo environment configuration examples in `.env.example` documenting `FRONTEND_DIR`, `BACKEND_DIR`, and `LANDING_DIR`.
 
 ### 2. Production Deploy Script (`deploy.sh`) Overhaul for New Code Structure [P0]
-- [ ] [P0] **BP-3 Multi-Repo Auto-Detection & Path Resolution (`deploy.sh`)**
+- [x] [P0] **BP-3 Multi-Repo Auto-Detection & Path Resolution (`deploy.sh`)**
   - Auto-discover frontend source tree: priority check for `$FRONTEND_DIR`, then sibling repository `$LOCAL_DIR/../flws-web`, then in-tree `$LOCAL_DIR/frontend`.
   - Auto-discover landing page source tree: priority check for `$LANDING_DIR`, then sibling repository `$LOCAL_DIR/../flws-page`, then sibling `$LOCAL_DIR/../flws`.
   - Add CLI flags `--frontend-dir <PATH>` and `--landing-dir <PATH>` with explicit validation and terminal status logging.
-- [ ] [P0] **BP-4 Atomic Dual-Service Deployment to Same Remote Host (`deploy.sh`)**
+- [x] [P0] **BP-4 Atomic Dual-Service Deployment to Same Remote Host (`deploy.sh`)**
   - Detect changes independently across git repositories (inspecting commits/status in `$LOCAL_DIR` and `$FRONTEND_DIR`).
   - Rsync backend from `$LOCAL_DIR/backend` and external frontend from `$FRONTEND_DIR` into `$SERVER:~/app/fl/` so both services reside on the same remote system.
   - Build native OpenMP C kernel (`app/_flatland_core.so`), build frontend production bundle, and launch both backend (uvicorn `:8000`) and frontend (vite preview `:5173`) in background while preserving live world snapshots and database.
-- [ ] [P0] **BP-5 Dual Independent GitHub Pages Deployments (`deploy.sh`)**
+- [x] [P0] **BP-5 Dual Independent GitHub Pages Deployments (`deploy.sh`)**
   - Build minified production bundle from `$FRONTEND_DIR` with configurable base path (`VITE_BASE`).
   - Support deploying the web client to the dedicated `flws-web` GitHub Pages repository (`GH_PAGES_WEB_DIR`).
   - Support deploying the landing page and static showcase to the `flws-page` private GitHub Pages repository (`GH_PAGES_DIR`).
 
 ### 3. Backend Extraction & Standalone Repository (`flws`) [P0]
-- [ ] [P0] **BP-6 Pure Backend Engine Boundary Isolation (`flws`)**
+- [x] [P0] **BP-6 Pure Backend Engine Boundary Isolation (`flws`)**
   - Clean repository root of frontend-specific static bundles, keeping pure simulation engine, FastAPI server, TUI client, test suites, Dockerfile, and native C extension.
   - Maintain clean REST API and WebSocket contract (`/api/*`, `/ws`, `/healthz`, `/wiki`).
-- [ ] [P0] **BP-7 Cross-Origin Resource Sharing (CORS) & WSS Security (`flws`)**
+- [x] [P0] **BP-7 Cross-Origin Resource Sharing (CORS) & WSS Security (`flws`)**
   - Configure FastAPI CORS middleware and WebSocket origin validators in `backend/app/main.py` to accept requests from both GitHub Pages domains (`longphanmn.github.io/flws-web` and `longphanmn.github.io/flws-page`).
   - Document SSL/TLS termination and WSS proxying requirements when HTTPS GitHub Pages connects to backend servers.
 
 ### 4. Web Frontend Dedicated Repository (`flws-web`) & GitHub Pages [P0]
-- [ ] [P0] **BP-8 Extract `frontend/` to Independent Repository `flws-web`**
+- [x] [P0] **BP-8 Extract `frontend/` to Independent Repository `flws-web`**
   - Extract entire React 18 + Vite + TypeScript codebase to standalone repository `github.com/longphanmn/flws-web`.
   - Configure standalone `package.json`, `tsconfig.json`, Vite configuration, and local preview scripts.
-- [ ] [P0] **BP-9 Configurable Backend Transport & Runtime Host Override**
+- [x] [P0] **BP-9 Configurable Backend Transport & Runtime Host Override**
   - Wire environment variables `VITE_SIM_API_URL` and `VITE_SIM_WS_URL` with auto-fallback to origin host or `localhost:8000`.
   - Support dynamic host override via URL parameter (`?host=...` or settings modal) so the GitHub Pages client can point to any local or remote Flatland backend instance.
-- [ ] [P0] **BP-10 Independent GitHub Pages CI/CD Workflow (`flws-web`)**
+- [x] [P0] **BP-10 Independent GitHub Pages CI/CD Workflow (`flws-web`)**
   - Author `.github/workflows/deploy-pages.yml` in `flws-web` repository.
   - Configure Vite `base: '/flws-web/'` for GitHub Pages hosting at `https://longphanmn.github.io/flws-web/`.
 
 ### 5. Landing Page Dedicated Private Repository (`flws-page`) & GitHub Pages [P0]
-- [ ] [P0] **BP-11 Extract Landing Page to Private Repository `flws-page`**
+- [x] [P0] **BP-11 Extract Landing Page to Private Repository `flws-page`**
   - Extract landing page (`index.html`, `assets/css/style.css`, `assets/js/app.js`, background creature canvas, audio badge, themes) into private repository `github.com/longphanmn/flws-page`.
   - Maintain lightweight standalone canvas simulation without heavy backend dependencies.
-- [ ] [P0] **BP-12 Private GitHub Pages CI/CD Workflow (`flws-page`)**
+- [x] [P0] **BP-12 Private GitHub Pages CI/CD Workflow (`flws-page`)**
   - Configure GitHub Actions deployment workflow for private repository with GitHub Pages permissions.
   - Support hosting at `https://longphanmn.github.io/flws-page/` or custom landing domain.
-- [ ] [P0] **BP-13 Landing Page CTA Buttons Repointing to `flws-web`**
+- [x] [P0] **BP-13 Landing Page CTA Buttons Repointing to `flws-web`**
   - Update primary CTA buttons ("Launch Simulation", "Live Demo", "Web App") on landing page to navigate to `https://longphanmn.github.io/flws-web/`.
   - Update footer and navigation links to point to the dedicated `flws-web` app and `flws` backend repository.
 
 ### 6. Documentation, Living Wiki & Cross-Repository Synchronization [P0]
-- [ ] [P0] **BP-14 Core Project Documentation Overhaul (`README.md`, `docs/*`)**
+- [x] [P0] **BP-14 Core Project Documentation Overhaul (`README.md`, `docs/*`)**
   - Update `README.md` across all 3 repositories to explain the tri-repository architecture with diagrams and cross-links (`flws`, `flws-web`, `flws-page`).
   - Document same-system co-deployment via `docker-compose` and `deploy.sh`.
-- [ ] [P0] **BP-15 Living Wiki Multi-Language Engine Synchronization (`wiki_i18n.py`, `wiki_content_i18n.py`)**
+- [x] [P0] **BP-15 Living Wiki Multi-Language Engine Synchronization (`wiki_i18n.py`, `wiki_content_i18n.py`)**
   - Update Codebase Map in English (`CODEBASE_MAP_EN`), Vietnamese (`CODEBASE_MAP_VI`), and French (`CODEBASE_MAP_FR`) to reflect the tri-repo architecture.
   - Update wiki headers, footers, and API documentation to reference the 3 repositories and dual GitHub Pages endpoints.
-- [ ] [P0] **BP-16 Static Multi-Language Wiki Pages & OpenAPI Parity (`flws/wiki/` & `demo/wiki/`)**
+- [x] [P0] **BP-16 Static Multi-Language Wiki Pages & OpenAPI Parity (`flws/wiki/` & `demo/wiki/`)**
   - Re-generate and synchronize static wiki pages (`wiki/index.html`, `wiki-vi.html`, `wiki-fr.html`) and Swagger UI docs across repositories to maintain 100% link accuracy.
 
 ---
