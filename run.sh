@@ -44,8 +44,33 @@ if [ "$MODE" = "tui" ]; then
   exec uv run -m tui
 fi
 
+# Load .env if present
+if [ -f "$ROOT/.env" ]; then
+  set -a
+  source "$ROOT/.env"
+  set +a
+elif [ -f "$ROOT/backend/.env" ]; then
+  set -a
+  source "$ROOT/backend/.env"
+  set +a
+fi
+
+# Detect frontend directory (sibling flws-web or in-tree)
+FE_DIR="${FRONTEND_DIR:-}"
+if [ -z "$FE_DIR" ]; then
+  if [ -d "$ROOT/frontend" ]; then
+    FE_DIR="$ROOT/frontend"
+  elif [ -d "$ROOT/../flws-web" ]; then
+    FE_DIR="$(cd "$ROOT/../flws-web" && pwd)"
+  fi
+fi
+
 # ------------------------------------------------------------ default: full stack
-for port in 8000 5173; do
+PORTS_TO_CHECK=(8000)
+if [ -n "$FE_DIR" ] && [ -d "$FE_DIR" ]; then
+  PORTS_TO_CHECK+=(5173)
+fi
+for port in "${PORTS_TO_CHECK[@]}"; do
   if port_busy "$port"; then
     echo "Error: port $port is already in use." >&2
     exit 1
@@ -53,7 +78,6 @@ for port in 8000 5173; do
 done
 
 command -v uv >/dev/null || { echo "Error: uv not found (brew install uv)." >&2; exit 1; }
-command -v npm >/dev/null || { echo "Error: npm not found." >&2; exit 1; }
 
 PIDS=()
 cleanup() {
@@ -77,11 +101,15 @@ uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 \
   --ws-per-message-deflate false &
 PIDS+=("$!")
 
-echo "[frontend] installing deps + starting on :5173 (0.0.0.0)"
-cd "$ROOT/frontend"
-[ -d node_modules ] || npm install --silent
-npm run dev -- --host 0.0.0.0 --port 5173 &
-PIDS+=("$!")
+if [ -n "$FE_DIR" ] && [ -d "$FE_DIR" ] && command -v npm >/dev/null 2>&1; then
+  echo "[frontend] installing deps + starting on :5173 (0.0.0.0) from $FE_DIR"
+  cd "$FE_DIR"
+  [ -d node_modules ] || npm install --silent
+  npm run dev -- --host 0.0.0.0 --port 5173 &
+  PIDS+=("$!")
+else
+  echo "[frontend] Note: frontend directory ($FE_DIR) or npm not found; running backend only."
+fi
 
 LAN_IP="$(ipconfig getifaddr en0 2>/dev/null || hostname -I 2>/dev/null | awk '{print $1}' || echo 'localhost')"
 echo ""
