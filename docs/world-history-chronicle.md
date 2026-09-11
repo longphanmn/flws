@@ -1,5 +1,9 @@
 # Flatland World History, Chronicle & AI Storytelling (§BM)
 
+> **Landing Page**: [https://longphanmn.github.io/flatland/](https://longphanmn.github.io/flatland/)  
+> **Source Code**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)  
+> **Developed by [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · Demo: [world.minhnhan.in](https://world.minhnhan.in))  
+
 Flatland features a comprehensive multi-era historiography, analytics, and AI storytelling suite designed to chronicle the epic rise, evolution, conflicts, and collapse of polygon civilizations.
 
 ---

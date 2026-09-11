@@ -794,6 +794,7 @@ tr:hover td {{ background: rgba(56, 139, 253, 0.05); }}
     </ul>
 
     <div class="external-links">
+      <a href="https://longphanmn.github.io/flatland/" target="_blank" rel="noopener noreferrer" class="ext-chip">🌐 {landing_page} ↗</a>
       <a href="/docs" class="ext-chip">📄 {swagger_docs}</a>
       <a href="/openapi.json" class="ext-chip">🌐 {openapi}</a>
       <a href="/api/wiki?lang={lang}" class="ext-chip">📦 {json_api}</a>
@@ -803,7 +804,7 @@ tr:hover td {{ background: rgba(56, 139, 253, 0.05); }}
       <div style="color:var(--text-muted);font-size:11px">{dev_by}</div>
       <strong style="color:var(--text-primary);font-size:13px">{dev_name}</strong>
       <div style="margin-top:4px;font-size:11px">
-        <a href="mailto:long@minhnhan.in" style="color:var(--accent-blue)">long@minhnhan.in</a> · <a href="https://world.minhnhan.in" style="color:var(--accent-blue)">Demo</a>
+        <a href="mailto:long@minhnhan.in" style="color:var(--accent-blue)">long@minhnhan.in</a> · <a href="https://world.minhnhan.in" style="color:var(--accent-blue)">Demo</a> · <a href="https://longphanmn.github.io/flatland/" target="_blank" rel="noopener noreferrer" style="color:var(--accent-blue)">Landing</a>
       </div>
       <div style="color:var(--text-dim);font-size:10.5px;margin-top:4px">{built_with}</div>
     </div>
@@ -823,6 +824,7 @@ tr:hover td {{ background: rgba(56, 139, 253, 0.05); }}
     </div>
     <div style="display:flex;align-items:center;gap:12px">
       <span style="font-size:12px;color:var(--text-muted)">{sphere_motto}</span>
+      <a href="https://longphanmn.github.io/flatland/" target="_blank" rel="noopener noreferrer" class="hud-pill" style="text-decoration:none;color:var(--accent-blue)">🌐 Landing Page ↗</a>
       <a href="/docs" class="hud-pill" style="text-decoration:none;color:var(--accent-blue)">📄 Swagger /docs</a>
       <a href="/" class="hud-live-link">
         <span style="width:6px;height:6px;border-radius:50%;background:var(--accent-green);box-shadow:0 0 6px var(--accent-green)"></span>
@@ -1052,6 +1054,7 @@ def build_wiki_html(app: Any, lang: str = "en") -> str:
         og_desc=html.escape(ui["og_desc"]),
         wiki_heading=html.escape(ui["wiki_heading"]),
         search_placeholder=html.escape(ui["search_placeholder"]),
+        landing_page=html.escape(ui.get("landing_page", "Landing Page")),
         swagger_docs=html.escape(ui["swagger_docs"]),
         openapi=html.escape(ui["openapi"]),
         json_api=html.escape(ui["json_api"]),

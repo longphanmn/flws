@@ -48,8 +48,8 @@ UI_I18N = {
         "badge_routes": "{routes} routes",
         "badge_presets": "{presets} presets",
         "sphere_motto": "The Sphere sets laws, never a life",
-        "guide_link": "Guide",
-        "footer": "Generated from live code — <code>Config</code> defaults + <code>GodLaws</code> + <code>app.routes</code>. Official living documentation & encyclopedia for Flatland. · Developed by <strong>Long Phan</strong> — <a href=\"mailto:long@minhnhan.in\">long@minhnhan.in</a> · Demo: <a href=\"https://world.minhnhan.in\">world.minhnhan.in</a> · <a href=\"https://github.com/longphanmn/flatland\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a> · Built with OpenCode & Antigravity",
+        "landing_page": "Landing Page",
+        "footer": "Generated from live code — <code>Config</code> defaults + <code>GodLaws</code> + <code>app.routes</code>. Official living documentation & encyclopedia for Flatland. · Developed by <strong>Long Phan</strong> — <a href=\"mailto:long@minhnhan.in\">long@minhnhan.in</a> · Demo: <a href=\"https://world.minhnhan.in\">world.minhnhan.in</a> · Landing: <a href=\"https://longphanmn.github.io/flatland/\" target=\"_blank\" rel=\"noopener noreferrer\">longphanmn.github.io/flatland</a> · <a href=\"https://github.com/longphanmn/flatland\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a> · Built with OpenCode & Antigravity",
         "preset_col_name": "Preset",
         "preset_col_laws": "Key laws",
         "preset_col_apply": "Apply",
@@ -96,8 +96,8 @@ UI_I18N = {
         "badge_routes": "{routes} endpoint",
         "badge_presets": "{presets} mẫu",
         "sphere_motto": "Khối Cầu định đoạt thiên luật, không can thiệp số mệnh",
-        "guide_link": "Cẩm nang",
-        "footer": "Trích xuất trực tiếp từ mã nguồn — <code>Config</code> + <code>GodLaws</code> + <code>app.routes</code>. Bách khoa toàn thư sống chính thức của Flatland. · Phát triển bởi <strong>Long Phan</strong> — <a href=\"mailto:long@minhnhan.in\">long@minhnhan.in</a> · Bản demo: <a href=\"https://world.minhnhan.in\">world.minhnhan.in</a> · <a href=\"https://github.com/longphanmn/flatland\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a> · Xây dựng với OpenCode & Antigravity",
+        "landing_page": "Trang chủ",
+        "footer": "Trích xuất trực tiếp từ mã nguồn — <code>Config</code> + <code>GodLaws</code> + <code>app.routes</code>. Bách khoa toàn thư sống chính thức của Flatland. · Phát triển bởi <strong>Long Phan</strong> — <a href=\"mailto:long@minhnhan.in\">long@minhnhan.in</a> · Bản demo: <a href=\"https://world.minhnhan.in\">world.minhnhan.in</a> · Trang chủ: <a href=\"https://longphanmn.github.io/flatland/\" target=\"_blank\" rel=\"noopener noreferrer\">longphanmn.github.io/flatland</a> · <a href=\"https://github.com/longphanmn/flatland\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a> · Xây dựng với OpenCode & Antigravity",
         "preset_col_name": "Thiết lập mẫu",
         "preset_col_laws": "Quy luật trọng tâm",
         "preset_col_apply": "Áp dụng",
@@ -144,8 +144,8 @@ UI_I18N = {
         "badge_routes": "{routes} routes API",
         "badge_presets": "{presets} préréglages",
         "sphere_motto": "La Sphère dicte les lois, jamais une vie",
-        "guide_link": "Guide",
-        "footer": "Généré à partir du code source en temps réel — Valeurs <code>Config</code> + <code>GodLaws</code> + <code>app.routes</code>. Documentation vivante officielle et encyclopédie de Flatland. · Développé par <strong>Long Phan</strong> — <a href=\"mailto:long@minhnhan.in\">long@minhnhan.in</a> · Démo : <a href=\"https://world.minhnhan.in\">world.minhnhan.in</a> · <a href=\"https://github.com/longphanmn/flatland\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a> · Conçu avec OpenCode & Antigravity",
+        "landing_page": "Page d'accueil",
+        "footer": "Généré à partir du code source en temps réel — Valeurs <code>Config</code> + <code>GodLaws</code> + <code>app.routes</code>. Documentation vivante officielle et encyclopédie de Flatland. · Développé par <strong>Long Phan</strong> — <a href=\"mailto:long@minhnhan.in\">long@minhnhan.in</a> · Démo : <a href=\"https://world.minhnhan.in\">world.minhnhan.in</a> · Accueil : <a href=\"https://longphanmn.github.io/flatland/\" target=\"_blank\" rel=\"noopener noreferrer\">longphanmn.github.io/flatland</a> · <a href=\"https://github.com/longphanmn/flatland\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a> · Conçu avec OpenCode & Antigravity",
         "preset_col_name": "Préréglage",
         "preset_col_laws": "Lois fondamentales",
         "preset_col_apply": "Appliquer",
@@ -207,6 +207,7 @@ WIKI_OVERVIEW_MD_I18N = {
     "en": r"""
 # Flatland Wiki & Encyclopedia
 
+> **Landing Page**: [https://longphanmn.github.io/flatland/](https://longphanmn.github.io/flatland/)  
 > **Source Code**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)  
 > **Developed by [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · Demo: [world.minhnhan.in](https://world.minhnhan.in))  
 > Built and refined using **OpenCode** and **Antigravity** · Developed from the core ideas of **Edwin A. Abbott's *Flatland: A Romance of Many Dimensions*** (1884).
@@ -230,6 +231,7 @@ This project is **developed from the Flatland idea rather than mimicking the boo
     "vi": r"""
 # Bách khoa toàn thư & Wiki Flatland
 
+> **Trang chủ / Landing Page**: [https://longphanmn.github.io/flatland/](https://longphanmn.github.io/flatland/)  
 > **Mã nguồn**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)  
 > **Phát triển bởi [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · Bản demo: [world.minhnhan.in](https://world.minhnhan.in))  
 > Xây dựng và hoàn thiện bằng **OpenCode** & **Antigravity** · Phát triển từ ý niệm nền tảng trong danh tác ***Flatland: A Romance of Many Dimensions*** (1884) của **Edwin A. Abbott**.
@@ -253,6 +255,7 @@ Dự án được **phát triển từ ý niệm cốt lõi của Xứ Phẳng c
     "fr": r"""
 # Encyclopédie & Wiki Flatland
 
+> **Page d'accueil / Landing Page** : [https://longphanmn.github.io/flatland/](https://longphanmn.github.io/flatland/)  
 > **Code Source**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)  
 > **Développé par [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · Démo : [world.minhnhan.in](https://world.minhnhan.in))  
 > Conçu et perfectionné avec **OpenCode** & **Antigravity** · Développé à partir des concepts fondamentaux de l'œuvre classique d'**Edwin A. Abbott, *Flatland: A Romance of Many Dimensions*** (1884).

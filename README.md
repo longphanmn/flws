@@ -9,6 +9,7 @@
 
 **Flatland** is an autonomous 2D artificial life and ecosystem simulation developed from the foundational ideas of **Edwin A. Abbott's 1884 classic *Flatland: A Romance of Many Dimensions***. Rather than rigidly mimicking or reenacting the 19th-century novella, this project takes Flatland's core geometric premises — 2D spatial existence, vertex-based caste hierarchy, atmospheric perception, and higher-dimensional observation — and transforms them into a **living, autonomous evolutionary world that dynamically changes and expands over time**.
 
+> **Landing Page**: [https://longphanmn.github.io/flatland/](https://longphanmn.github.io/flatland/)  
 > **Source Code**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)  
 > **Developed by [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · Demo: [world.minhnhan.in](https://world.minhnhan.in))  
 > Built and refined using **OpenCode** and **Antigravity**.  
@@ -280,6 +281,7 @@ ws/
 ## Authors & Attribution
 
 - **Repository**: [https://github.com/longphanmn/flatland](https://github.com/longphanmn/flatland)
+- **Landing Page**: [https://longphanmn.github.io/flatland/](https://longphanmn.github.io/flatland/)
 - **Developed by**: **[Long Phan](mailto:long@minhnhan.in)**  
   Email: [long@minhnhan.in](mailto:long@minhnhan.in)  
   Demo: [https://world.minhnhan.in](https://world.minhnhan.in)
