@@ -62,10 +62,16 @@ const proxyConfig = {
 
 export default defineConfig(({ mode }) => {
   const rootDir = path.resolve(__dirname, '..')
-  const env = loadEnv(mode, rootDir, ['API_', 'BACKEND_', 'VITE_', 'WS_'])
+  const env = loadEnv(mode, rootDir, ['API_', 'BACKEND_', 'VITE_', 'WS_', 'FRONTEND_', 'DEMO_', 'LANDING_'])
 
   const rawApiUrl = process.env.VITE_DEMO_API_URL || process.env.API_URL || env.API_URL || env.VITE_BACKEND_URL || env.BACKEND_URL || ''
   const cleanApiUrl = rawApiUrl.replace(/\/+$/, '')
+
+  const rawFrontendUrl = process.env.VITE_FRONTEND_URL || process.env.FRONTEND_URL || env.FRONTEND_URL || process.env.VITE_DEMO_URL || process.env.DEMO_URL || env.DEMO_URL || ''
+  const cleanFrontendUrl = rawFrontendUrl.replace(/\/+$/, '')
+
+  const rawLandingUrl = process.env.VITE_LANDING_URL || process.env.LANDING_URL || env.LANDING_URL || ''
+  const cleanLandingUrl = rawLandingUrl.replace(/\/+$/, '')
 
   let rawWsUrl = process.env.VITE_DEMO_WS_URL || process.env.WS_URL || env.WS_URL || env.VITE_WS_URL || ''
   if (!rawWsUrl && cleanApiUrl) {
@@ -81,13 +87,30 @@ export default defineConfig(({ mode }) => {
   return {
     base: process.env.VITE_BASE || './',
     envDir: rootDir,
-    envPrefix: ['VITE_', 'API_', 'BACKEND_', 'WS_'],
+    envPrefix: ['VITE_', 'API_', 'BACKEND_', 'WS_', 'FRONTEND_', 'DEMO_', 'LANDING_'],
     define: {
       '__ENV_API_URL__': JSON.stringify(isDemo && cleanApiUrl ? Buffer.from(cleanApiUrl).toString('base64') : cleanApiUrl),
       '__ENV_WS_URL__': JSON.stringify(isDemo && rawWsUrl ? Buffer.from(rawWsUrl).toString('base64') : rawWsUrl),
+      '__ENV_FRONTEND_URL__': JSON.stringify(cleanFrontendUrl),
+      '__ENV_DEMO_URL__': JSON.stringify(cleanFrontendUrl),
+      '__ENV_LANDING_URL__': JSON.stringify(cleanLandingUrl),
       '__VITE_IS_DEMO__': JSON.stringify(isDemo),
     },
-    plugins: [react(), healthPage()],
+    plugins: [
+      react(),
+      healthPage(),
+      {
+        name: 'flatland-html-transform',
+        transformIndexHtml(html: string) {
+          const frontend = cleanFrontendUrl || './'
+          const landing = cleanLandingUrl || '../'
+          return html
+            .replaceAll('%FRONTEND_URL%', frontend)
+            .replaceAll('%DEMO_URL%', frontend)
+            .replaceAll('%LANDING_URL%', landing)
+        },
+      },
+    ],
   server: {
     host: '0.0.0.0',
     port: 5173,

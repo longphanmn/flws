@@ -376,8 +376,8 @@
   </div>
   <div class="header-right">
     <button id="btn-refresh" class="btn" title="Refresh now">↻ Refresh</button>
-    <a href="./" class="btn btn-primary" title="Open Simulation">Open Simulation ↗</a>
-    <a href="https://longphanmn.github.io/flatland/" class="btn" target="_blank" rel="noopener noreferrer" title="Project Landing Page">Landing ↗</a>
+    <a href="./" class="btn btn-primary" id="link-sim" title="Open Simulation">Open Simulation ↗</a>
+    <a href="../" class="btn" id="link-landing" target="_blank" rel="noopener noreferrer" title="Project Landing Page">Landing ↗</a>
   </div>
 </header>
 
@@ -472,6 +472,19 @@
 <script>
 (function () {
   "use strict";
+
+  try {
+    var p = window.location.pathname;
+    var landingLink = document.getElementById("link-landing");
+    var simLink = document.getElementById("link-sim");
+    if (p.indexOf("/demo/health") !== -1) {
+      if (landingLink) landingLink.href = "../../";
+      if (simLink) simLink.href = "../";
+    } else if (p.indexOf("/health") !== -1) {
+      if (landingLink) landingLink.href = "../";
+      if (simLink) simLink.href = "../demo/";
+    }
+  } catch (e) {}
 
   var isDemo = window.location.hostname.endsWith("github.io") || window.location.pathname.indexOf("/demo") !== -1;
   var DEFAULT_REMOTE_API = "__API_URL_PLACEHOLDER__";

@@ -634,7 +634,7 @@
     "landing": "Accueil",
     "quickstartTitle": "Démarrage rapide",
     "docsTitle": "Liens de documentation",
-    "docLanding": "Page d'accueil officielle (longphanmn.github.io/flatland) — Présentation du projet et galerie",
+    "docLanding": "Page d'accueil officielle — Présentation du projet et galerie",
     "docWiki": "Wiki vivant du backend (/wiki) — Documentation exhaustive avec préréglages & bac à sable curl",
     "docGuide": "Guide vivant (/guide) — Architecture du code et cartographie des systèmes",
     "docApi": "API interactive Swagger (/docs)",

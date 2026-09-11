@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Redirecting — Flatland</title>
+  <style>
+    body {
+      background: #0d1117;
+      color: #c9d1d9;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
+    }
+    a { color: #58a6ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 24px 32px;
+      max-width: 420px;
+    }
+  </style>
+  <script>
+    (function () {
+      var origin = window.location.origin;
+      var pathname = window.location.pathname;
+      var search = window.location.search || '';
+      var hash = window.location.hash || '';
+      var path = pathname.toLowerCase();
+
+      var repoPrefix = '';
+      if (pathname.indexOf('/flatland') === 0) {
+        repoPrefix = '/flatland';
+      }
+
+      var target = origin + repoPrefix + '/';
+
+      if (path.indexOf('god-laws.md') !== -1) {
+        target = origin + repoPrefix + '/demo/docs/god-laws.md' + hash;
+      } else if (path.indexOf('wiki') !== -1) {
+        target = origin + repoPrefix + '/demo/wiki/' + search + hash;
+      } else if (path.indexOf('docs') !== -1) {
+        target = origin + repoPrefix + '/demo/docs/' + search;
+      } else if (path.indexOf('openapi.json') !== -1) {
+        target = origin + repoPrefix + '/demo/openapi.json';
+      } else if (path.indexOf('health') !== -1) {
+        target = origin + repoPrefix + '/demo/health/' + search;
+      } else if (path.indexOf('demo') !== -1) {
+        target = origin + repoPrefix + '/demo/' + search + hash;
+      }
+
+      window.location.replace(target);
+    })();
+  </script>
+</head>
+<body>
+  <div class="card">
+    <h2>Redirecting…</h2>
+    <p>Navigating to Flatland resource.</p>
+    <p><a href="./" id="home-link">Return to Flatland Home</a></p>
+    <script>try{document.getElementById('home-link').href = (window.location.pathname.indexOf('/flatland') === 0 ? '/flatland/' : '/');}catch(e){}</script>
+  </div>
+</body>
+</html>

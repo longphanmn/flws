@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useI18n } from '../i18n'
-import { apiUrl } from '../config'
+import { apiUrl, getFrontendUrl, getLandingUrl } from '../config'
 
 type WikiData = {
   laws: string[]
@@ -73,7 +73,7 @@ export default function Wiki({ open, onClose }: { open: boolean; onClose: () => 
             onChange={e => setQ(e.target.value)}
             style={{ flex: 1, minWidth: 160, background: '#161b22', color: '#e6edf3', border: '1px solid #30363d', borderRadius: 6, padding: '6px 8px' }}
           />
-          <a href="https://longphanmn.github.io/flatland/" target="_blank" rel="noreferrer" className="chip" style={{ border: '1px solid #30363d', borderRadius: 6, padding: '4px 8px', background: '#161b22', color: '#58a6ff', textDecoration: 'none' }}>🌐 {t('wiki.landing') || 'Landing'} ↗</a>
+          <a href={getLandingUrl()} target="_blank" rel="noreferrer" className="chip" style={{ border: '1px solid #30363d', borderRadius: 6, padding: '4px 8px', background: '#161b22', color: '#58a6ff', textDecoration: 'none' }}>🌐 {t('wiki.landing') || 'Landing'} ↗</a>
           <a href={apiUrl(`/wiki?lang=${activeLang}`)} target="_blank" rel="noreferrer" className="chip" style={{ border: '1px solid #30363d', borderRadius: 6, padding: '4px 8px', background: '#161b22', color: '#58a6ff', textDecoration: 'none' }}>📖 /wiki ↗</a>
           <a href={apiUrl('/docs')} target="_blank" rel="noreferrer" className="chip" style={{ border: '1px solid #30363d', borderRadius: 6, padding: '4px 8px', background: '#161b22', color: '#58a6ff', textDecoration: 'none' }}>⚡ /docs ↗</a>
           <a href={apiUrl('/health')} target="_blank" rel="noreferrer" className="chip" style={{ border: '1px solid #30363d', borderRadius: 6, padding: '4px 8px', background: '#161b22', color: '#58a6ff', textDecoration: 'none' }}>🏥 /health ↗</a>
@@ -116,7 +116,7 @@ export default function Wiki({ open, onClose }: { open: boolean; onClose: () => 
 
             <h4 style={{ color: '#e6edf3' }}>{t('wiki.docsTitle')}</h4>
             <ul>
-              <li><a href="https://longphanmn.github.io/flatland/" target="_blank" rel="noreferrer">🌐 {t('wiki.docLanding') || 'Landing Page & Project Overview (longphanmn.github.io/flatland)'} ↗</a></li>
+              <li><a href={getLandingUrl()} target="_blank" rel="noreferrer">🌐 {t('wiki.docLanding') || 'Landing Page & Project Overview'} ↗</a></li>
               <li><a href={apiUrl(`/wiki?lang=${activeLang}`)} target="_blank" rel="noreferrer">📖 {t('wiki.docWiki')} ↗</a></li>
               <li><a href={apiUrl('/docs')} target="_blank" rel="noreferrer">⚡ {t('wiki.docApi')} ↗</a> + <a href={apiUrl('/openapi.json')} target="_blank" rel="noreferrer">/openapi.json ↗</a></li>
               <li><a href={apiUrl('/docs/god-laws.md')} target="_blank" rel="noreferrer">📜 {t('wiki.docLaws')} ↗</a></li>
@@ -282,7 +282,7 @@ curl ${location.origin}/api/history?limit=5 | jq`}</code></pre>
 
         <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid #21262d', fontSize: 11, color: '#8b949e', lineHeight: 1.5 }}>
           {t('wiki.footerLive', { laws: data?.laws.length ?? 0, routes: data?.routes.length ?? 0, presets: Object.keys(data?.presets ?? {}).length })} · <a href={apiUrl('/wiki')} target="_blank" rel="noreferrer">/wiki HTML ↗</a> · <a href={apiUrl('/api/wiki')} target="_blank" rel="noreferrer">/api/wiki JSON ↗</a> · <a href={apiUrl('/health')} target="_blank" rel="noreferrer">/health ↗</a>
-          <br />{t('wiki.developedBy')} <strong>Long Phan</strong> — <a href="mailto:long@minhnhan.in">long@minhnhan.in</a> · Demo: <a href="https://longphanmn.github.io/flatland/demo/" target="_blank" rel="noopener noreferrer">longphanmn.github.io/flatland/demo ↗</a> · Landing: <a href="https://longphanmn.github.io/flatland/" target="_blank" rel="noopener noreferrer">longphanmn.github.io/flatland ↗</a>
+          <br />{t('wiki.developedBy')} <strong>Long Phan</strong> — <a href="mailto:long@minhnhan.in">long@minhnhan.in</a> · Demo: <a href={getFrontendUrl()} target="_blank" rel="noopener noreferrer">Demo ↗</a> · Landing: <a href={getLandingUrl()} target="_blank" rel="noopener noreferrer">Landing ↗</a>
           <br /><span style={{ opacity: 0.85 }}>{t('wiki.inspiration')}</span>
         </div>
       </div>

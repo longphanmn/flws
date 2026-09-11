@@ -73,34 +73,75 @@ export function getWebSocketUrl(): string {
   return `${proto}://${host}/ws`
 }
 
+const envFrontendUrl = (typeof __ENV_FRONTEND_URL__ !== 'undefined' && __ENV_FRONTEND_URL__) ||
+  ((import.meta as any).env?.VITE_FRONTEND_URL as string) ||
+  ((import.meta as any).env?.FRONTEND_URL as string) ||
+  (typeof __ENV_DEMO_URL__ !== 'undefined' && __ENV_DEMO_URL__) ||
+  ((import.meta as any).env?.VITE_DEMO_URL as string) ||
+  ((import.meta as any).env?.DEMO_URL as string) ||
+  ''
+
+const envLandingUrl = (typeof __ENV_LANDING_URL__ !== 'undefined' && __ENV_LANDING_URL__) ||
+  ((import.meta as any).env?.VITE_LANDING_URL as string) ||
+  ((import.meta as any).env?.LANDING_URL as string) ||
+  ''
+
+export function getFrontendUrl(): string {
+  if (envFrontendUrl) return envFrontendUrl.replace(/\/+$/, '') + '/'
+  if (typeof window !== 'undefined') {
+    const loc = window.location
+    if (loc.pathname.includes('/demo')) {
+      const demo = loc.pathname.replace(/\/demo(\/.*)?$/, '/demo/')
+      return `${loc.origin}${demo}`
+    }
+    return `${loc.origin}/`
+  }
+  return ''
+}
+
+export function getDemoUrl(): string {
+  return getFrontendUrl()
+}
+
+export function getLandingUrl(): string {
+  if (envLandingUrl) return envLandingUrl.replace(/\/+$/, '') + '/'
+  if (typeof window !== 'undefined') {
+    const loc = window.location
+    if (loc.pathname.includes('/demo')) {
+      const parent = loc.pathname.replace(/\/demo(\/.*)?$/, '') || '/'
+      return `${loc.origin}${parent.endsWith('/') ? parent : parent + '/'}`
+    }
+    return `${loc.origin}/`
+  }
+  return ''
+}
+
 /**
  * Resolves user-facing documentation / page links.
- * When running in demo mode (e.g. GitHub Pages), resolves to local demo paths
- * so the backend domain is completely hidden from demo visitors.
+ * When running in demo mode, resolves to relative demo paths
+ * so the backend domain is completely hidden and links depend on the host from .env.
  */
 export function docUrl(path: string): string {
   if (isDemoEnvironment) {
-    const isGh = typeof window !== 'undefined' && window.location.hostname.endsWith('github.io')
-    const base = isGh ? '/flatland/demo' : '.'
     if (path.startsWith('/wiki')) {
       const rest = path.slice('/wiki'.length)
-      return `${base}/wiki/${rest}`
+      return `./wiki/${rest}`
     }
     if (path.startsWith('/docs')) {
       const rest = path.slice('/docs'.length)
-      return `${base}/docs/${rest}`
+      return `./docs/${rest}`
     }
     if (path.startsWith('/health')) {
       const rest = path.slice('/health'.length)
-      return `${base}/health/${rest}`
+      return `./health/${rest}`
     }
     if (path.startsWith('/openapi.json')) {
-      return `${base}/openapi.json`
+      return './openapi.json'
     }
     if (path.startsWith('/api/wiki')) {
-      return `${base}/wiki/`
+      return './wiki/'
     }
-    return `${base}/${path.replace(/^\/+/, '')}`
+    return `./${path.replace(/^\/+/, '')}`
   }
   return path.startsWith('/') ? path : `/${path}`
 }

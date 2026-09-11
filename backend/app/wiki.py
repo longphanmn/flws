@@ -8,6 +8,7 @@ Styled with Flatland's native dark theme.
 from __future__ import annotations
 
 import html
+import os
 import re
 from typing import Any
 
@@ -795,7 +796,7 @@ tr:hover td {{ background: rgba(56, 139, 253, 0.05); }}
     </ul>
 
     <div class="external-links">
-      <a href="https://longphanmn.github.io/flatland/" target="_blank" rel="noopener noreferrer" class="ext-chip">🌐 {landing_page} ↗</a>
+      <a href="{landing_url}" target="_blank" rel="noopener noreferrer" class="ext-chip">🌐 {landing_page} ↗</a>
       <a href="/docs" class="ext-chip">📄 {swagger_docs}</a>
       <a href="/openapi.json" class="ext-chip">🌐 {openapi}</a>
       <a href="/api/wiki?lang={lang}" class="ext-chip">📦 {json_api}</a>
@@ -805,7 +806,7 @@ tr:hover td {{ background: rgba(56, 139, 253, 0.05); }}
       <div style="color:var(--text-muted);font-size:11px">{dev_by}</div>
       <strong style="color:var(--text-primary);font-size:13px">{dev_name}</strong>
       <div style="margin-top:4px;font-size:11px">
-        <a href="mailto:long@minhnhan.in" style="color:var(--accent-blue)">long@minhnhan.in</a> · <a href="https://longphanmn.github.io/flatland/demo/" target="_blank" rel="noopener noreferrer" style="color:var(--accent-blue)">Demo</a> · <a href="https://longphanmn.github.io/flatland/" target="_blank" rel="noopener noreferrer" style="color:var(--accent-blue)">Landing</a>
+        <a href="mailto:long@minhnhan.in" style="color:var(--accent-blue)">long@minhnhan.in</a> · <a href="{frontend_url}" target="_blank" rel="noopener noreferrer" style="color:var(--accent-blue)">Demo</a> · <a href="{landing_url}" target="_blank" rel="noopener noreferrer" style="color:var(--accent-blue)">Landing</a>
       </div>
       <div style="color:var(--text-dim);font-size:10.5px;margin-top:4px">{built_with}</div>
     </div>
@@ -825,7 +826,7 @@ tr:hover td {{ background: rgba(56, 139, 253, 0.05); }}
     </div>
     <div style="display:flex;align-items:center;gap:12px">
       <span style="font-size:12px;color:var(--text-muted)">{sphere_motto}</span>
-      <a href="https://longphanmn.github.io/flatland/" target="_blank" rel="noopener noreferrer" class="hud-pill" style="text-decoration:none;color:var(--accent-blue)">🌐 Landing Page ↗</a>
+      <a href="{landing_url}" target="_blank" rel="noopener noreferrer" class="hud-pill" style="text-decoration:none;color:var(--accent-blue)">🌐 Landing Page ↗</a>
       <a href="/docs" class="hud-pill" style="text-decoration:none;color:var(--accent-blue)">📄 Swagger /docs</a>
       <a href="/" class="hud-live-link">
         <span style="width:6px;height:6px;border-radius:50%;background:var(--accent-green);box-shadow:0 0 6px var(--accent-green)"></span>
@@ -967,7 +968,21 @@ def build_wiki_html(app: Any, lang: str = "en") -> str:
     laws_html = _md_to_html(ui["laws_title"]) + _god_laws_table(lang=lang)
     presets_html = _md_to_html(ui["presets_title"]) + _presets_table(lang=lang)
 
-    overview_md = WIKI_OVERVIEW_MD_I18N.get(lang, WIKI_OVERVIEW_MD_I18N["en"])
+    landing_url = (os.getenv("LANDING_URL") or "/").rstrip("/")
+    if not landing_url:
+        landing_url = "/"
+    landing_url_slash = landing_url if landing_url.endswith("/") else landing_url + "/"
+
+    frontend_url = (os.getenv("FRONTEND_URL") or os.getenv("DEMO_URL") or "/demo").rstrip("/")
+    if not frontend_url:
+        frontend_url = "/demo"
+    frontend_url_slash = frontend_url if frontend_url.endswith("/") else frontend_url + "/"
+
+    overview_md = WIKI_OVERVIEW_MD_I18N.get(lang, WIKI_OVERVIEW_MD_I18N["en"]).replace(
+        "{landing_url}", landing_url_slash
+    ).replace(
+        "{frontend_url}", frontend_url_slash
+    )
     genome_mirror_md = GENOME_MIRROR_MD_I18N.get(lang, GENOME_MIRROR_MD_I18N["en"])
     book_comp_md = FLATLAND_BOOK_COMPARISON_MD_I18N.get(lang, FLATLAND_BOOK_COMPARISON_MD_I18N["en"])
     sustainability_md = SUSTAINABILITY_MD_I18N.get(lang, SUSTAINABILITY_MD_I18N["en"])
@@ -1055,6 +1070,8 @@ def build_wiki_html(app: Any, lang: str = "en") -> str:
         og_desc=html.escape(ui["og_desc"]),
         wiki_heading=html.escape(ui["wiki_heading"]),
         search_placeholder=html.escape(ui["search_placeholder"]),
+        landing_url=landing_url_slash,
+        frontend_url=frontend_url_slash,
         landing_page=html.escape(ui.get("landing_page", "Landing Page")),
         swagger_docs=html.escape(ui["swagger_docs"]),
         openapi=html.escape(ui["openapi"]),
@@ -1068,7 +1085,7 @@ def build_wiki_html(app: Any, lang: str = "en") -> str:
         badge_routes=html.escape(ui["badge_routes"].format(routes=len(app.routes))),
         badge_presets=html.escape(ui["badge_presets"].format(presets=len(PRESETS))),
         sphere_motto=html.escape(ui["sphere_motto"]),
-        footer=ui["footer"],
+        footer=ui["footer"].replace("{landing_url}", landing_url_slash).replace("{frontend_url}", frontend_url_slash),
         btn_active_en="active" if lang == "en" else "",
         btn_active_vi="active" if lang == "vi" else "",
         btn_active_fr="active" if lang == "fr" else "",
@@ -1081,9 +1098,23 @@ def get_wiki_json(app: Any, lang: str = "en") -> dict:
     from .main import PRESETS, detect_current_preset
     lang = normalize_lang(lang)
     hints = LAW_HINTS_I18N.get(lang, LAW_HINTS_I18N["en"])
+    landing_url = (os.getenv("LANDING_URL") or "/").rstrip("/")
+    if not landing_url:
+        landing_url = "/"
+    landing_url_slash = landing_url if landing_url.endswith("/") else landing_url + "/"
+
+    frontend_url = (os.getenv("FRONTEND_URL") or os.getenv("DEMO_URL") or "/demo").rstrip("/")
+    if not frontend_url:
+        frontend_url = "/demo"
+    frontend_url_slash = frontend_url if frontend_url.endswith("/") else frontend_url + "/"
+
     return {
         "lang": lang,
-        "overview": WIKI_OVERVIEW_MD_I18N.get(lang, WIKI_OVERVIEW_MD_I18N["en"]),
+        "overview": WIKI_OVERVIEW_MD_I18N.get(lang, WIKI_OVERVIEW_MD_I18N["en"]).replace(
+            "{landing_url}", landing_url_slash
+        ).replace(
+            "{frontend_url}", frontend_url_slash
+        ),
         "genome_mirror": GENOME_MIRROR_MD_I18N.get(lang, GENOME_MIRROR_MD_I18N["en"]),
         "book_comparison": FLATLAND_BOOK_COMPARISON_MD_I18N.get(lang, FLATLAND_BOOK_COMPARISON_MD_I18N["en"]),
         "sustainability": SUSTAINABILITY_MD_I18N.get(lang, SUSTAINABILITY_MD_I18N["en"]),

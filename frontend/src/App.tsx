@@ -15,7 +15,7 @@ import { WorldSocket, type ConnStatus } from './websocket'
 import type { HelloMessage, HistoryEvent, LensMode, StateMessage, WorldSummary } from './types'
 import { useI18n } from './i18n'
 import ConfirmModal from './components/ConfirmModal'
-import { apiUrl, getWebSocketUrl } from './config'
+import { apiUrl, getLandingUrl, getWebSocketUrl } from './config'
 
 
 const SPEEDS = [1, 5, 10, 20, 40]
@@ -1143,7 +1143,7 @@ export default function App() {
       )}
       {!isMobile && (
         <div className="version-bar" title={versionInfo ? `v${versionInfo.version} · ${versionInfo.revision} · Developed by Long Phan <long@minhnhan.in> · Built with OpenCode & Antigravity` : 'Flatland · Developed by Long Phan <long@minhnhan.in>'}>
-          {versionInfo ? `v${versionInfo.version} · ${versionInfo.revision}` : 'v0.1.6'} · <span style={{ opacity: 0.85 }}>Developed by Long Phan · <a href="mailto:long@minhnhan.in" style={{ color: 'inherit', textDecoration: 'underline' }}>long@minhnhan.in</a> · <a href="https://longphanmn.github.io/flatland/" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Landing</a> · <a href={apiUrl('/wiki')} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Wiki</a> · <a href={apiUrl('/docs')} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Docs</a> · <a href={apiUrl('/health')} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Health</a></span>
+          {versionInfo ? `v${versionInfo.version} · ${versionInfo.revision}` : 'v0.1.6'} · <span style={{ opacity: 0.85 }}>Developed by Long Phan · <a href="mailto:long@minhnhan.in" style={{ color: 'inherit', textDecoration: 'underline' }}>long@minhnhan.in</a> · <a href={getLandingUrl()} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Landing</a> · <a href={apiUrl('/wiki')} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Wiki</a> · <a href={apiUrl('/docs')} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Docs</a> · <a href={apiUrl('/health')} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>Health</a></span>
         </div>
       )}
       <AuthModal />
