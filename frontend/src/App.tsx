@@ -15,6 +15,7 @@ import { WorldSocket, type ConnStatus } from './websocket'
 import type { HelloMessage, HistoryEvent, LensMode, StateMessage, WorldSummary } from './types'
 import { useI18n } from './i18n'
 import ConfirmModal from './components/ConfirmModal'
+import { getWebSocketUrl } from './config'
 
 const SPEEDS = [1, 5, 10, 20, 40]
 const HISTORY_PAGE = 200
@@ -281,8 +282,7 @@ export default function App() {
   }, [refreshWorlds])
 
   useEffect(() => {
-    const proto = location.protocol === 'https:' ? 'wss' : 'ws'
-    const sock = new WorldSocket(`${proto}://${location.host}/ws`, {
+    const sock = new WorldSocket(getWebSocketUrl(), {
       onStatus: setStatus,
       onAuthError: () => {
         // the stored passkey stopped working (db reset, wrong world) — re-ask next time

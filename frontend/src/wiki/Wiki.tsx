@@ -279,7 +279,7 @@ curl ${location.origin}/api/history?limit=5 | jq`}</code></pre>
 
         <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid #21262d', fontSize: 11, color: '#8b949e', lineHeight: 1.5 }}>
           {t('wiki.footerLive', { laws: data?.laws.length ?? 0, routes: data?.routes.length ?? 0, presets: Object.keys(data?.presets ?? {}).length })} · <a href="/wiki">/wiki HTML</a> · <a href="/api/wiki">/api/wiki JSON</a>
-          <br />{t('wiki.developedBy')} <strong>Long Phan</strong> — <a href="mailto:long@minhnhan.in">long@minhnhan.in</a> · Demo: <a href="https://world.minhnhan.in">world.minhnhan.in</a> · Landing: <a href="https://longphanmn.github.io/flatland/" target="_blank" rel="noopener noreferrer">longphanmn.github.io/flatland ↗</a>
+          <br />{t('wiki.developedBy')} <strong>Long Phan</strong> — <a href="mailto:long@minhnhan.in">long@minhnhan.in</a> · Demo: <a href="https://longphanmn.github.io/flatland/demo/" target="_blank" rel="noopener noreferrer">longphanmn.github.io/flatland/demo ↗</a> · Landing: <a href="https://longphanmn.github.io/flatland/" target="_blank" rel="noopener noreferrer">longphanmn.github.io/flatland ↗</a>
           <br /><span style={{ opacity: 0.85 }}>{t('wiki.inspiration')}</span>
         </div>
       </div>

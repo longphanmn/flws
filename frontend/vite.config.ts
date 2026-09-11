@@ -61,6 +61,7 @@ const proxyConfig = {
 }
 
 export default defineConfig({
+  base: process.env.VITE_BASE || './',
   plugins: [react(), healthPage()],
   server: {
     host: '0.0.0.0',
@@ -76,5 +77,18 @@ export default defineConfig({
     allowedHosts: true,
     cors: true,
     proxy: proxyConfig,
+  },
+  build: {
+    minify: 'esbuild',
+    cssMinify: true,
+    sourcemap: false,
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+        },
+      },
+    },
   },
 })

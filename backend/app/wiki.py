@@ -805,7 +805,7 @@ tr:hover td {{ background: rgba(56, 139, 253, 0.05); }}
       <div style="color:var(--text-muted);font-size:11px">{dev_by}</div>
       <strong style="color:var(--text-primary);font-size:13px">{dev_name}</strong>
       <div style="margin-top:4px;font-size:11px">
-        <a href="mailto:long@minhnhan.in" style="color:var(--accent-blue)">long@minhnhan.in</a> · <a href="https://world.minhnhan.in" style="color:var(--accent-blue)">Demo</a> · <a href="https://longphanmn.github.io/flatland/" target="_blank" rel="noopener noreferrer" style="color:var(--accent-blue)">Landing</a>
+        <a href="mailto:long@minhnhan.in" style="color:var(--accent-blue)">long@minhnhan.in</a> · <a href="https://longphanmn.github.io/flatland/demo/" target="_blank" rel="noopener noreferrer" style="color:var(--accent-blue)">Demo</a> · <a href="https://longphanmn.github.io/flatland/" target="_blank" rel="noopener noreferrer" style="color:var(--accent-blue)">Landing</a>
       </div>
       <div style="color:var(--text-dim);font-size:10.5px;margin-top:4px">{built_with}</div>
     </div>
