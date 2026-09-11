@@ -26,7 +26,7 @@ export default function CanvasRenderer({
   selectedRef,
   selectedClanRef,
   onTapCreature,
-  lensMode = 'classic',
+  lensMode = 'mutants',
 }: Props) {
 
   const canvasRef = useRef<HTMLCanvasElement>(null)

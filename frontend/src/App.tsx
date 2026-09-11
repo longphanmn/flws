@@ -35,31 +35,7 @@ const newestFirst = (a: HistoryEvent, b: HistoryEvent) =>
 /** "2026-08-22T06:47:01+00:00" → "06:47" for compact run labels. */
 const fmtStart = (iso: string) => iso.slice(11, 16) || iso
 
-const LENS_COOKIE_KEY = 'fl_lens_mode'
-const VALID_LENS_MODES: readonly LensMode[] = ['classic', 'mutants', 'generations', 'dynasty'] as const
 
-function getLensCookie(): LensMode {
-  if (typeof document === 'undefined') return 'classic'
-  try {
-    const match = document.cookie.match(new RegExp('(?:^|; )' + LENS_COOKIE_KEY + '=([^;]*)'))
-    if (match) {
-      const val = decodeURIComponent(match[1]) as LensMode
-      if (VALID_LENS_MODES.includes(val)) return val
-    }
-    const local = localStorage.getItem(LENS_COOKIE_KEY) as LensMode
-    if (local && VALID_LENS_MODES.includes(local)) return local
-  } catch {}
-  return 'classic'
-}
-
-function setLensCookie(mode: LensMode): void {
-  if (typeof document === 'undefined') return
-  try {
-    const maxAge = 365 * 24 * 60 * 60
-    document.cookie = `${LENS_COOKIE_KEY}=${encodeURIComponent(mode)}; path=/; max-age=${maxAge}; SameSite=Lax`
-    localStorage.setItem(LENS_COOKIE_KEY, mode)
-  } catch {}
-}
 
 export default function App() {
   const { t, lang, setLang } = useI18n()
@@ -135,10 +111,7 @@ export default function App() {
   const [selectedRunId, setSelectedRunId] = useState<number | null>(null)
   const [loadingOlder, setLoadingOlder] = useState(false)
   const [noMoreHistory, setNoMoreHistory] = useState(false)
-  const [lensMode, setLensMode] = useState<LensMode>(() => getLensCookie())
-  useEffect(() => {
-    setLensCookie(lensMode)
-  }, [lensMode])
+  const lensMode: LensMode = 'mutants'
   const [lensHintOpen, setLensHintOpen] = useState(false)
 
   /** §Y clan display name from live state, falling back to bare #id. */
@@ -490,22 +463,6 @@ export default function App() {
         case 'KeyF':
           window.dispatchEvent(new Event('flatworld-fit'))
           break
-        case 'Digit1':
-        case 'Numpad1':
-          setLensMode('classic')
-          break
-        case 'Digit2':
-        case 'Numpad2':
-          setLensMode('mutants')
-          break
-        case 'Digit3':
-        case 'Numpad3':
-          setLensMode('generations')
-          break
-        case 'Digit4':
-        case 'Numpad4':
-          setLensMode('dynasty')
-          break
         case 'Equal':
         case 'NumpadAdd':
           window.dispatchEvent(new CustomEvent('flatworld-zoom', { detail: { factor: 1.25 } }))
@@ -841,52 +798,29 @@ export default function App() {
             alignItems: 'center',
           }}
         >
-          <button
-            type="button"
-            className={`lens-btn ${lensMode === 'classic' ? 'active' : ''}`}
-            onClick={() => setLensMode('classic')}
-            title={`${t('app.lenses.classic.title') || 'Classic Caste Lens (1)'} — ${t('app.lenses.classic.hint') || ''}`}
-            aria-label={t('app.lenses.classic.title') || 'Classic Caste Lens (1)'}
+          <div
+            className="lens-btn active"
+            style={{
+              cursor: 'default',
+              padding: '2px 8px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              background: 'rgba(56, 189, 248, 0.15)',
+              borderColor: 'rgba(56, 189, 248, 0.45)',
+              color: '#38bdf8',
+            }}
+            title="Evolutionary Genome Mirror (Gen 0 → 2000+)"
           >
-            <span className="lens-num">1</span>
-            <span className="lens-label">{t('app.lenses.classic.label') || 'Classic'}</span>
-          </button>
-          <button
-            type="button"
-            className={`lens-btn ${lensMode === 'mutants' ? 'active' : ''}`}
-            onClick={() => setLensMode('mutants')}
-            title={`${t('app.lenses.mutants.title') || 'Mutant & Aberration Heatmap (2)'} — ${t('app.lenses.mutants.hint') || ''}`}
-            aria-label={t('app.lenses.mutants.title') || 'Mutant & Aberration Heatmap (2)'}
-          >
-            <span className="lens-num">2</span>
-            <span className="lens-label">{t('app.lenses.mutants.label') || 'Mutants'}</span>
-          </button>
-          <button
-            type="button"
-            className={`lens-btn ${lensMode === 'generations' ? 'active' : ''}`}
-            onClick={() => setLensMode('generations')}
-            title={`${t('app.lenses.generations.title') || 'Generational Epochs Lens (3)'} — ${t('app.lenses.generations.hint') || ''}`}
-            aria-label={t('app.lenses.generations.title') || 'Generational Epochs Lens (3)'}
-          >
-            <span className="lens-num">3</span>
-            <span className="lens-label">{t('app.lenses.generations.label') || 'Epochs'}</span>
-          </button>
-          <button
-            type="button"
-            className={`lens-btn ${lensMode === 'dynasty' ? 'active' : ''}`}
-            onClick={() => setLensMode('dynasty')}
-            title={`${t('app.lenses.dynasty.title') || 'Clan Dynasty Lens (4)'} — ${t('app.lenses.dynasty.hint') || ''}`}
-            aria-label={t('app.lenses.dynasty.title') || 'Clan Dynasty Lens (4)'}
-          >
-            <span className="lens-num">4</span>
-            <span className="lens-label">{t('app.lenses.dynasty.label') || 'Dynasty'}</span>
-          </button>
+            <span>🧬</span>
+            <span style={{ fontWeight: 600, fontSize: '10.5px' }}>Genome Mirror</span>
+          </div>
           <button
             type="button"
             className={`lens-btn lens-hint-btn ${lensHintOpen ? 'active' : ''}`}
             onClick={() => setLensHintOpen(o => !o)}
-            title={t('app.lenses.hintTitle') || 'Map Lens Modes'}
-            aria-label={t('app.lenses.hintTitle') || 'Map Lens Modes'}
+            title="Evolutionary Genome & Corona Legend"
+            aria-label="Evolutionary Genome & Corona Legend"
           >
             ?
           </button>
@@ -896,15 +830,18 @@ export default function App() {
           <div
             className="lens-hint-popover"
             role="dialog"
-            aria-label={t('app.lenses.hintTitle') || 'Map Lens Modes'}
+            aria-label="Evolutionary Genome Mirror"
             style={{
               left: !isMobile && (selectedId !== null || selectedClanId !== null) ? 406 : (isMobile ? 8 : 14),
               bottom: isMobile ? 'calc(var(--thumb-h) + env(safe-area-inset-bottom) + 38px)' : 44,
+              width: 340,
+              maxHeight: '75vh',
+              overflowY: 'auto',
             }}
           >
             <div className="lens-hint-header">
               <span className="lens-hint-title">
-                <span>🔭</span> {t('app.lenses.hintTitle') || 'Map Lens Modes'}
+                <span>🧬</span> Evolutionary Genome Mirror
               </span>
               <button
                 type="button"
@@ -915,83 +852,69 @@ export default function App() {
                 ×
               </button>
             </div>
-            <p className="lens-hint-desc">{t('app.lenses.hintDesc')}</p>
+            <p className="lens-hint-desc">
+              Creatures visually mirror their living genome, morphological mutations, and generational lineage across millennia (Gen 0 → 2000+).
+            </p>
             <div className="lens-hint-list">
-              <div
-                className={`lens-hint-item ${lensMode === 'classic' ? 'active' : ''}`}
-                onClick={() => { setLensMode('classic'); setLensHintOpen(false); }}
-                role="button"
-                tabIndex={0}
-              >
+              <div className="lens-hint-item active">
                 <div className="lens-hint-item-head">
-                  <span className="lens-hint-badge classic">1</span>
-                  <b>{t('app.lenses.classic.label') || 'Classic'}</b>
+                  <span className="lens-hint-badge" style={{ background: '#facc15', color: '#0b0f14' }}>EPOCHS</span>
+                  <b>Generational Heritage Spectrum</b>
                   <span className="lens-hint-swatches">
-                    <span style={{ background: '#ff70a6' }} title="Women" />
-                    <span style={{ background: '#f97316' }} title="Soldiers" />
-                    <span style={{ background: '#facc15' }} title="Artisans" />
-                    <span style={{ background: '#4ade80' }} title="Gentlemen" />
-                    <span style={{ background: '#60a5fa' }} title="Nobles" />
-                    <span style={{ background: '#a78bfa' }} title="Priests" />
+                    <span style={{ background: '#38bdf8' }} title="Gen 0-4 Genesis" />
+                    <span style={{ background: '#06b6d4' }} title="Gen 5-24 Pioneer" />
+                    <span style={{ background: '#10b981' }} title="Gen 25-74 Dynastic" />
+                    <span style={{ background: '#8b5cf6' }} title="Gen 75-199 Imperial" />
+                    <span style={{ background: '#ec4899' }} title="Gen 200-499 Sovereign" />
+                    <span style={{ background: '#f97316' }} title="Gen 500-999 Solar" />
+                    <span style={{ background: '#facc15' }} title="Gen 1000-1999 Eon" />
+                    <span style={{ background: '#fef08a' }} title="Gen 2000+ Celestial" />
                   </span>
                 </div>
-                <div className="lens-hint-item-body">{t('app.lenses.classic.hint')}</div>
+                <div className="lens-hint-item-body">
+                  Evolutionary palette evolves from Primordial Cyan (Gen 0) through Dynastic Jade, Imperial Violet, Sovereign Magenta, and Solar Gold to Transcendent Celestial Starlight (Gen 2000+).
+                </div>
               </div>
 
-              <div
-                className={`lens-hint-item ${lensMode === 'mutants' ? 'active' : ''}`}
-                onClick={() => { setLensMode('mutants'); setLensHintOpen(false); }}
-                role="button"
-                tabIndex={0}
-              >
+              <div className="lens-hint-item">
                 <div className="lens-hint-item-head">
-                  <span className="lens-hint-badge mutants">2</span>
-                  <b>{t('app.lenses.mutants.label') || 'Mutants'}</b>
+                  <span className="lens-hint-badge" style={{ background: '#f59e0b', color: '#0b0f14' }}>CORONAS</span>
+                  <b>Millennial Coronas & Halo Rings</b>
+                </div>
+                <div className="lens-hint-item-body">
+                  • <b>Gen 50+</b>: 8-ray Starburst Corona<br />
+                  • <b>Gen 200+</b>: 12-ray Sovereign Sunburst<br />
+                  • <b>Gen 500+</b>: 16-ray Radiant Astral Corona + Orbital Halo Ring<br />
+                  • <b>Gen 1000+</b>: 20-ray Solar Eon Corona<br />
+                  • <b>Gen 2000+</b>: 24-ray Cosmic Starlight Corona + 8 Orbiting Flares
+                </div>
+              </div>
+
+              <div className="lens-hint-item">
+                <div className="lens-hint-item-head">
+                  <span className="lens-hint-badge" style={{ background: '#f43f5e', color: '#ffffff' }}>MUTANTS</span>
+                  <b>Genomic Mutation & Aberration</b>
                   <span className="lens-hint-swatches">
-                    <span style={{ background: '#64748b' }} title="Normal" />
-                    <span style={{ background: '#06b6d4' }} title="Minor" />
+                    <span style={{ background: '#38bdf8' }} title="Orthodox" />
                     <span style={{ background: '#a855f7' }} title="Aberrant" />
-                    <span style={{ background: '#f43f5e' }} title="Extreme" />
+                    <span style={{ background: '#f43f5e' }} title="Severe Mutation" />
                   </span>
                 </div>
-                <div className="lens-hint-item-body">{t('app.lenses.mutants.hint')}</div>
+                <div className="lens-hint-item-body">
+                  Severe genetic irregularity shifts body hues toward radiant violet and crimson, with bioluminescent aberrant auras surrounding radical mutants (irr &gt; 0.18).
+                </div>
               </div>
 
-              <div
-                className={`lens-hint-item ${lensMode === 'generations' ? 'active' : ''}`}
-                onClick={() => { setLensMode('generations'); setLensHintOpen(false); }}
-                role="button"
-                tabIndex={0}
-              >
+              <div className="lens-hint-item">
                 <div className="lens-hint-item-head">
-                  <span className="lens-hint-badge generations">3</span>
-                  <b>{t('app.lenses.generations.label') || 'Epochs'}</b>
-                  <span className="lens-hint-swatches">
-                    <span style={{ background: '#38bdf8' }} title="Genesis" />
-                    <span style={{ background: '#10b981' }} title="Pioneer" />
-                    <span style={{ background: '#c084fc' }} title="Dynastic" />
-                    <span style={{ background: '#f59e0b' }} title="Ancient" />
-                    <span style={{ background: '#fef08a' }} title="Millennial" />
-                  </span>
+                  <span className="lens-hint-badge" style={{ background: '#38bdf8', color: '#0b0f14' }}>TRAITS</span>
+                  <b>Morphological Expression</b>
                 </div>
-                <div className="lens-hint-item-body">{t('app.lenses.generations.hint')}</div>
-              </div>
-
-              <div
-                className={`lens-hint-item ${lensMode === 'dynasty' ? 'active' : ''}`}
-                onClick={() => { setLensMode('dynasty'); setLensHintOpen(false); }}
-                role="button"
-                tabIndex={0}
-              >
-                <div className="lens-hint-item-head">
-                  <span className="lens-hint-badge dynasty">4</span>
-                  <b>{t('app.lenses.dynasty.label') || 'Dynasty'}</b>
-                  <span className="lens-hint-swatches">
-                    <span style={{ background: '#58a6ff' }} title="Clan Sworn" />
-                    <span style={{ background: '#475569' }} title="Clanless" />
-                  </span>
+                <div className="lens-hint-item-body">
+                  • <b>Razor Edges</b>: High Dmult blades display apex vertex glints.<br />
+                  • <b>Inertia Armor</b>: High Izz / area thickens kinetic armor shells.<br />
+                  • <b>Crystalline Core</b>: Patina cores solidify ancestral lineage.
                 </div>
-                <div className="lens-hint-item-body">{t('app.lenses.dynasty.hint')}</div>
               </div>
             </div>
             <div className="lens-hint-foot">

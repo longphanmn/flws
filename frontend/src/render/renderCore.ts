@@ -62,52 +62,59 @@ export function bgSoldierRazor(cx: number, cy: number, radius: number, heading: 
   return local.map(([lx, ly]) => [cx + lx * ca - ly * sa, cy + lx * sa + ly * ca])
 }
 
-// §BK-9 Map Lenses & Shaders styling helper
+// §BK-9 Unified Genome Mirror & Evolutionary Lens styling helper
 export function getCreatureLensStyle(
   c: EntityState,
-  lensMode: LensMode = 'classic',
+  _lensMode: LensMode = 'mutants',
 ): { color: string; fillAlpha: number; strokeAlpha: number } {
-  if (lensMode === 'mutants') {
-    const irr = (c as any).irregularity ?? 0
-    if (irr < 0.04) {
-      return { color: '#64748b', fillAlpha: 0.08, strokeAlpha: 0.35 }
-    }
-    if (irr < 0.12) {
-      return { color: '#06b6d4', fillAlpha: 0.32, strokeAlpha: 0.95 }
-    }
-    if (irr < 0.22) {
-      return { color: '#a855f7', fillAlpha: 0.40, strokeAlpha: 1.0 }
-    }
-    return { color: '#f43f5e', fillAlpha: 0.50, strokeAlpha: 1.0 }
+  const gen = (c as any).generation ?? 0
+  const irr = (c as any).irregularity ?? 0
+  const mt = (c as any).morph_traits as number[] | undefined
+  const dmult = mt && mt.length > 5 ? mt[5] : 0
+
+  // 1. Generational Epoch Base Color (Evolving across millennia from Gen 0 to Gen 2000+)
+  let baseColor: string
+  if (gen < 5) {
+    baseColor = '#38bdf8' // Primordial Genesis Sky Cyan
+  } else if (gen < 25) {
+    baseColor = '#06b6d4' // Early Pioneer Aqua
+  } else if (gen < 75) {
+    baseColor = '#10b981' // Formative Dynasty Jade
+  } else if (gen < 200) {
+    baseColor = '#8b5cf6' // Imperial Classical Violet
+  } else if (gen < 500) {
+    baseColor = '#ec4899' // Ancient Sovereign Magenta
+  } else if (gen < 1000) {
+    baseColor = '#f97316' // Millennial Solar Ember
+  } else if (gen < 2000) {
+    baseColor = '#facc15' // Eon Sovereign Gold
+  } else {
+    baseColor = '#fef08a' // Gen 2000+: Transcendent Celestial Diamond Starlight
   }
 
-  if (lensMode === 'generations') {
-    const gen = (c as any).generation ?? 0
-    if (gen <= 2) {
-      return { color: '#38bdf8', fillAlpha: 0.40, strokeAlpha: 1.0 }
+  // 2. Genomic Mutation & Aberration Shifts
+  let color = baseColor
+  if (irr > 0.28) {
+    // Extreme radioactive mutation
+    color = '#f43f5e'
+  } else if (irr > 0.16) {
+    // Severe aberration
+    color = gen >= 500 ? '#f43f5e' : '#d946ef'
+  } else if (irr > 0.08) {
+    // Moderate genetic drift
+    color = gen >= 200 ? '#e11d48' : '#a855f7'
+  } else if (irr < 0.03 && gen < 50) {
+    // Strict Abbott geometric orthodoxy
+    if (c.caste && CASTE_COLORS[c.caste]) {
+      color = CASTE_COLORS[c.caste]
     }
-    if (gen < 10) {
-      return { color: '#10b981', fillAlpha: 0.30, strokeAlpha: 0.95 }
-    }
-    if (gen < 25) {
-      return { color: '#c084fc', fillAlpha: 0.35, strokeAlpha: 0.95 }
-    }
-    if (gen < 50) {
-      return { color: '#f59e0b', fillAlpha: 0.40, strokeAlpha: 1.0 }
-    }
-    return { color: '#fef08a', fillAlpha: 0.52, strokeAlpha: 1.0 }
   }
 
-  if (lensMode === 'dynasty') {
-    if (c.clan_color) {
-      return { color: c.clan_color, fillAlpha: 0.45, strokeAlpha: 1.0 }
-    }
-    return { color: '#475569', fillAlpha: 0.08, strokeAlpha: 0.30 }
-  }
+  // 3. Fill and stroke alpha mirroring genetic vitality & age
+  const fillAlpha = Math.min(0.58, 0.22 + Math.min(0.24, gen / 2500) + irr * 0.16)
+  const strokeAlpha = Math.min(1.0, 0.88 + (dmult * 0.12) + (gen > 200 ? 0.12 : 0))
 
-  // Classic
-  const color = (c.shape === 'line' ? CASTE_COLORS.Woman : CASTE_COLORS[c.caste || '']) || '#8b949e'
-  return { color, fillAlpha: c.shape === 'line' ? 0.20 : 0.22, strokeAlpha: c.shape === 'line' ? 0.95 : 1.0 }
+  return { color, fillAlpha, strokeAlpha }
 }
 
 export function clusterEntities<T extends { x: number; y: number }>(entities: T[], maxDist: number = 38.0): T[][] {
@@ -718,7 +725,8 @@ export function drawBatchedEntities(
     if (isLine && irr > 0.04 && tick > 0) {
       wMid *= (1 + Math.sin(tick * 0.28 + (c.id % 13)) * irr * 0.22)
     }
-    const color = CASTE_COLORS[c.caste || (isLine ? 'Woman' : '')] || '#8b949e'
+    const lensStyle = getCreatureLensStyle(c, lensMode)
+    const color = lensStyle.color
 
     if (!isLine) {
       // parse traits
@@ -911,25 +919,102 @@ export function drawBatchedEntities(
       ctx.globalAlpha = 1
     }
 
-    // Gen 50+: Celestial Ancestral Corona (8 radiating gold starburst rays)
+    // §BK-2 Celestial Ancestral Coronas (scaling dynamically across millennia up to Gen 2000+)
     if (gen >= 50) {
-      const rayCount = 8
-      const coronaBase = r * 1.08
-      const coronaOuterLong = r * 1.45
-      const coronaOuterShort = r * 1.25
-      const coronaSpin = tick * 0.015
+      let rayCount = 8
+      let coronaBase = r * 1.08
+      let coronaOuterLong = r * 1.40
+      let coronaOuterShort = r * 1.22
+      let coronaColor = '#fde047'
+      let spinSpeed = 0.015
+      let strokeW = 0.35
+      let alpha = 0.80
+
+      if (gen >= 2000) {
+        // Gen 2000+: Cosmic Starlight Corona (24 radiating coronal rays + orbiting diamond starlight flares)
+        rayCount = 24
+        coronaBase = r * 1.10
+        coronaOuterLong = r * 1.85
+        coronaOuterShort = r * 1.38
+        coronaColor = '#fef08a'
+        spinSpeed = 0.008
+        strokeW = 0.45
+        alpha = 0.95
+      } else if (gen >= 1000) {
+        // Gen 1000-1999: Solar Eon Corona (20 rays)
+        rayCount = 20
+        coronaBase = r * 1.10
+        coronaOuterLong = r * 1.70
+        coronaOuterShort = r * 1.34
+        coronaColor = '#facc15'
+        spinSpeed = 0.010
+        strokeW = 0.40
+        alpha = 0.90
+      } else if (gen >= 500) {
+        // Gen 500-999: Radiant Astral Corona (16 rays)
+        rayCount = 16
+        coronaBase = r * 1.08
+        coronaOuterLong = r * 1.55
+        coronaOuterShort = r * 1.28
+        coronaColor = '#f59e0b'
+        spinSpeed = 0.012
+        strokeW = 0.38
+        alpha = 0.85
+      } else if (gen >= 200) {
+        // Gen 200-499: Sovereign Sunburst Corona (12 rays)
+        rayCount = 12
+        coronaBase = r * 1.08
+        coronaOuterLong = r * 1.48
+        coronaOuterShort = r * 1.25
+        coronaColor = '#fbbf24'
+        spinSpeed = 0.014
+        strokeW = 0.35
+        alpha = 0.80
+      }
+
+      const coronaSpin = tick * spinSpeed
       ctx.beginPath()
       for (let k = 0; k < rayCount; k++) {
         const a = ang + coronaSpin + (k / rayCount) * TAU
         const ca = Math.cos(a), sa = Math.sin(a)
-        const outerR = k % 2 === 0 ? coronaOuterLong : coronaOuterShort
+        const isTier1 = k % 4 === 0
+        const isTier2 = k % 2 === 0
+        const outerR = isTier1 ? coronaOuterLong : isTier2 ? (coronaOuterLong + coronaOuterShort) * 0.5 : coronaOuterShort
         ctx.moveTo(c.x + ca * coronaBase, c.y + sa * coronaBase)
         ctx.lineTo(c.x + ca * outerR, c.y + sa * outerR)
       }
-      ctx.strokeStyle = '#fde047'
-      ctx.lineWidth = 0.35
-      ctx.globalAlpha = 0.8
+      ctx.strokeStyle = coronaColor
+      ctx.lineWidth = strokeW
+      ctx.globalAlpha = alpha
       ctx.stroke()
+
+      // Gen 500+: Pulsing outer orbital halo ring connecting the rays
+      if (gen >= 500 && !isVeryZoomedOut) {
+        ctx.beginPath()
+        const ringR = (coronaBase + coronaOuterShort) * 0.5
+        ctx.arc(c.x, c.y, ringR, 0, TAU)
+        ctx.strokeStyle = coronaColor
+        ctx.lineWidth = 0.22
+        ctx.setLineDash([0.6, 0.6])
+        ctx.globalAlpha = alpha * 0.5
+        ctx.stroke()
+        ctx.setLineDash([])
+      }
+
+      // Gen 2000+: Diamond starlight flares at cardinal & intercardinal tips
+      if (gen >= 2000 && !isVeryZoomedOut) {
+        ctx.globalAlpha = 0.95
+        ctx.fillStyle = '#ffffff'
+        for (let k = 0; k < 8; k++) {
+          const a = ang + coronaSpin + (k / 8) * TAU
+          const px = c.x + Math.cos(a) * coronaOuterLong
+          const py = c.y + Math.sin(a) * coronaOuterLong
+          ctx.beginPath()
+          ctx.arc(px, py, 0.32, 0, TAU)
+          ctx.fill()
+        }
+      }
+
       ctx.globalAlpha = 1
     }
 
@@ -1005,10 +1090,10 @@ export function drawBatchedEntities(
         }
         ctx.closePath()
       }
-      ctx.fillStyle = gen >= 50 ? 'rgba(254, 240, 138, 0.40)' : gen >= 25 ? 'rgba(245, 158, 11, 0.30)' : 'rgba(148, 163, 184, 0.22)'
+      ctx.fillStyle = gen >= 2000 ? 'rgba(254, 240, 138, 0.70)' : gen >= 1000 ? 'rgba(250, 204, 21, 0.58)' : gen >= 500 ? 'rgba(245, 158, 11, 0.48)' : gen >= 200 ? 'rgba(236, 72, 153, 0.42)' : gen >= 50 ? 'rgba(254, 240, 138, 0.38)' : gen >= 25 ? 'rgba(245, 158, 11, 0.28)' : 'rgba(148, 163, 184, 0.20)'
       ctx.fill()
-      ctx.strokeStyle = gen >= 50 ? '#fde047' : gen >= 25 ? '#fbbf24' : '#94a3b8'
-      ctx.lineWidth = 0.22
+      ctx.strokeStyle = gen >= 2000 ? '#ffffff' : gen >= 1000 ? '#fef08a' : gen >= 500 ? '#facc15' : gen >= 200 ? '#ec4899' : gen >= 50 ? '#fde047' : gen >= 25 ? '#fbbf24' : '#94a3b8'
+      ctx.lineWidth = gen >= 500 ? 0.35 : 0.22
       ctx.stroke()
     }
 
