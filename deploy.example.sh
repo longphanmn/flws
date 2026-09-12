@@ -614,158 +614,20 @@ if os.path.exists(health_path):
 
   GH_PAGES_DIR="${GH_PAGES_DIR:-$LANDING_DIR}"
   if [ -d "$GH_PAGES_DIR/.git" ]; then
-    echo "[deploy] Syncing minified bundle to $GH_PAGES_DIR/demo/"
-    rm -rf "$GH_PAGES_DIR/demo/assets/"*
-    cp -R "$FRONTEND_DIR/dist/"* "$GH_PAGES_DIR/demo/"
-
-    # Ensure /health, /wiki, and /docs work cleanly as self-contained static pages on GitHub Pages
-    mkdir -p "$GH_PAGES_DIR/demo/health" "$GH_PAGES_DIR/health" "$GH_PAGES_DIR/docs"
-    cp "$BACKEND_DIR/docs/god-laws.md" "$GH_PAGES_DIR/docs/god-laws.md" 2>/dev/null || true
-    cp "$GH_PAGES_DIR/demo/health.html" "$GH_PAGES_DIR/demo/health/index.html" 2>/dev/null || true
-    cp "$GH_PAGES_DIR/demo/health.html" "$GH_PAGES_DIR/health/index.html" 2>/dev/null || true
-
-    echo "[deploy] Generating static Living Wiki, OpenAPI, and Swagger UI for GitHub Pages"
-    GH_PAGES_DIR="$GH_PAGES_DIR" REMOTE_API_BASE="http://${SERVER_HOST:-your-server-ip}:8000" DEMO_API_URL="$DEMO_API_URL" FRONTEND_URL="$FRONTEND_URL" LANDING_URL="$LANDING_URL" python3 -c '
-import urllib.request, re, os
-
-gh_pages = os.environ.get("GH_PAGES_DIR", "")
-server_api = os.environ.get("REMOTE_API_BASE", "http://${SERVER_HOST:-your-server-ip}:8000").rstrip("/")
-demo_api = os.environ.get("DEMO_API_URL", "").rstrip("/")
-frontend_url = os.environ.get("FRONTEND_URL", "").rstrip("/")
-landing_url = os.environ.get("LANDING_URL", "").rstrip("/")
-
-# 1. Wiki pages (en, vi, fr)
-langs = ["en", "vi", "fr"]
-pages = {}
-for l in langs:
-    try:
-        url = f"{server_api}/wiki?lang={l}"
-        raw = urllib.request.urlopen(url, timeout=10).read().decode("utf-8")
-    except Exception as e:
-        print(f"Warning: could not fetch {url}: {e}")
-        continue
-    
-    p = raw
-    if demo_api:
-        p = p.replace(demo_api + "/wiki", "./")
-        p = p.replace(demo_api, "./")
-    if server_api:
-        p = p.replace(server_api + "/wiki", "./")
-        p = p.replace(server_api, "./")
-    p = p.replace("href=\"/wiki?lang=en\"", "href=\"./\"")
-    p = p.replace("href=\"/wiki?lang=vi\"", "href=\"./wiki-vi.html\"")
-    p = p.replace("href=\"/wiki?lang=fr\"", "href=\"./wiki-fr.html\"")
-    p = p.replace("href=\"/docs\"", "href=\"../docs/\"")
-    p = p.replace("href=\"/openapi.json\"", "href=\"../openapi.json\"")
-    p = p.replace("href=\"/docs/god-laws.md#", "href=\"../docs/god-laws.md#")
-    p = re.sub(r"href=\"/api/wiki\?lang=[a-z]+\"", "href=\"../openapi.json\"", p)
-    p = p.replace("href=\"/\"", "href=\"../\"")
-    
-    redir = {
-        "en": """<script>(function(){var p=new URLSearchParams(window.location.search);var l=p.get("lang");if(l==="vi"||l==="vn"){window.location.replace("./wiki-vi.html"+window.location.search+window.location.hash);}else if(l==="fr"){window.location.replace("./wiki-fr.html"+window.location.search+window.location.hash);}})();</script>""",
-        "vi": """<script>(function(){var p=new URLSearchParams(window.location.search);var l=p.get("lang");if(l==="en"){window.location.replace("./"+window.location.search+window.location.hash);}else if(l==="fr"){window.location.replace("./wiki-fr.html"+window.location.search+window.location.hash);}})();</script>""",
-        "fr": """<script>(function(){var p=new URLSearchParams(window.location.search);var l=p.get("lang");if(l==="en"){window.location.replace("./"+window.location.search+window.location.hash);}else if(l==="vi"||l==="vn"){window.location.replace("./wiki-vi.html"+window.location.search+window.location.hash);}})();</script>"""
-    }
-    p = p.replace("<head>", "<head>\n" + redir[l])
-    pages[l] = p
-
-demo_wiki = os.path.join(gh_pages, "demo/wiki")
-root_wiki = os.path.join(gh_pages, "wiki")
-os.makedirs(demo_wiki, exist_ok=True)
-os.makedirs(root_wiki, exist_ok=True)
-
-if "en" in pages:
-    with open(os.path.join(demo_wiki, "index.html"), "w", encoding="utf-8") as f: f.write(pages["en"])
-    with open(os.path.join(root_wiki, "index.html"), "w", encoding="utf-8") as f: f.write(pages["en"])
-if "vi" in pages:
-    with open(os.path.join(demo_wiki, "wiki-vi.html"), "w", encoding="utf-8") as f: f.write(pages["vi"])
-    with open(os.path.join(root_wiki, "wiki-vi.html"), "w", encoding="utf-8") as f: f.write(pages["vi"])
-if "fr" in pages:
-    with open(os.path.join(demo_wiki, "wiki-fr.html"), "w", encoding="utf-8") as f: f.write(pages["fr"])
-    with open(os.path.join(root_wiki, "wiki-fr.html"), "w", encoding="utf-8") as f: f.write(pages["fr"])
-
-# 2. OpenAPI schema
-try:
-    openapi_raw = urllib.request.urlopen(f"{server_api}/openapi.json", timeout=10).read().decode("utf-8")
-    with open(os.path.join(gh_pages, "demo/openapi.json"), "w", encoding="utf-8") as f: f.write(openapi_raw)
-    with open(os.path.join(gh_pages, "openapi.json"), "w", encoding="utf-8") as f: f.write(openapi_raw)
-except Exception as e:
-    print(f"Warning: could not fetch openapi.json: {e}")
-
-# 3. Swagger UI Docs
-swagger_html = """<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flatland World Simulation — API Documentation</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
-  <link rel="icon" type="image/svg+xml" href="../vite.svg">
-  <style>
-    body { margin: 0; background: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    .nav-bar { background: #161b22; border-bottom: 1px solid #30363d; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-    .nav-bar a { color: #58a6ff; text-decoration: none; font-size: 13px; margin-left: 16px; font-weight: 500; }
-    .nav-bar a:hover { text-decoration: underline; }
-    .nav-bar .brand { font-weight: 700; color: #f0f6fc; font-size: 14px; margin-left: 0; display: inline-flex; align-items: center; gap: 6px; }
-    .swagger-ui { filter: invert(88%) hue-rotate(180deg); max-width: 1200px; margin: 0 auto; }
-    .swagger-ui .topbar { display: none; }
-    .swagger-ui img { filter: invert(100%) hue-rotate(180deg); }
-  </style>
-</head>
-<body>
-  <div class="nav-bar">
-    <a href="https://longphanmn.github.io/flws-web/" target="_blank" rel="noopener noreferrer" class="brand">← Back to Flatland Simulation</a>
-    <div>
-      <a href="../wiki/">Living Wiki ↗</a>
-      <a href="../health/">Engine Health ↗</a>
-      <a href="../">Landing Page ↗</a>
-      <a href="../openapi.json" target="_blank">/openapi.json ↗</a>
-    </div>
-  </div>
-  <div id="swagger-ui"></div>
-  <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
-  <script>
-    window.onload = function() {
-      SwaggerUIBundle({
-        url: "../openapi.json",
-        dom_id: "#swagger-ui",
-        deepLinking: true,
-        presets: [
-          SwaggerUIBundle.presets.apis,
-          SwaggerUIBundle.SwaggerUIStandalonePreset
-        ],
-        layout: "BaseLayout"
-      });
-    };
-  </script>
-</body>
-</html>
-"""
-demo_docs = os.path.join(gh_pages, "demo/docs")
-root_docs = os.path.join(gh_pages, "docs")
-os.makedirs(demo_docs, exist_ok=True)
-os.makedirs(root_docs, exist_ok=True)
-with open(os.path.join(demo_docs, "index.html"), "w", encoding="utf-8") as f: f.write(swagger_html)
-with open(os.path.join(root_docs, "index.html"), "w", encoding="utf-8") as f: f.write(swagger_html)
-
-print("[deploy] Static docs and wiki generated successfully.")
-'
-
-    cp "$GH_PAGES_DIR/404.html" "$GH_PAGES_DIR/demo/404.html" 2>/dev/null || true
-
+    echo "[deploy] Syncing landing page portal at $GH_PAGES_DIR/"
     (
       cd "$GH_PAGES_DIR"
-      git add index.html 404.html openapi.json wiki/ docs/ health/ demo/
+      git add index.html 404.html assets/ README.md .nojekyll 2>/dev/null || true
       if ! git diff --cached --quiet; then
-        git commit -m "deploy: update minified demo, static wiki, and docs on GitHub Pages"
+        git commit -m "deploy: update landing showcase portal on GitHub Pages"
         git push origin main 2>/dev/null || git push origin gh-pages 2>/dev/null || true
-        echo "[deploy] Successfully deployed demo to GitHub Pages"
+        echo "[deploy] Successfully deployed landing page to GitHub Pages"
       else
-        echo "[deploy] GitHub Pages demo already up-to-date"
+        echo "[deploy] Landing page already up-to-date"
       fi
     )
     echo "  GitHub Pages Landing: ${LANDING_URL:-https://longphanmn.github.io/flws-page/}"
-    echo "  GitHub Pages Demo:    ${FRONTEND_URL:-https://longphanmn.github.io/flws-web/}"
+    echo "  GitHub Pages Web UI:  ${FRONTEND_URL:-https://longphanmn.github.io/flws-web/}"
   else
     echo "[deploy] Notice: GitHub Pages workspace not found at $GH_PAGES_DIR, skipping gh-pages deploy"
   fi
