@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Flatland launcher.
-#   ./run.sh                  backend (:8000) + web UI (:5173) — full stack
+#   ./run.sh                  backend (:8000) + web UI (:5173) — full stack (auto-clones flws-web if missing)
+#   ./run.sh docker           full stack via Docker Compose (auto-clones flws-web if missing)
+#   ./run.sh backend          backend (:8000) only
 #   ./run.sh tui [ws-url] [god-passkey]
 #                             terminal TUI ONLY — attaches to an already-running
 #                             world, never starts any server
@@ -55,17 +57,72 @@ elif [ -f "$ROOT/backend/.env" ]; then
   set +a
 fi
 
-# Detect frontend directory (sibling flws-web or in-tree)
-FE_DIR="${FRONTEND_DIR:-}"
-if [ -z "$FE_DIR" ]; then
-  if [ -d "$ROOT/frontend" ]; then
-    FE_DIR="$ROOT/frontend"
-  elif [ -d "$ROOT/../flws-web" ]; then
-    FE_DIR="$(cd "$ROOT/../flws-web" && pwd)"
+# ------------------------------------------------------------ clone & setup flws-web
+setup_frontend() {
+  FE_DIR="${FRONTEND_DIR:-}"
+  if [ -z "$FE_DIR" ]; then
+    if [ -d "$ROOT/../flws-web" ]; then
+      FE_DIR="$(cd "$ROOT/../flws-web" && pwd)"
+    elif [ -d "$ROOT/frontend" ]; then
+      FE_DIR="$ROOT/frontend"
+    else
+      # Default: sibling ../flws-web if parent is writable, otherwise ./frontend
+      if [ -w "$ROOT/.." ]; then
+        FE_DIR="$(cd "$ROOT/.." && pwd)/flws-web"
+      else
+        FE_DIR="$ROOT/frontend"
+      fi
+    fi
   fi
+
+  if [ ! -d "$FE_DIR" ]; then
+    echo "[frontend] flws-web not found at $FE_DIR. Cloning from GitHub..."
+    REPO_URL="${FLWS_WEB_REPO:-https://github.com/longphanmn/flws-web.git}"
+    if git clone "$REPO_URL" "$FE_DIR" 2>/dev/null || git clone git@github.com:longphanmn/flws-web.git "$FE_DIR"; then
+      echo "[frontend] Successfully cloned flws-web into $FE_DIR"
+    else
+      echo "[frontend] Warning: Failed to clone flws-web from $REPO_URL" >&2
+      return 1
+    fi
+  fi
+
+  if [ -d "$FE_DIR" ]; then
+    # Setup .env in frontend if not present
+    if [ ! -f "$FE_DIR/.env" ] && [ -f "$FE_DIR/.env.example" ]; then
+      echo "[frontend] Initializing $FE_DIR/.env from .env.example"
+      cp "$FE_DIR/.env.example" "$FE_DIR/.env"
+    fi
+    # Install dependencies if node_modules missing and npm is available
+    if command -v npm >/dev/null 2>&1 && [ ! -d "$FE_DIR/node_modules" ]; then
+      echo "[frontend] Installing dependencies (npm install)..."
+      (cd "$FE_DIR" && npm install --silent)
+    fi
+  fi
+  export FRONTEND_DIR="$FE_DIR"
+  return 0
+}
+
+# ------------------------------------------------------------ docker compose mode
+if [ "$MODE" = "docker" ] || [ "$MODE" = "compose" ] || [ "$MODE" = "--docker" ]; then
+  setup_frontend || true
+  command -v docker >/dev/null || { echo "Error: docker not found." >&2; exit 1; }
+  shift || true
+  echo "[docker] Launching Flatland stack via Docker Compose..."
+  FRONTEND_DIR="${FRONTEND_DIR:-../flws-web}" exec docker compose up --build "$@"
 fi
 
-# ------------------------------------------------------------ default: full stack
+# ------------------------------------------------------------ backend-only mode
+if [ "$MODE" = "backend" ] || [ "$MODE" = "--backend" ]; then
+  echo "[backend] installing deps + starting on :8000 (0.0.0.0)"
+  cd "$ROOT/backend"
+  [ -d .venv ] || uv sync --quiet
+  exec uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 \
+    --reload-dir app \
+    --reload-exclude "*.db*" --reload-exclude "*.log" --reload-exclude "__pycache__" --reload-exclude ".venv" \
+    --ws-per-message-deflate false
+fi
+
+setup_frontend || true
 PORTS_TO_CHECK=(8000)
 if [ -n "$FE_DIR" ] && [ -d "$FE_DIR" ]; then
   PORTS_TO_CHECK+=(5173)

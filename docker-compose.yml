@@ -1,13 +1,13 @@
 services:
   backend:
     build:
-      context: ${BACKEND_DIR:-./flws/backend}
+      context: ${BACKEND_DIR:-./backend}
       dockerfile: Dockerfile
     image: flatland-backend:local
     container_name: flatland-backend
     restart: unless-stopped
     env_file:
-      - path: ${BACKEND_ENV:-./flws/.env}
+      - path: ${BACKEND_ENV:-./.env}
         required: false
     ports:
       - "${BACKEND_PORT:-8000}:8000"
@@ -38,13 +38,13 @@ services:
 
   frontend:
     build:
-      context: ${FRONTEND_DIR:-./flws-web}
+      context: ${FRONTEND_DIR:-../flws-web}
       dockerfile: Dockerfile
     image: flatland-frontend:local
     container_name: flatland-frontend
     restart: unless-stopped
     env_file:
-      - path: ${FRONTEND_ENV:-./flws-web/.env}
+      - path: ${FRONTEND_ENV:-../flws-web/.env}
         required: false
     ports:
       - "${FRONTEND_PORT:-5173}:80"
