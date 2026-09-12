@@ -110,25 +110,35 @@ Evolution emerges 100% autonomously without artificial intervention:
 
 ---
 
-## Quickstart
+## 🚀 Quickstart
 
-### Prerequisites
-- **Git**
-- **Python 3.12+** (with [`uv`](https://docs.astral.sh/uv/) recommended)
-- **Node.js 18+** & **npm**
+### ⚡ One-Command Automatic Setup & Launch (Recommended)
+Anyone can set up and run Flatland with a single command:
+```bash
+curl -fsSL https://raw.githubusercontent.com/longphanmn/flws/main/setup.sh | bash
+```
+> **What this does**: Automatically checks/installs `uv`, clones the backend engine (`./flws`) and frontend web client (`./flws-web`), initializes `.env` files, compiles the native C OpenMP core, installs dependencies, and starts both servers.
 
-### Clone & Launch
+Or set up without launching immediately:
+```bash
+curl -fsSL https://raw.githubusercontent.com/longphanmn/flws/main/setup.sh | bash -s -- --setup-only
+```
+
+---
+
+### Manual Clone & Launch
 ```bash
 git clone https://github.com/longphanmn/flws.git
 cd flws
-./run.sh          # Starts FastAPI backend (:8000) and Vite frontend (:5173)
-./run.sh tui      # Launches terminal client attached to local backend
+./run.sh          # Auto-clones flws-web if missing, starts backend (:8000) & web UI (:5173)
+./run.sh docker   # Full stack via Docker Compose
+./run.sh tui      # Launches terminal TUI client attached to local backend
 ```
 
-### Docker Compose (local production)
+### Docker Compose
 ```bash
 cp .env.example .env          # optional — tweak ports / FLATWORLD_* laws
-docker compose up --build -d  # backend :8000, frontend :5173 (nginx proxy)
+docker compose up --build     # backend :8000, frontend :5173
 docker compose logs -f        # tail both services
 docker compose down           # stop
 docker compose down -v        # stop + wipe SQLite volume (fresh world)
@@ -139,7 +149,7 @@ docker compose down -v        # stop + wipe SQLite volume (fresh world)
 - **Living Wiki & Guide**: [http://localhost:8000/wiki](http://localhost:8000/wiki)
 - **Health**: [http://localhost:8000/healthz](http://localhost:8000/healthz)
 
-> `docker-compose.yml` builds `backend/Dockerfile` (Python 3.12 + gcc, compiles the OpenMP native core) and `frontend/Dockerfile` (multi-stage node → nginx). The frontend nginx proxies `/ws`, `/api`, `/wiki`, `/guide`, `/docs`, etc. to `backend:8000`, so the browser only needs port `5173`. SQLite persists in the named volume `flatland-data` (`FLATWORLD_DB=/data/flatworld.db`).
+> `docker-compose.yml` builds `backend/Dockerfile` (Python 3.12 + gcc, compiles the OpenMP native core) and `../flws-web/Dockerfile` (multi-stage node → nginx). The frontend proxies `/ws`, `/api`, `/wiki`, `/guide`, `/docs`, etc. to `backend:8000`, so the browser only needs port `5173`. SQLite persists in the named volume `flatland-data` (`FLATWORLD_DB=/data/flatworld.db`).
 
 ---
 
