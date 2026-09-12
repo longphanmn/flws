@@ -619,7 +619,8 @@ if os.path.exists(health_path):
     cp -R "$FRONTEND_DIR/dist/"* "$GH_PAGES_DIR/demo/"
 
     # Ensure /health, /wiki, and /docs work cleanly as self-contained static pages on GitHub Pages
-    mkdir -p "$GH_PAGES_DIR/demo/health" "$GH_PAGES_DIR/health"
+    mkdir -p "$GH_PAGES_DIR/demo/health" "$GH_PAGES_DIR/health" "$GH_PAGES_DIR/docs"
+    cp "$BACKEND_DIR/docs/god-laws.md" "$GH_PAGES_DIR/docs/god-laws.md" 2>/dev/null || true
     cp "$GH_PAGES_DIR/demo/health.html" "$GH_PAGES_DIR/demo/health/index.html" 2>/dev/null || true
     cp "$GH_PAGES_DIR/demo/health.html" "$GH_PAGES_DIR/health/index.html" 2>/dev/null || true
 
@@ -656,8 +657,7 @@ for l in langs:
     p = p.replace("href=\"/wiki?lang=fr\"", "href=\"./wiki-fr.html\"")
     p = p.replace("href=\"/docs\"", "href=\"../docs/\"")
     p = p.replace("href=\"/openapi.json\"", "href=\"../openapi.json\"")
-    p = re.sub(r"href=\"/api/wiki\?lang=[a-z]+\"", "href=\"../openapi.json\"", p)
-    p = p.replace("href=\"/\"", "href=\"../\"")
+    p = p.replace("href=\"/docs/god-laws.md#", "href=\"../docs/god-laws.md#")
     p = re.sub(r"href=\"/api/wiki\?lang=[a-z]+\"", "href=\"../openapi.json\"", p)
     p = p.replace("href=\"/\"", "href=\"../\"")
     
@@ -676,13 +676,13 @@ os.makedirs(root_wiki, exist_ok=True)
 
 if "en" in pages:
     with open(os.path.join(demo_wiki, "index.html"), "w", encoding="utf-8") as f: f.write(pages["en"])
-    with open(os.path.join(root_wiki, "index.html"), "w", encoding="utf-8") as f: f.write(pages["en"].replace("href=\"../", "href=\"demo/"))
+    with open(os.path.join(root_wiki, "index.html"), "w", encoding="utf-8") as f: f.write(pages["en"])
 if "vi" in pages:
     with open(os.path.join(demo_wiki, "wiki-vi.html"), "w", encoding="utf-8") as f: f.write(pages["vi"])
-    with open(os.path.join(root_wiki, "wiki-vi.html"), "w", encoding="utf-8") as f: f.write(pages["vi"].replace("href=\"../", "href=\"demo/"))
+    with open(os.path.join(root_wiki, "wiki-vi.html"), "w", encoding="utf-8") as f: f.write(pages["vi"])
 if "fr" in pages:
     with open(os.path.join(demo_wiki, "wiki-fr.html"), "w", encoding="utf-8") as f: f.write(pages["fr"])
-    with open(os.path.join(root_wiki, "wiki-fr.html"), "w", encoding="utf-8") as f: f.write(pages["fr"].replace("href=\"../", "href=\"demo/"))
+    with open(os.path.join(root_wiki, "wiki-fr.html"), "w", encoding="utf-8") as f: f.write(pages["fr"])
 
 # 2. OpenAPI schema
 try:
@@ -714,11 +714,11 @@ swagger_html = """<!DOCTYPE html>
 </head>
 <body>
   <div class="nav-bar">
-    <a href="../" class="brand">← Back to Flatland Demo</a>
+    <a href="https://longphanmn.github.io/flws-web/" target="_blank" rel="noopener noreferrer" class="brand">← Back to Flatland Simulation</a>
     <div>
       <a href="../wiki/">Living Wiki ↗</a>
       <a href="../health/">Engine Health ↗</a>
-      <a href="../../">Landing Page ↗</a>
+      <a href="../">Landing Page ↗</a>
       <a href="../openapi.json" target="_blank">/openapi.json ↗</a>
     </div>
   </div>
@@ -746,7 +746,7 @@ root_docs = os.path.join(gh_pages, "docs")
 os.makedirs(demo_docs, exist_ok=True)
 os.makedirs(root_docs, exist_ok=True)
 with open(os.path.join(demo_docs, "index.html"), "w", encoding="utf-8") as f: f.write(swagger_html)
-with open(os.path.join(root_docs, "index.html"), "w", encoding="utf-8") as f: f.write(swagger_html.replace("href=\"../", "href=\"demo/").replace("href=\"../../\"", "href=\"../\""))
+with open(os.path.join(root_docs, "index.html"), "w", encoding="utf-8") as f: f.write(swagger_html)
 
 print("[deploy] Static docs and wiki generated successfully.")
 '
