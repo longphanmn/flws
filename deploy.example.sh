@@ -5,52 +5,89 @@ SERVER="${SERVER:-root@your-server-ip}"
 REMOTE_DIR="~/app/fl"
 LOCAL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Load local .env if present (e.g. for GTM_ID, GA_ID, ports, etc.)
-if [ -f "$LOCAL_DIR/.env" ]; then
-  echo "[deploy] Loading environment configuration from .env"
-  # Export variables from .env ignoring comments and blank lines
+# Multi-repo auto-detection for backend (flws), frontend (flws-web) and landing page (flws-page)
+if [ -z "${BACKEND_DIR:-}" ]; then
+  if [ -d "$LOCAL_DIR/flws" ]; then
+    BACKEND_DIR="$(cd "$LOCAL_DIR/flws" && pwd)"
+  elif [ -d "$LOCAL_DIR/../flws" ]; then
+    BACKEND_DIR="$(cd "$LOCAL_DIR/../flws" && pwd)"
+  else
+    BACKEND_DIR="$LOCAL_DIR"
+  fi
+fi
+
+if [ -z "${FRONTEND_DIR:-}" ]; then
+  if [ -d "$LOCAL_DIR/flws-web" ]; then
+    FRONTEND_DIR="$(cd "$LOCAL_DIR/flws-web" && pwd)"
+  elif [ -d "$LOCAL_DIR/../flws-web" ]; then
+    FRONTEND_DIR="$(cd "$LOCAL_DIR/../flws-web" && pwd)"
+  else
+    FRONTEND_DIR="$LOCAL_DIR/flws-web"
+  fi
+fi
+
+if [ -z "${LANDING_DIR:-}" ]; then
+  if [ -d "$LOCAL_DIR/flws-page" ]; then
+    LANDING_DIR="$(cd "$LOCAL_DIR/flws-page" && pwd)"
+  elif [ -d "$LOCAL_DIR/../flws-page" ]; then
+    LANDING_DIR="$(cd "$LOCAL_DIR/../flws-page" && pwd)"
+  else
+    LANDING_DIR="$LOCAL_DIR/flws-page"
+  fi
+fi
+
+# Load independent backend, frontend and workspace .env files
+if [ -f "$BACKEND_DIR/.env" ]; then
+  echo "[deploy] Loading backend env from $BACKEND_DIR/.env"
   set -a
-  # shellcheck disable=SC1090
+  source "$BACKEND_DIR/.env"
+  set +a
+elif [ -f "$BACKEND_DIR/backend/.env" ]; then
+  echo "[deploy] Loading backend env from $BACKEND_DIR/backend/.env"
+  set -a
+  source "$BACKEND_DIR/backend/.env"
+  set +a
+fi
+
+if [ -f "$FRONTEND_DIR/.env" ]; then
+  echo "[deploy] Loading frontend env from $FRONTEND_DIR/.env"
+  set -a
+  source "$FRONTEND_DIR/.env"
+  set +a
+fi
+
+if [ -f "$LOCAL_DIR/.env" ] && [ "$LOCAL_DIR" != "$BACKEND_DIR" ]; then
+  echo "[deploy] Loading workspace orchestrator env from $LOCAL_DIR/.env"
+  set -a
   source "$LOCAL_DIR/.env"
   set +a
 fi
 
-# ./deploy.sh [--clear-db] [--gtm-id GTM-XXXXXXX] [--ga-id G-XXXXXXXXXX]
-#   --clear-db: wipes the production SQLite database before backend starts
-#   --gtm-id <ID> / --gtm <ID>: injects Google Tag Manager (head script + body noscript) at deploy-time
-#   --no-gtm / --clear-gtm: removes Google Tag Manager tags
-#   --ga-id <ID> / --ga <ID>: injects Google Analytics tag at deploy-time (no source code change)
-#   --no-ga / --clear-ga: removes Google Analytics tag
-#   --api-url <URL> / --api <URL>: overrides remote backend API URL for GitHub Pages demo
-CLEAR_DB=0
+# Normalize directory paths if .env provided relative paths
+if [ -d "$BACKEND_DIR" ]; then BACKEND_DIR="$(cd "$BACKEND_DIR" && pwd)"; fi
+if [ -d "$FRONTEND_DIR" ]; then FRONTEND_DIR="$(cd "$FRONTEND_DIR" && pwd)"; fi
+if [ -d "$LANDING_DIR" ]; then LANDING_DIR="$(cd "$LANDING_DIR" && pwd)"; fi
+
+CLEAR_DB="${CLEAR_DB:-0}"
 GTM_ID="${GTM_ID:-${GOOGLE_TAG_MANAGER_ID:-}}"
 GTM_CLEAR=0
 GA_ID="${GA_ID:-${GA_MEASUREMENT_ID:-}}"
 GA_CLEAR=0
 API_URL="${API_URL:-${BACKEND_URL:-${VITE_BACKEND_URL:-}}}"
 WS_URL="${WS_URL:-${VITE_WS_URL:-}}"
-DEPLOY_GH_PAGES=1
+DEPLOY_GH_PAGES="${DEPLOY_GH_PAGES:-1}"
 GH_PAGES_ONLY=0
-
-# Multi-repo auto-detection for frontend (flws-web) and landing page (flws-page)
-if [ -z "${FRONTEND_DIR:-}" ]; then
-  if [ -d "$LOCAL_DIR/../flws-web" ]; then
-    FRONTEND_DIR="$(cd "$LOCAL_DIR/../flws-web" && pwd)"
-  else
-    FRONTEND_DIR="$LOCAL_DIR/../flws-web"
-  fi
-fi
-
-if [ -z "${LANDING_DIR:-}" ]; then
-  if [ -d "$LOCAL_DIR/../flws-page" ]; then
-    LANDING_DIR="$(cd "$LOCAL_DIR/../flws-page" && pwd)"
-  else
-    LANDING_DIR="$LOCAL_DIR/../flws-page"
-  fi
-fi
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --backend-dir=*)
+      BACKEND_DIR="${1#*=}"
+      shift
+      ;;
+    --backend-dir)
+      BACKEND_DIR="$2"
+      shift 2
+      ;;
     --frontend-dir=*)
       FRONTEND_DIR="${1#*=}"
       shift
@@ -177,29 +214,39 @@ echo "[deploy] Syncing project to $SERVER:$REMOTE_DIR"
 # HEAD~1 — several local commits between deploys would otherwise look "unchanged".
 BACKEND_CHANGED=0
 FRONTEND_CHANGED=0
-DEPLOYED_REF="$(ssh "$SERVER" "cat $REMOTE_DIR/.deployed-commit 2>/dev/null || true")"
-if [ -n "$DEPLOYED_REF" ] && git cat-file -e "$DEPLOYED_REF" 2>/dev/null; then
-  DIFF_BASE="$DEPLOYED_REF"
-else
-  DIFF_BASE="HEAD~1"  # legacy best-effort fallback
-fi
-if git diff --name-only "$DIFF_BASE" HEAD 2>/dev/null | grep -q "^backend/"; then BACKEND_CHANGED=1; fi
-# also check uncommitted changes
-if git status --porcelain 2>/dev/null | grep -q "^.M backend/"; then BACKEND_CHANGED=1; fi
 
-# Detect frontend changes: in-tree or external multi-repo (flws-web)
-if [ "$FRONTEND_DIR" = "$LOCAL_DIR/frontend" ]; then
-  if git diff --name-only "$DIFF_BASE" HEAD 2>/dev/null | grep -q "^frontend/"; then FRONTEND_CHANGED=1; fi
-  if git status --porcelain 2>/dev/null | grep -q "^.M frontend/"; then FRONTEND_CHANGED=1; fi
-elif [ -d "$FRONTEND_DIR/.git" ]; then
+# Backend change detection (checks $BACKEND_DIR git repo)
+if [ -d "$BACKEND_DIR/.git" ]; then
+  DEPLOYED_REF="$(ssh "$SERVER" "cat $REMOTE_DIR/.deployed-commit 2>/dev/null || true")"
+  if [ -n "$DEPLOYED_REF" ] && git -C "$BACKEND_DIR" cat-file -e "$DEPLOYED_REF" 2>/dev/null; then
+    DIFF_BASE="$DEPLOYED_REF"
+  else
+    DIFF_BASE="HEAD~1"  # legacy best-effort fallback
+  fi
+  if git -C "$BACKEND_DIR" diff --name-only "$DIFF_BASE" HEAD 2>/dev/null | grep -qE "(^backend/|\.py$|\.c$|\.h$|pyproject\.toml|uv\.lock)"; then
+    BACKEND_CHANGED=1
+  fi
+  if git -C "$BACKEND_DIR" status --porcelain 2>/dev/null | grep -qE "(backend/|\.py$|\.c$|\.h$|pyproject\.toml|uv\.lock)"; then
+    BACKEND_CHANGED=1
+  fi
+elif [ -d "$BACKEND_DIR" ]; then
+  BACKEND_CHANGED=1
+fi
+
+# Frontend change detection (checks $FRONTEND_DIR git repo)
+if [ -d "$FRONTEND_DIR/.git" ]; then
   FE_DEPLOYED_REF="$(ssh "$SERVER" "cat $REMOTE_DIR/.deployed-commit-frontend 2>/dev/null || true")"
   if [ -n "$FE_DEPLOYED_REF" ] && git -C "$FRONTEND_DIR" cat-file -e "$FE_DEPLOYED_REF" 2>/dev/null; then
     FE_DIFF_BASE="$FE_DEPLOYED_REF"
   else
     FE_DIFF_BASE="HEAD~1"
   fi
-  if git -C "$FRONTEND_DIR" diff --name-only "$FE_DIFF_BASE" HEAD 2>/dev/null | grep -q .; then FRONTEND_CHANGED=1; fi
-  if git -C "$FRONTEND_DIR" status --porcelain 2>/dev/null | grep -q .; then FRONTEND_CHANGED=1; fi
+  if git -C "$FRONTEND_DIR" diff --name-only "$FE_DIFF_BASE" HEAD 2>/dev/null | grep -q .; then
+    FRONTEND_CHANGED=1
+  fi
+  if git -C "$FRONTEND_DIR" status --porcelain 2>/dev/null | grep -q .; then
+    FRONTEND_CHANGED=1
+  fi
 elif [ -d "$FRONTEND_DIR" ]; then
   FRONTEND_CHANGED=1
 fi
@@ -220,6 +267,7 @@ echo "[deploy] Backend changed: $BACKEND_CHANGED, Frontend changed: $FRONTEND_CH
 
 # Use rsync if available, otherwise fallback to scp
 if command -v rsync >/dev/null 2>&1; then
+  echo "[deploy] Syncing backend from $BACKEND_DIR to $SERVER:$REMOTE_DIR/"
   rsync -avz --delete \
     --exclude '.git' \
     --exclude '.venv' \
@@ -242,11 +290,12 @@ if command -v rsync >/dev/null 2>&1; then
     --exclude 'backend/app/_flatland_core.dylib' \
     --exclude '*.so' \
     --exclude '*.dylib' \
-    "$LOCAL_DIR"/ "$SERVER:$REMOTE_DIR"/
+    --exclude 'frontend' \
+    "$BACKEND_DIR"/ "$SERVER:$REMOTE_DIR"/
 
-  # If frontend is in an external multi-repo (flws-web), sync into $REMOTE_DIR/frontend
-  if [ "$FRONTEND_DIR" != "$LOCAL_DIR/frontend" ] && [ -d "$FRONTEND_DIR" ]; then
-    echo "[deploy] Syncing external frontend from $FRONTEND_DIR to $SERVER:$REMOTE_DIR/frontend/"
+  # Sync frontend from $FRONTEND_DIR to $SERVER:$REMOTE_DIR/frontend/
+  if [ -d "$FRONTEND_DIR" ]; then
+    echo "[deploy] Syncing frontend from $FRONTEND_DIR to $SERVER:$REMOTE_DIR/frontend/"
     rsync -avz --delete \
       --exclude '.git' \
       --exclude 'node_modules' \
@@ -256,13 +305,16 @@ if command -v rsync >/dev/null 2>&1; then
   fi
 else
   echo "[deploy] rsync not found, using tar+scp"
-  tar -czf /tmp/fl-deploy.tgz \
-    --exclude='.git' --exclude='.venv' --exclude='node_modules' \
-    --exclude='__pycache__' --exclude='.pytest_cache' --exclude='dist' \
-    --exclude='*.log' --exclude='*.so' --exclude='*.dylib' --exclude='.ga_id' --exclude='.gtm_id' \
-    -C "$LOCAL_DIR" backend frontend run.sh README.md TODO.md
-  scp /tmp/fl-deploy.tgz "$SERVER:/tmp/"
-  ssh "$SERVER" "mkdir -p $REMOTE_DIR && tar -xzf /tmp/fl-deploy.tgz -C $REMOTE_DIR --strip-components=1 2>/dev/null || tar -xzf /tmp/fl-deploy.tgz -C $REMOTE_DIR && rm /tmp/fl-deploy.tgz"
+  tar -czf /tmp/fl-backend.tgz \
+    --exclude='.git' --exclude='.venv' \
+    --exclude='__pycache__' --exclude='.pytest_cache' \
+    --exclude='*.log' --exclude='*.so' --exclude='*.dylib' \
+    -C "$BACKEND_DIR" .
+  tar -czf /tmp/fl-frontend.tgz \
+    --exclude='.git' --exclude='node_modules' --exclude='dist' \
+    -C "$FRONTEND_DIR" .
+  scp /tmp/fl-backend.tgz /tmp/fl-frontend.tgz "$SERVER:/tmp/"
+  ssh "$SERVER" "mkdir -p $REMOTE_DIR/frontend && tar -xzf /tmp/fl-backend.tgz -C $REMOTE_DIR && tar -xzf /tmp/fl-frontend.tgz -C $REMOTE_DIR/frontend && rm /tmp/fl-backend.tgz /tmp/fl-frontend.tgz"
 fi
 
 echo "[deploy] Installing deps and (re)starting server in background"
@@ -487,17 +539,19 @@ tail -n 20 ~/app/fl/backend.log 2>/dev/null || true
 echo "--- frontend.log ---"
 tail -n 20 ~/app/fl/frontend.log 2>/dev/null || true
 
-echo "[remote] Done. UI: http://192.168.1.21:5173  API: http://192.168.1.21:8000/docs"
+echo "[remote] Done. UI: http://${SERVER_HOST:-your-server-ip}:5173  API: http://${SERVER_HOST:-your-server-ip}:8000/docs"
 REMOTE
 
   echo "[deploy] Done production server deployment"
   # Remember what was deployed so the next run diffs against the right commit.
-  git rev-parse HEAD | ssh "$SERVER" "cat > $REMOTE_DIR/.deployed-commit"
-  if [ "$FRONTEND_DIR" != "$LOCAL_DIR/frontend" ] && [ -d "$FRONTEND_DIR/.git" ]; then
+  if [ -d "$BACKEND_DIR/.git" ]; then
+    git -C "$BACKEND_DIR" rev-parse HEAD | ssh "$SERVER" "cat > $REMOTE_DIR/.deployed-commit"
+  fi
+  if [ -d "$FRONTEND_DIR/.git" ]; then
     git -C "$FRONTEND_DIR" rev-parse HEAD | ssh "$SERVER" "cat > $REMOTE_DIR/.deployed-commit-frontend"
   fi
-  echo "  Remote UI : http://192.168.1.21:5173"
-  echo "  Remote API: http://192.168.1.21:8000/docs"
+  echo "  Remote UI : http://${SERVER_HOST:-your-server-ip}:5173"
+  echo "  Remote API: http://${SERVER_HOST:-your-server-ip}:8000/docs"
   echo "  Logs: ssh $SERVER 'tail -f ~/app/fl/backend.log ~/app/fl/frontend.log'"
 fi
 
@@ -570,11 +624,11 @@ if os.path.exists(health_path):
     cp "$GH_PAGES_DIR/demo/health.html" "$GH_PAGES_DIR/health/index.html" 2>/dev/null || true
 
     echo "[deploy] Generating static Living Wiki, OpenAPI, and Swagger UI for GitHub Pages"
-    GH_PAGES_DIR="$GH_PAGES_DIR" REMOTE_API_BASE="http://192.168.1.21:8000" DEMO_API_URL="$DEMO_API_URL" FRONTEND_URL="$FRONTEND_URL" LANDING_URL="$LANDING_URL" python3 -c '
+    GH_PAGES_DIR="$GH_PAGES_DIR" REMOTE_API_BASE="http://${SERVER_HOST:-your-server-ip}:8000" DEMO_API_URL="$DEMO_API_URL" FRONTEND_URL="$FRONTEND_URL" LANDING_URL="$LANDING_URL" python3 -c '
 import urllib.request, re, os
 
 gh_pages = os.environ.get("GH_PAGES_DIR", "")
-server_api = os.environ.get("REMOTE_API_BASE", "http://192.168.1.21:8000").rstrip("/")
+server_api = os.environ.get("REMOTE_API_BASE", "http://${SERVER_HOST:-your-server-ip}:8000").rstrip("/")
 demo_api = os.environ.get("DEMO_API_URL", "").rstrip("/")
 frontend_url = os.environ.get("FRONTEND_URL", "").rstrip("/")
 landing_url = os.environ.get("LANDING_URL", "").rstrip("/")
@@ -704,8 +758,8 @@ print("[deploy] Static docs and wiki generated successfully.")
       git add index.html 404.html openapi.json wiki/ docs/ health/ demo/
       if ! git diff --cached --quiet; then
         git commit -m "deploy: update minified demo, static wiki, and docs on GitHub Pages"
-        git push origin gh-pages
-        echo "[deploy] Successfully deployed demo to GitHub Pages (origin/gh-pages)"
+        git push origin main 2>/dev/null || git push origin gh-pages 2>/dev/null || true
+        echo "[deploy] Successfully deployed demo to GitHub Pages"
       else
         echo "[deploy] GitHub Pages demo already up-to-date"
       fi
