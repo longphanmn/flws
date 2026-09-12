@@ -586,7 +586,7 @@ def fetch(url):
 
 frontend_dir = os.environ.get("FRONTEND_DIR", ".")
 backend_dir = os.environ.get("BACKEND_DIR", ".")
-server_api = os.environ.get("DEMO_API_URL", "https://world.minhnhan.in").rstrip("/")
+server_api = os.environ.get("DEMO_API_URL", os.environ.get("API_URL", "http://localhost:8000")).rstrip("/")
 pub = os.path.join(frontend_dir, "public")
 os.makedirs(os.path.join(pub, "docs"), exist_ok=True)
 os.makedirs(os.path.join(pub, "wiki"), exist_ok=True)

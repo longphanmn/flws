@@ -314,7 +314,7 @@ Flatland is organized into three specialized GitHub repositories with unified sa
   - Web Simulation App: [https://longphanmn.github.io/flws-web/](https://longphanmn.github.io/flws-web/)
   - Landing Showcase: [https://longphanmn.github.io/flws-page/](https://longphanmn.github.io/flws-page/)
   - Living Wiki: [https://longphanmn.github.io/flws-web/wiki/](https://longphanmn.github.io/flws-web/wiki/)
-  - API Documentation: [https://world.minhnhan.in/docs](https://world.minhnhan.in/docs) · [Static Mirror](https://longphanmn.github.io/flws-web/docs/)
+  - API Documentation: [Interactive API Docs](https://longphanmn.github.io/flws-web/docs/) (Local: [http://localhost:8000/docs](http://localhost:8000/docs))
   - Engine Health Monitor: [https://longphanmn.github.io/flws-web/health/](https://longphanmn.github.io/flws-web/health/)
 - **Developed by**: **[Long Phan](mailto:long@minhnhan.in)**  
   Email: [long@minhnhan.in](mailto:long@minhnhan.in)  
