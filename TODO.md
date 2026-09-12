@@ -63,7 +63,7 @@ Legend: [P0] foundational · [P1] core Flatland identity · [P2] flavor/observab
 > **Context & Architecture**: The Flatland project is decoupling from a monorepo structure into three dedicated, specialized GitHub repositories with independent release cadences, distinct deployment pipelines, and two independent GitHub Pages sites:
 > 1. **`flws`** (`longphanmn/flws`): Pure backend simulation engine (FastAPI, SimEngine OS thread, NumPy SoA buffers, micro-Elman RNN controllers, polar SAT physics, TUI, SQLite persistence, and pytest suites).
 > 2. **`flws-web`** (`longphanmn/flws-web`): Standalone web frontend simulation client (React 18, Vite, TypeScript, Canvas2D/WebGL 60 FPS viewport, Macro Analytics Observatory, Inspector, dynamic WebSocket client). Deploys to independent GitHub Pages (`https://longphanmn.github.io/flws-web/`).
-> 3. **`flws-page`** (`longphanmn/flws-page` [private]): Official project landing page and marketing showcase (interactive background creature canvas, audio synthesizer badge, multi-theme selector, lore, and CTA portal). Deploys to independent GitHub Pages (`https://longphanmn.github.io/flws-page/` or custom domain).
+> 3. **`flws-page`** (`longphanmn/flws-page`): Official project landing page and marketing showcase (interactive background creature canvas, audio synthesizer badge, multi-theme selector, lore, and CTA portal). Deploys to independent GitHub Pages (`https://longphanmn.github.io/flws-page/` or custom domain).
 >
 > **Core Deployment Constraints**:
 > - **Unified Same-System Deployment**: Production server (`root@192.168.1.21:~/app/fl`) and `docker-compose.yml` must deploy and run BOTH backend and frontend together on the same host (backend on `:8000`, frontend on `:5173`/`:80` with Nginx reverse proxy).
@@ -90,7 +90,7 @@ Legend: [P0] foundational · [P1] core Flatland identity · [P2] flavor/observab
 - [x] [P0] **BP-5 Dual Independent GitHub Pages Deployments (`deploy.sh`)**
   - Build minified production bundle from `$FRONTEND_DIR` with configurable base path (`VITE_BASE`).
   - Support deploying the web client to the dedicated `flws-web` GitHub Pages repository (`GH_PAGES_WEB_DIR`).
-  - Support deploying the landing page and static showcase to the `flws-page` private GitHub Pages repository (`GH_PAGES_DIR`).
+  - Support deploying the landing page and static showcase to the `flws-page` GitHub Pages repository (`GH_PAGES_DIR`).
 
 ### 3. Backend Extraction & Standalone Repository (`flws`) [P0]
 - [x] [P0] **BP-6 Pure Backend Engine Boundary Isolation (`flws`)**
@@ -111,12 +111,13 @@ Legend: [P0] foundational · [P1] core Flatland identity · [P2] flavor/observab
   - Author `.github/workflows/deploy-pages.yml` in `flws-web` repository.
   - Configure Vite `base: '/flws-web/'` for GitHub Pages hosting at `https://longphanmn.github.io/flws-web/`.
 
-### 5. Landing Page Dedicated Private Repository (`flws-page`) & GitHub Pages [P0]
-- [x] [P0] **BP-11 Extract Landing Page to Private Repository `flws-page`**
-  - Extract landing page (`index.html`, `assets/css/style.css`, `assets/js/app.js`, background creature canvas, audio badge, themes) into private repository `github.com/longphanmn/flws-page`.
+### 5. Landing Page Dedicated Repository (`flws-page`) & GitHub Pages [P0]
+- [x] [P0] **BP-11 Extract Landing Page to Dedicated Repository `flws-page`**
+  - Extract landing page (`index.html`, `assets/css/style.css`, `assets/js/app.js`, background creature canvas, audio badge, themes) into repository `github.com/longphanmn/flws-page`.
   - Maintain lightweight standalone canvas simulation without heavy backend dependencies.
-- [x] [P0] **BP-12 Private GitHub Pages CI/CD Workflow (`flws-page`)**
-  - Configure GitHub Actions deployment workflow for private repository with GitHub Pages permissions.
+- [x] [P0] **BP-12 GitHub Pages CI/CD Workflow (`flws-page`)**
+  - Configure GitHub Actions deployment workflow with GitHub Pages permissions.
+  - Support hosting at `https://longphanmn.github.io/flws-page/` or custom landing domain.
   - Support hosting at `https://longphanmn.github.io/flws-page/` or custom landing domain.
 - [x] [P0] **BP-13 Landing Page CTA Buttons Repointing to `flws-web`**
   - Update primary CTA buttons ("Launch Simulation", "Live Demo", "Web App") on landing page to navigate to `https://longphanmn.github.io/flws-web/`.

@@ -671,7 +671,7 @@ CODEBASE_MAP_EN = """
 Flatland is decoupled into three dedicated GitHub repositories with unified same-system deployment:
 - `flws` (`github.com/longphanmn/flws`): Backend simulation engine (FastAPI, SimEngine thread, NumPy SoA, micro-Elman RNN, polar geometry SAT, TUI, SQLite WAL). Listens on host port `:8000`.
 - `flws-web` (`github.com/longphanmn/flws-web`): Standalone web frontend simulation client (React 18, Vite, TypeScript, Canvas2D/WebGL 60 FPS viewport, Macro Observatory). Deployed to GitHub Pages (`https://longphanmn.github.io/flws-web/`) and runs on `:5173` / `:80` (Nginx reverse-proxying to backend).
-- `flws-page` (`github.com/longphanmn/flws-page` [private]): Official project landing page and showcase (interactive canvas, audio synthesizer badge, lore). Deployed to independent GitHub Pages (`https://longphanmn.github.io/flws-page/`).
+- `flws-page` (`github.com/longphanmn/flws-page`): Official project landing page and showcase (interactive canvas, audio synthesizer badge, lore). Deployed to independent GitHub Pages (`https://longphanmn.github.io/flws-page/`).
 - **Same-System Orchestration**: `docker-compose.yml` and `deploy.sh` deploy and run both backend and frontend on the same host system.
 
 ## Backend (`backend/app/`)
@@ -737,7 +737,7 @@ CODEBASE_MAP_VI = """
 Flatland được phân rã thành 3 kho mã nguồn GitHub chuyên biệt với phương thức triển khai đồng nhất trên cùng một hệ thống:
 - `flws` (`github.com/longphanmn/flws`): Động cơ mô phỏng backend thuần túy (FastAPI, luồng SimEngine, SoA NumPy, micro-RNN Elman, SAT hình thái cực, TUI, SQLite WAL). Lắng nghe trên cổng `:8000`.
 - `flws-web` (`github.com/longphanmn/flws-web`): Khách web frontend độc lập (React 18, Vite, TypeScript, khung nhìn Canvas2D/WebGL 60 FPS, Đài thiên văn vĩ mô). Triển khai trên GitHub Pages (`https://longphanmn.github.io/flws-web/`) và chạy trên cổng `:5173` / `:80` (Nginx reverse-proxy sang backend).
-- `flws-page` (`github.com/longphanmn/flws-page` [riêng tư]): Trang đích giới thiệu chính thức (canvas sinh vật tương tác, huy hiệu âm thanh, cốt truyện). Triển khai trên GitHub Pages độc lập (`https://longphanmn.github.io/flws-page/`).
+- `flws-page` (`github.com/longphanmn/flws-page`): Trang đích giới thiệu chính thức (canvas sinh vật tương tác, huy hiệu âm thanh, cốt truyện). Triển khai trên GitHub Pages độc lập (`https://longphanmn.github.io/flws-page/`).
 - **Triển khai đồng nhất cùng hệ thống**: `docker-compose.yml` và `deploy.sh` tự động triển khai và vận hành cả backend lẫn frontend trên cùng một máy chủ mục tiêu.
 
 ## Cấu trúc Backend (`backend/app/`)
@@ -803,7 +803,7 @@ CODEBASE_MAP_FR = """
 Flatland est découplé en trois dépôts GitHub spécialisés avec déploiement unifié sur le même système :
 - `flws` (`github.com/longphanmn/flws`) : Moteur de simulation backend pur (FastAPI, thread SimEngine, SoA NumPy, micro-Elman RNN, physique SAT polaire, TUI, SQLite WAL). Écoute sur le port hôte `:8000`.
 - `flws-web` (`github.com/longphanmn/flws-web`) : Client web frontend autonome (React 18, Vite, TypeScript, Canvas2D/WebGL 60 FPS, Observatoire macroscopique). Déployé sur GitHub Pages (`https://longphanmn.github.io/flws-web/`) et écoute sur `:5173` / `:80` (Nginx reverse-proxy vers backend).
-- `flws-page` (`github.com/longphanmn/flws-page` [privé]) : Page d'accueil et vitrine officielle (canevas interactif, badge sonore synthétisé, mythes). Déployé sur GitHub Pages indépendant (`https://longphanmn.github.io/flws-page/`).
+- `flws-page` (`github.com/longphanmn/flws-page`) : Page d'accueil et vitrine officielle (canevas interactif, badge sonore synthétisé, mythes). Déployé sur GitHub Pages indépendant (`https://longphanmn.github.io/flws-page/`).
 - **Déploiement unifié sur le même système** : `docker-compose.yml` et `deploy.sh` orchestrent et exécutent simultanément le backend et le frontend sur la même machine hôte.
 
 ## Architecture Backend (`backend/app/`)

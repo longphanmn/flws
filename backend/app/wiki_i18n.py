@@ -207,7 +207,7 @@ WIKI_OVERVIEW_MD_I18N = {
 # Flatland Wiki & Encyclopedia
 
 > **Landing Page**: [{landing_url}]({landing_url})  
-> **Source Repositories**: [`flws` (Backend)](https://github.com/longphanmn/flws) · [`flws-web` (Web Frontend)](https://github.com/longphanmn/flws-web) · [`flws-page` (Private Landing)](https://github.com/longphanmn/flws-page)  
+> **Source Repositories**: [`flws` (Backend)](https://github.com/longphanmn/flws) · [`flws-web` (Web Frontend)](https://github.com/longphanmn/flws-web) · [`flws-page` (Landing Page)](https://github.com/longphanmn/flws-page)  
 > **Developed by [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · Demo: [{frontend_url}]({frontend_url}))  
 > Built and refined using **OpenCode** and **Antigravity** · Developed from the core ideas of **Edwin A. Abbott's *Flatland: A Romance of Many Dimensions*** (1884).
 
@@ -231,7 +231,7 @@ This project is **developed from the Flatland idea rather than mimicking the boo
 # Bách khoa toàn thư & Wiki Flatland
 
 > **Trang chủ / Landing Page**: [{landing_url}]({landing_url})  
-> **Các kho mã nguồn**: [`flws` (Backend)](https://github.com/longphanmn/flws) · [`flws-web` (Web Frontend)](https://github.com/longphanmn/flws-web) · [`flws-page` (Trang giới thiệu riêng tư)](https://github.com/longphanmn/flws-page)  
+> **Các kho mã nguồn**: [`flws` (Backend)](https://github.com/longphanmn/flws) · [`flws-web` (Web Frontend)](https://github.com/longphanmn/flws-web) · [`flws-page` (Trang giới thiệu)](https://github.com/longphanmn/flws-page)  
 > **Phát triển bởi [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · Bản demo: [{frontend_url}]({frontend_url}))  
 > Xây dựng và hoàn thiện bằng **OpenCode** & **Antigravity** · Phát triển từ ý niệm nền tảng trong danh tác ***Flatland: A Romance of Many Dimensions*** (1884) của **Edwin A. Abbott**.
 
@@ -255,7 +255,7 @@ Dự án được **phát triển từ ý niệm cốt lõi của Xứ Phẳng c
 # Encyclopédie & Wiki Flatland
 
 > **Page d'accueil / Landing Page** : [{landing_url}]({landing_url})  
-> **Dépôts Sources**: [`flws` (Backend)](https://github.com/longphanmn/flws) · [`flws-web` (Client Web)](https://github.com/longphanmn/flws-web) · [`flws-page` (Page Privée)](https://github.com/longphanmn/flws-page)  
+> **Dépôts Sources**: [`flws` (Backend)](https://github.com/longphanmn/flws) · [`flws-web` (Client Web)](https://github.com/longphanmn/flws-web) · [`flws-page` (Page Vitrine)](https://github.com/longphanmn/flws-page)  
 > **Développé par [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in) · Démo : [{frontend_url}]({frontend_url}))  
 > Conçu et perfectionné avec **OpenCode** & **Antigravity** · Développé à partir des concepts fondamentaux de l'œuvre classique d'**Edwin A. Abbott, *Flatland: A Romance of Many Dimensions*** (1884).
 

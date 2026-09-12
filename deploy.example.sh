@@ -575,6 +575,112 @@ if [ "$DEPLOY_GH_PAGES" = "1" ]; then
   LANDING_URL="${LANDING_URL:-https://longphanmn.github.io/flws-page/}"
   (
     cd "$FRONTEND_DIR"
+    echo "[deploy] Generating static Living Wiki, OpenAPI, and Swagger UI for flws-web"
+    FRONTEND_DIR="$FRONTEND_DIR" BACKEND_DIR="$BACKEND_DIR" DEMO_API_URL="$DEMO_API_URL" python3 -c '
+import urllib.request, re, os
+
+headers = {"User-Agent": "Mozilla/5.0 (Flatland-Deploy/1.0)"}
+def fetch(url):
+    req = urllib.request.Request(url, headers=headers)
+    return urllib.request.urlopen(req, timeout=10).read().decode("utf-8")
+
+frontend_dir = os.environ.get("FRONTEND_DIR", ".")
+backend_dir = os.environ.get("BACKEND_DIR", ".")
+server_api = os.environ.get("DEMO_API_URL", "https://world.minhnhan.in").rstrip("/")
+pub = os.path.join(frontend_dir, "public")
+os.makedirs(os.path.join(pub, "docs"), exist_ok=True)
+os.makedirs(os.path.join(pub, "wiki"), exist_ok=True)
+os.makedirs(os.path.join(pub, "health"), exist_ok=True)
+
+try:
+    openapi_raw = fetch(f"{server_api}/openapi.json")
+    with open(os.path.join(pub, "openapi.json"), "w", encoding="utf-8") as f: f.write(openapi_raw)
+except Exception as e:
+    print(f"Warning: could not fetch openapi.json: {e}")
+
+laws_src = os.path.join(backend_dir, "docs/god-laws.md")
+if os.path.exists(laws_src):
+    with open(laws_src, "r", encoding="utf-8") as f: c = f.read()
+    with open(os.path.join(pub, "docs/god-laws.md"), "w", encoding="utf-8") as f: f.write(c)
+
+swagger_html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flatland World Simulation — API Documentation</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+  <link rel="icon" type="image/svg+xml" href="../icon.svg">
+  <style>
+    body { margin: 0; background: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .nav-bar { background: #161b22; border-bottom: 1px solid #30363d; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .nav-bar a { color: #58a6ff; text-decoration: none; font-size: 13px; margin-left: 16px; font-weight: 500; }
+    .nav-bar a:hover { text-decoration: underline; }
+    .nav-bar .brand { font-weight: 700; color: #f0f6fc; font-size: 14px; margin-left: 0; display: inline-flex; align-items: center; gap: 6px; }
+    .swagger-ui { filter: invert(88%) hue-rotate(180deg); max-width: 1200px; margin: 0 auto; }
+    .swagger-ui .topbar { display: none; }
+    .swagger-ui img { filter: invert(100%) hue-rotate(180deg); }
+  </style>
+</head>
+<body>
+  <div class="nav-bar">
+    <a href="../" class="brand">← Back to Flatland Simulation</a>
+    <div>
+      <a href="../wiki/">Living Wiki ↗</a>
+      <a href="../health/">Engine Health ↗</a>
+      <a href="https://longphanmn.github.io/flws-page/" target="_blank" rel="noopener noreferrer">Introduce Page ↗</a>
+      <a href="../openapi.json" target="_blank">/openapi.json ↗</a>
+    </div>
+  </div>
+  <div id="swagger-ui"></div>
+  <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script>
+    window.onload = function() {
+      SwaggerUIBundle({
+        url: "../openapi.json",
+        dom_id: "#swagger-ui",
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIBundle.SwaggerUIStandalonePreset
+        ],
+        layout: "BaseLayout"
+      });
+    };
+  </script>
+</body>
+</html>
+"""
+with open(os.path.join(pub, "docs/index.html"), "w", encoding="utf-8") as f: f.write(swagger_html)
+
+langs = ["en", "vi", "fr"]
+for l in langs:
+    try:
+        raw = fetch(f"{server_api}/wiki?lang={l}")
+        p = raw
+        p = p.replace(server_api + "/wiki", "./")
+        p = p.replace(server_api, "./")
+        p = p.replace("href=\"/wiki?lang=en\"", "href=\"./\"")
+        p = p.replace("href=\"/wiki?lang=vi\"", "href=\"./wiki-vi.html\"")
+        p = p.replace("href=\"/wiki?lang=fr\"", "href=\"./wiki-fr.html\"")
+        p = p.replace("href=\"/docs\"", "href=\"../docs/\"")
+        p = p.replace("href=\"/openapi.json\"", "href=\"../openapi.json\"")
+        p = p.replace("href=\"/docs/god-laws.md#", "href=\"../docs/god-laws.md#")
+        p = re.sub(r"href=\"/api/wiki\?lang=[a-z]+\"", "href=\"../openapi.json\"", p)
+        p = p.replace("href=\"/demo/\"", "href=\"../\"")
+        p = p.replace("href=\"/demo\"", "href=\"../\"")
+        p = p.replace("href=\"/\"", "href=\"../\"")
+        redir = {
+            "en": """<script>(function(){var p=new URLSearchParams(window.location.search);var l=p.get("lang");if(l==="vi"||l==="vn"){window.location.replace("./wiki-vi.html"+window.location.search+window.location.hash);}else if(l==="fr"){window.location.replace("./wiki-fr.html"+window.location.search+window.location.hash);}})();</script>""",
+            "vi": """<script>(function(){var p=new URLSearchParams(window.location.search);var l=p.get("lang");if(l==="en"){window.location.replace("./"+window.location.search+window.location.hash);}else if(l==="fr"){window.location.replace("./wiki-fr.html"+window.location.search+window.location.hash);}})();</script>""",
+            "fr": """<script>(function(){var p=new URLSearchParams(window.location.search);var l=p.get("lang");if(l==="en"){window.location.replace("./"+window.location.search+window.location.hash);}else if(l==="vi"||l==="vn"){window.location.replace("./wiki-vi.html"+window.location.search+window.location.hash);}})();</script>"""
+        }
+        p = p.replace("<head>", "<head>\n" + redir[l])
+        target_name = "index.html" if l == "en" else f"wiki-{l}.html"
+        with open(os.path.join(pub, "wiki", target_name), "w", encoding="utf-8") as f: f.write(p)
+    except Exception as e:
+        print(f"Warning: could not fetch wiki {l}: {e}")
+'
     VITE_BASE="./" VITE_IS_DEMO="true" VITE_DEMO_API_URL="$DEMO_API_URL" VITE_DEMO_WS_URL="$DEMO_WS_URL" FRONTEND_URL="$FRONTEND_URL" LANDING_URL="$LANDING_URL" npm run build
     DEMO_API_URL="$DEMO_API_URL" python3 -c '
 import re, os

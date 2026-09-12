@@ -14,7 +14,7 @@
 > **Source Repositories**:
 > - Backend Simulation Engine: [`flws`](https://github.com/longphanmn/flws) (FastAPI, Simulation Loop, SoA, Micro-RNN)
 > - Web Frontend Client: [`flws-web`](https://github.com/longphanmn/flws-web) (React 18, Canvas2D 60 FPS, Observatory)
-> - Landing Page (Private): [`flws-page`](https://github.com/longphanmn/flws-page) (Showcase, Marketing, Lore)  
+> - Landing Page: [`flws-page`](https://github.com/longphanmn/flws-page) (Showcase, Marketing, Lore)  
 > **Developed by [Long Phan](mailto:long@minhnhan.in)** ([long@minhnhan.in](mailto:long@minhnhan.in))  
 > Built and refined using **OpenCode** and **Antigravity**.  
 > Developed from the core mathematical and spatial ideas of **Edwin A. Abbott** (1884).
@@ -300,7 +300,7 @@ Flatland is organized into three specialized GitHub repositories with unified sa
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                             Flatland Ecosystem                           │
 ├──────────────────────────┬──────────────────────────┬────────────────────┤
-│   flws (Backend Engine)  │ flws-web (Web Frontend)  │ flws-page (Private)│
+│   flws (Backend Engine)  │ flws-web (Web Frontend)  │ flws-page (Showcase) │
 │  FastAPI, Simulation     │ React 18, Vite, TS       │ Landing Showcase,  │
 │  SimEngine OS Thread     │ Canvas2D 60 FPS Viewport │ Interactive Canvas │
 │  NumPy SoA, Micro-RNN    │ Macro Observatory & HUD  │ Lore & CTA Portal  │
@@ -316,7 +316,7 @@ Flatland is organized into three specialized GitHub repositories with unified sa
   - `deploy.sh` automatically detects multi-repo directory structures, synchronizes code to the production server (`root@192.168.1.21`), compiles native OpenMP C kernels, builds the frontend bundle, and manages background services while preserving live world state.
 - **Dual Independent GitHub Pages**:
   - **Web Client**: Deployed independently from `flws-web` to `https://longphanmn.github.io/flws-web/` (connects dynamically via WebSocket/REST to live backend servers).
-  - **Landing Page**: Deployed independently from private `flws-page` to `https://longphanmn.github.io/flws-page/`.
+  - **Landing Page**: Deployed independently from `flws-page` to `https://longphanmn.github.io/flws-page/`.
 
 ---
 
@@ -325,7 +325,7 @@ Flatland is organized into three specialized GitHub repositories with unified sa
 - **Repositories**:
   - Backend Engine: [https://github.com/longphanmn/flws](https://github.com/longphanmn/flws)
   - Web Frontend Client: [https://github.com/longphanmn/flws-web](https://github.com/longphanmn/flws-web)
-  - Landing Page (Private): [https://github.com/longphanmn/flws-page](https://github.com/longphanmn/flws-page)
+  - Landing Page: [https://github.com/longphanmn/flws-page](https://github.com/longphanmn/flws-page)
 - **Live Deployments**:
   - Web Simulation App: [https://longphanmn.github.io/flws-web/](https://longphanmn.github.io/flws-web/)
   - Landing Showcase: [https://longphanmn.github.io/flws-page/](https://longphanmn.github.io/flws-page/)
