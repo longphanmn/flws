@@ -4,8 +4,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg)](https://fastapi.tiangolo.com/)
-[![React: 18](https://img.shields.io/badge/React-18-61DAFB.svg)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6.svg)](https://www.typescriptlang.org/)
+[![C / OpenMP](https://img.shields.io/badge/C%20%2F%20OpenMP-Batch%20Raycasting-orange.svg)](backend/app/flatland_core.c)
+[![Textual TUI](https://img.shields.io/badge/Textual-Terminal%20TUI-purple.svg)](backend/tui)
+[![Web Client: flws-web](https://img.shields.io/badge/Web%20Client-flws--web-61DAFB.svg)](https://github.com/longphanmn/flws-web)
 
 **Flatland** is an autonomous 2D artificial life and ecosystem simulation developed from the foundational ideas of **Edwin A. Abbott's 1884 classic *Flatland: A Romance of Many Dimensions***. Rather than rigidly mimicking or reenacting the 19th-century novella, this project takes Flatland's core geometric premises — 2D spatial existence, vertex-based caste hierarchy, atmospheric perception, and higher-dimensional observation — and transforms them into a **living, autonomous evolutionary world that dynamically changes and expands over time**.
 
@@ -163,13 +164,20 @@ uv run pytest -v                               # Run comprehensive test suite
 uv run uvicorn app.main:app --reload --port 8000
 ```
 
-### Frontend Setup
+### Web Client Setup (Frontend)
+
+The web simulation client is maintained in the companion repository [`flws-web`](https://github.com/longphanmn/flws-web).
+
+- When running `./run.sh` or `./setup.sh`, `flws-web` is automatically cloned into a sibling directory (`../flws-web`) or submodule and served on port `5173`.
+- To work on the frontend client independently:
 ```bash
-cd frontend
+git clone https://github.com/longphanmn/flws-web.git
+cd flws-web
 npm install                                    # Install frontend dependencies
-npm run dev                                    # Start Vite development server
-npm run build                                  # TypeScript compile & production bundle
+npm run dev                                    # Start Vite dev server (proxies to backend :8000)
+npm run build                                  # Production bundle (HTML/JS/CSS)
 ```
+See [`flws-web/README.md`](https://github.com/longphanmn/flws-web#readme) for details on the web client, Canvas2D/WebGL rendering, and bundled documentation.
 
 ---
 
@@ -205,12 +213,15 @@ Flatland includes a complete terminal client powered by **Textual** (`backend/tu
 ## Architecture & Codebase Map
 
 ```
-ws/
+flws/
 ├── backend/
 │   ├── app/
 │   │   ├── config.py            # Configuration dataclass & environment loaders
 │   │   ├── entities.py          # Creature castes, traits, food variants, and houses
 │   │   ├── world.py             # Entity spatial hash index & wrap-aware proximity queries
+│   │   ├── flatland_core.c      # Native C OpenMP raycasting & distance acceleration kernel
+│   │   ├── flatland_core.h      # C header & interface definitions
+│   │   ├── native_core.py       # C dylib loader & ctypes bindings with Python fallback
 │   │   ├── simulation/          # Decomposed simulation engine package (§BI)
 │   │   │   ├── core.py          # Master Simulation class, deterministic step loop, SoA sync
 │   │   │   ├── creature_update.py # Decomposed 7-phase agent tick pipeline
@@ -235,48 +246,21 @@ ws/
 │   │   ├── protocol.py          # Pydantic schemas shared between backend & frontend
 │   │   ├── db.py                # SQLite WAL persistence for worlds, events, lineage & snapshots
 │   │   ├── wiki.py              # Living Wiki, API documentation & guide routes
+│   │   ├── wiki_i18n.py         # Multilingual Wiki renderer (EN, FR, VI)
 │   │   └── main.py              # FastAPI app, SimEngine thread, Hub broadcaster, REST & WebSocket
-│   ├── tui/                     # Textual terminal client
+│   ├── tui/                     # Textual terminal client (standalone WebSocket client)
 │   └── tests/                   # Pytest test suite (503+ automated tests across 44 suites)
-└── frontend/
-    └── src/
-        ├── analytics/           # Observatory & Macro Analytics Engine
-        │   ├── Observatory.tsx  # Full-screen macro dashboard & tab container
-        │   ├── MacroOverview.tsx # Demographics, vital health, biomass & speed sparklines
-        │   ├── SociologyTab.tsx # Clan hegemony, trade caravans, wars & succession
-        │   ├── EcologyTab.tsx   # Botanical diversity, soil health & trophic pyramid
-        │   ├── CrisisTab.tsx    # Epidemic spread, starvation alerts & disaster logs
-        │   ├── MutationLab.tsx  # Morphological phylogeny tree & 2D morphospace scatter
-        │   ├── MetricCard.tsx   # Formatted metric card with trend badges
-        │   └── Sparkline.tsx    # Lightweight SVG time-series sparkline
-        ├── render/
-        │   ├── CanvasRenderer.tsx # High-performance 60 FPS viewport with pointer controls
-        │   ├── renderCore.ts      # Hardware-accelerated Canvas2D engine, LOD gates & scratch pools
-        │   ├── webglRenderer.ts   # WebGL instanced sprite renderer & shaders
-        │   ├── ClanPanel.tsx      # Live clan settlements, totems, and war records (memoized)
-        │   ├── ChronicleFeed.tsx  # Filterable, scrollable real-time event log (memoized)
-        │   ├── OverviewPanel.tsx  # Day-trend demographics, mortality, hegemon (memoized)
-        │   ├── CasteChart.tsx     # Caste demographic distribution proportions
-        │   ├── TrophicChart.tsx   # Biomass and trophic level distribution pyramid
-        │   └── Collapsible.tsx    # Dynamic flex collapsible accordion component
-        ├── components/
-        │   ├── CreatureAvatar.tsx # SVG creature avatar with full phenotypic parity & radar
-        │   └── ConfirmModal.tsx   # Confirmation dialogs for dangerous actions
-        ├── clan/
-        │   └── ClanDetails.tsx    # Clan profile, leader residence, founded day & casualty stats
-        ├── history/
-        │   └── WorldHistoryModal.tsx # Daily chronicle digest, wars, and AI Story export
-        ├── god/
-        │   ├── GodPanel.tsx       # Interactive Laws of Nature control drawer (6 macro domains)
-        │   └── auth.tsx           # Passkey dialog and authorized godFetch client
-        ├── inspect/
-        │   └── Inspector.tsx      # Creature dossier, vitals, inventory & family tree
-        ├── wiki/
-        │   └── Wiki.tsx           # In-app interactive wiki & API playground
-        ├── types.ts               # TypeScript schemas mirroring backend protocol
-        ├── websocket.ts           # Auto-reconnecting WebSocket client
-        └── App.tsx                # Main layout, HUD, WS sync, mobile drawer navigation
+├── docs/                        # Architecture specs, design philosophies & notes
+├── scripts/                     # Benchmark & stress test utilities
+├── run.sh                       # Local orchestrator (backend, TUI, full stack)
+├── setup.sh                     # Automated installation script
+├── docker-compose.yml           # Multi-container orchestration (backend + flws-web)
+└── deploy.example.sh            # Production deployment script template
 ```
+
+> **Companion Repositories**:
+> - **Web Client (`flws-web`)**: [https://github.com/longphanmn/flws-web](https://github.com/longphanmn/flws-web) — React 18, Canvas2D 60 FPS viewport, Macro Analytics Observatory, and bundled static documentation mirrors.
+> - **Landing Page (`flws-page`)**: [https://github.com/longphanmn/flws-page](https://github.com/longphanmn/flws-page) — Tokyo Night marketing portal, Abbott Flatland lore, and interactive canvas.
 
 ---
 
@@ -313,10 +297,10 @@ Flatland is organized into three specialized GitHub repositories with unified sa
 
 - **Unified Same-System Deployment**:
   - `docker-compose.yml` orchestrates **both** backend and frontend on the same host system. It supports parameterizing `${BACKEND_DIR:-./backend}` and `${FRONTEND_DIR:-./frontend}` (or sibling `../flws-web`).
-  - `deploy.sh` automatically detects multi-repo directory structures, synchronizes code to the production server (`root@192.168.1.21`), compiles native OpenMP C kernels, builds the frontend bundle, and manages background services while preserving live world state.
+  - `deploy.sh` automatically detects multi-repo directory structures, synchronizes code to the production server configured via `.env` (`SERVER`, `REMOTE_DIR`), compiles native OpenMP C kernels, builds the frontend bundle, and manages background services while preserving live world state.
 - **Dual Independent GitHub Pages**:
-  - **Web Client**: Deployed independently from `flws-web` to `https://longphanmn.github.io/flws-web/` (connects dynamically via WebSocket/REST to live backend servers).
-  - **Landing Page**: Deployed independently from `flws-page` to `https://longphanmn.github.io/flws-page/`.
+  - **Web Client & Static Docs**: Deployed from `flws-web` to `https://longphanmn.github.io/flws-web/` (connects dynamically via WebSocket/REST to live backend servers, and serves static mirrors for `/wiki/`, `/docs/`, and `/health/`).
+  - **Landing Showcase**: Deployed from `flws-page` to `https://longphanmn.github.io/flws-page/`.
 
 ---
 
@@ -326,9 +310,12 @@ Flatland is organized into three specialized GitHub repositories with unified sa
   - Backend Engine: [https://github.com/longphanmn/flws](https://github.com/longphanmn/flws)
   - Web Frontend Client: [https://github.com/longphanmn/flws-web](https://github.com/longphanmn/flws-web)
   - Landing Page: [https://github.com/longphanmn/flws-page](https://github.com/longphanmn/flws-page)
-- **Live Deployments**:
+- **Live Deployments & Documentation**:
   - Web Simulation App: [https://longphanmn.github.io/flws-web/](https://longphanmn.github.io/flws-web/)
   - Landing Showcase: [https://longphanmn.github.io/flws-page/](https://longphanmn.github.io/flws-page/)
+  - Living Wiki: [https://longphanmn.github.io/flws-web/wiki/](https://longphanmn.github.io/flws-web/wiki/)
+  - API Documentation: [https://world.minhnhan.in/docs](https://world.minhnhan.in/docs) · [Static Mirror](https://longphanmn.github.io/flws-web/docs/)
+  - Engine Health Monitor: [https://longphanmn.github.io/flws-web/health/](https://longphanmn.github.io/flws-web/health/)
 - **Developed by**: **[Long Phan](mailto:long@minhnhan.in)**  
   Email: [long@minhnhan.in](mailto:long@minhnhan.in)  
 - **AI Tooling & Development**: Built and engineered with **OpenCode** and **Antigravity**.
