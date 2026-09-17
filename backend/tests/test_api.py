@@ -118,6 +118,17 @@ def test_websocket_hello_then_state_then_step(client):
         assert state3["tick"] == 0
 
 
+def test_websocket_initial_message_always_state_not_delta(client):
+    """Ensure connecting clients always receive a full state message, even if delta_state was cached."""
+    RT._cached_state_text = '{"type":"delta_state","tick":0,"creatures_alive":10}'
+    with client.websocket_connect("/ws") as ws:
+        hello = ws.receive_json()
+        assert hello["type"] == "hello"
+        state = ws.receive_json()
+        assert state["type"] == "state"
+        assert state["tick"] == 0
+
+
 def test_presets_list_and_apply_all(client):
     """Verify all presets are exposed and can be applied cleanly."""
     r = client.get("/api/presets")

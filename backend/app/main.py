@@ -592,10 +592,10 @@ class SimEngine:
             if payload is not None:
                 try:
                     text = _dumps(payload)
-                    self.rt._cached_state_text = text  # type: ignore[attr-defined]
+                    if isinstance(payload, dict) and payload.get("type") == "state":
+                        self.rt._cached_state_text = text  # type: ignore[attr-defined]
                 except Exception:
                     text = None
-                    self.rt._cached_state_text = None  # type: ignore[attr-defined]
                 # AZ Phase 1 P1: take lock for clan cache build; reset to None on exception
                 if getattr(self.rt, "sim", None) and (self.rt.sim.tick % 10 == 0 or getattr(self.rt, "_cached_clans_payload", None) is None):
                     try:
@@ -2450,7 +2450,7 @@ def apply_laws(laws: GodLaws, persist: bool = True) -> dict:
 # ---------------------------------------------------------------- websocket
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket) -> None:
-    await HUB.connect(ws)
+    await ws.accept()
     # AZ Phase 1 P0: refresh frozen cache on connect so HTTP doesn't stay stale
     try:
         with RT.lock:
@@ -2474,7 +2474,7 @@ async def ws_endpoint(ws: WebSocket) -> None:
                 import json as _json
 
                 cached = _json.loads(snap_text)  # type: ignore[arg-type]
-                if cached.get("tick") != RT.sim.tick:
+                if cached.get("type") != "state" or cached.get("tick") != RT.sim.tick:
                     need_fresh = True
                 elif is_extinct_live and cached.get("creatures_alive") != 0:
                     need_fresh = True
@@ -2491,6 +2491,8 @@ async def ws_endpoint(ws: WebSocket) -> None:
             ws.send_text(snap_text),
             timeout=HUB.SEND_TIMEOUT,
         )
+        # Subscribe to subsequent delta broadcasts only after full state has been sent
+        HUB.clients.add(ws)
         while True:
             raw = await ws.receive_json()
             try:
