@@ -2,7 +2,7 @@
 
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Flatland-181717?style=flat-square&logo=github)](https://github.com/longphanmn/flws)
 > **Source Repository**: [https://github.com/longphanmn/flws](https://github.com/longphanmn/flws)  
-> Historical record of completed sections (§F–§BD, 632 completed items: 573 §F–§BA + 14 §BC + 12 §AZ + 33 §BD). For active work and latest sections (§BE–§BL), see [`TODO.md`](../TODO.md). Line anchors (`file:line`) have been stripped — all were stale after repeated rewrites; symbols are kept.
+> Historical record of completed sections (§F–§BP, 772 completed items: 748 §F–§BN + 8 §BO + 16 §BP). For active work and latest sections (§BQ), see [`TODO.md`](../TODO.md). Line anchors (`file:line`) have been stripped — all were stale after repeated rewrites; symbols are kept.
 
 ---
 
@@ -2119,5 +2119,36 @@ Audited, quantified, and **deliberately excluded**. Do not start these without r
 - [x] [P2] BN-26 Undo/redo stack
 - [x] [P2] BN-27 Cross-tab search
 - [x] [P2] BN-28 Filter by zone
+
+## BO. Production Performance Optimization & Zero-Allocation Engine [P0–P1] — 8/8 (archived 2026-09-11)
+
+- [x] [P0] BO-1 Signal Hearing Loop Overhaul (creature_update.py / core.py)
+- [x] [P0] BO-2 Spatial Hash Grid Accurate Cell Bounds (world.py)
+- [x] [P1] BO-3 Eliminate Redundant Spatial Query in Panic Check (creature_update.py)
+- [x] [P1] BO-4 Precomputed Totem Multipliers & Fast Ambient Mapping (core.py / environment.py)
+- [x] [P0] BO-5 Zero-Allocation Canvas2D Path Tracing (renderCore.ts)
+- [x] [P1] BO-6 WebSocket Entity List Recycling (websocket.ts)
+- [x] [P0] BO-7 Production Frontend Build & Preview Mode (vite.config.ts / deploy.sh)
+- [x] [P0] BO-8 Verification, Production Deploy & Live Profiling
+
+## BP. Tri-Repository Architectural Split: Backend (flws), Web Frontend (flws-web) & Landing Page (flws-page) [P0] — 16/16 (archived 2026-09-11)
+
+- [x] [P0] BP-1 Multi-Repo Source Contexts in docker-compose.yml
+- [x] [P0] BP-2 Same-System Production Runtime & Reverse Proxy Validation
+- [x] [P0] BP-3 Multi-Repo Auto-Detection & Path Resolution (deploy.sh)
+- [x] [P0] BP-4 Atomic Dual-Service Deployment to Same Remote Host (deploy.sh)
+- [x] [P0] BP-5 Dual Independent GitHub Pages Deployments (deploy.sh)
+- [x] [P0] BP-6 Pure Backend Engine Boundary Isolation (flws)
+- [x] [P0] BP-7 Cross-Origin Resource Sharing (CORS) & WSS Security (flws)
+- [x] [P0] BP-8 Extract frontend/ to Independent Repository flws-web
+- [x] [P0] BP-9 Configurable Backend Transport & Runtime Host Override
+- [x] [P0] BP-10 Independent GitHub Pages CI/CD Workflow (flws-web)
+- [x] [P0] BP-11 Extract Landing Page to Dedicated Repository flws-page
+- [x] [P0] BP-12 GitHub Pages CI/CD Workflow (flws-page)
+- [x] [P0] BP-13 Landing Page CTA Buttons Repointing to flws-web
+- [x] [P0] BP-14 Core Project Documentation Overhaul (README.md, docs/*)
+- [x] [P0] BP-15 Living Wiki Multi-Language Engine Synchronization (wiki_i18n.py, wiki_content_i18n.py)
+- [x] [P0] BP-16 Static Multi-Language Wiki Pages & OpenAPI Parity (flws/wiki/ & demo/wiki/)
+
 
 

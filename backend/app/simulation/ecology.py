@@ -9,7 +9,15 @@ from typing import Any
 from ..entities import Corpse, Creature, Entity, Food, House
 from ..protocol import HistoryEvent
 from .constants import *
-from .constants import _season_food_mult, _clan_sig, personal_name_for, glyph_for, variation_for
+from .constants import (
+    _season_food_mult,
+    _smooth_season_food_mult,
+    _smooth_age_mult,
+    _clan_sig,
+    personal_name_for,
+    glyph_for,
+    variation_for,
+)
 
 class EcologyMixin:
     def _update_plants(self) -> None:
@@ -186,7 +194,12 @@ class EcologyMixin:
         _xi_spread = float(getattr(self, "_density_xi", 0.0) or 0.0)
         _spread_eff = cfg.plant_spread_rate / (1.0 + 2.0 * _xi_spread) if _xi_spread else cfg.plant_spread_rate
         if _spread_eff > 0 and sun > 0.0:
-            target = round(cfg.food_count * _season_food_mult(self._season(), cfg.winter_food_mult))
+            offset = int(getattr(cfg, "initial_season_offset", 0) or 0)
+            sm = _smooth_season_food_mult(self.tick, cfg.season_length, cfg.winter_food_mult, offset=offset)
+            target = round(cfg.food_count * sm)
+            age = self._age()
+            if age is not None:
+                target = round(target * _smooth_age_mult(self.tick, cfg.age_length, AGE_FOOD_MULT))
             total = sum(1 for e in self.world.entities.values() if e.kind == "food")
             wx, wy = self._cos_wind, self._sin_wind
             seed_blend = min(0.7, WIND_SEED_BIAS * self.wind_speed)
@@ -428,11 +441,15 @@ class EcologyMixin:
 
     def _enforce_food_law(self) -> None:
         """God's bounty or famine, bent by the season and age: winter starves the land."""
-        season = self._season()
-        target = round(self.config.food_count * _season_food_mult(season, self.config.winter_food_mult))
+        offset = int(getattr(self.config, "initial_season_offset", 0) or 0)
+        sm = _smooth_season_food_mult(
+            self.tick, self.config.season_length, self.config.winter_food_mult, offset=offset
+        )
+        target = round(self.config.food_count * sm)
         age = self._age()
         if age is not None:
-            target = round(target * AGE_FOOD_MULT.get(age, 1.0))
+            am = _smooth_age_mult(self.tick, self.config.age_length, AGE_FOOD_MULT)
+            target = round(target * am)
         foods = [e for e in self.world.entities.values() if e.kind == "food" and not getattr(e, "cultivated", False)]
         # Ensure no wild plants exist inside any shelter structure (periodic clean-up to save 50ms/tick)
         if self.tick % 60 == 0:
@@ -443,8 +460,11 @@ class EcologyMixin:
                 self.world.remove(f_id)
             if inside_shelter_ids:
                 foods = [f for f in foods if f.id not in inside_shelter_ids]
+        law_changed = getattr(self, "_last_law_food_count", self.config.food_count) != self.config.food_count
+        self._last_law_food_count = self.config.food_count
         deficit = target - len(foods)
         if deficit > 0:
+            season = self._season()
             growth_init = 1.0
             if age == "Ice":
                 growth_init = 0.25
@@ -452,11 +472,24 @@ class EcologyMixin:
                 growth_init = 0.45
             elif season == "winter":
                 growth_init = 0.4
-            for _ in range(deficit):
+
+            # If meadow is unpopulated (cold start/world init), law changed, or in micro-test mode, fill immediately
+            if (
+                len(foods) == 0
+                or law_changed
+                or getattr(self.config, "fast_food_spawn", False)
+                or self.config.season_length < 60
+            ):
+                spawn_n = deficit
+            else:
+                # Regrowth flux bounded per tick to allow genuine grazing depletion
+                max_flux = max(1, int(round(target * 0.025)))
+                spawn_n = min(deficit, max_flux)
+
+            for _ in range(spawn_n):
                 x, y = self._food_pos()
                 self.world.add(self._new_food(x, y, growth=growth_init))
         elif deficit < 0:
-            # Winter die-back takes the youngest shoots first.
             ordered = sorted(foods, key=lambda f: f.growth)
             for victim in ordered[:-deficit]:
                 self.world.remove(victim.id)

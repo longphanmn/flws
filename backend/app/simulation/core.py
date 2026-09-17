@@ -75,7 +75,7 @@ except Exception:
 
 
 from .constants import *  # noqa: F403
-from .constants import _clan_sig, _season_food_mult  # noqa: F401
+from .constants import _clan_sig, _season_food_mult, _smooth_age_mult  # noqa: F401
 from .ecology import EcologyMixin
 from .environment import EnvironmentMixin
 from .settlement import SettlementMixin
@@ -230,6 +230,7 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
         # §AP theology: sacred truces (synod/epiphany) still all strife while > 0
         self.truce_ticks = 0
         self._last_season: str | None = None  # season-change detector for miracles
+        self._last_law_food_count: int = self.config.food_count
         self.fertile: list[dict] = []  # {x,y,r} — food prefers these grounds
         self.rocks: list[dict] = []  # {x,y,r} — solid circles that block movement
         self.rivers: list[dict] = []  # §AQ PH-3: horizontal channels {cy,hw,base_hw,dir,water,flood_ticks,silt_ticks}
@@ -1576,7 +1577,7 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
                 carrying_d = self.config.effective_carrying_capacity
                 age_d = self._age()
                 if age_d is not None:
-                    cap_mult_d = AGE_CAP_MULT.get(age_d, 1.0)
+                    cap_mult_d = _smooth_age_mult(self.tick, self.config.age_length, AGE_CAP_MULT)
                     carrying_d = max(2, round(carrying_d * cap_mult_d))
                 if self.config.carrying_capacity > 0:
                     carrying_d = min(carrying_d, round(self.config.carrying_capacity * 1.10))

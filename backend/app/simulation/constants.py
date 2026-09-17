@@ -24,6 +24,49 @@ def _season_food_mult(season: str, winter_mult: float) -> float:
     if season == "winter":
         return winter_mult
     return SEASON_FOOD_MULT.get(season, 1.0)
+
+
+def _smooth_season_food_mult(tick: int, season_length: int, winter_mult: float, offset: int = 0) -> float:
+    """Astronomically continuous season food multiplier using solar declination curve."""
+    if season_length <= 0:
+        return 1.0
+    if season_length < 60:
+        season_idx = ((tick // season_length) + offset) % 4
+        s_name = SEASONS[season_idx]
+        return winter_mult if s_name == "winter" else SEASON_FOOD_MULT.get(s_name, 1.0)
+    year_len = 4 * season_length
+    current_tick = (tick + offset * season_length) % year_len
+    theta = 2.0 * math.pi * (current_tick / float(year_len))
+    solar_sin = math.sin(theta)
+    if solar_sin >= 0.0:
+        return 1.0 + solar_sin * (SEASON_FOOD_MULT.get("summer", 1.2) - 1.0)
+    else:
+        return 1.0 + solar_sin * (1.0 - winter_mult)
+
+
+def _smooth_age_mult(tick: int, age_length: int, mult_dict: dict[str, float], window_ticks: int = 600) -> float:
+    """Smoothly blends age multipliers across era boundaries over window_ticks."""
+    if age_length <= 0:
+        return 1.0
+    if age_length < 100:
+        idx = (tick // age_length) % len(AGES)
+        return mult_dict.get(AGES[idx], 1.0)
+    cur_idx = (tick // age_length) % len(AGES)
+    cur_age = AGES[cur_idx]
+    target_mult = mult_dict.get(cur_age, 1.0)
+    age_tick = tick % age_length
+    blend_window = min(window_ticks, age_length // 4)
+    if blend_window > 0 and age_tick < blend_window:
+        if tick < age_length:
+            return target_mult
+        prev_idx = (cur_idx - 1) % len(AGES)
+        prev_age = AGES[prev_idx]
+        prev_mult = mult_dict.get(prev_age, 1.0)
+        t = age_tick / float(blend_window)
+        # Cosine / smoothstep blend
+        smooth_t = 0.5 * (1.0 - math.cos(math.pi * t))
+        return prev_mult + smooth_t * (target_mult - prev_mult)
+    return target_mult
 WEATHER_STATES = ("clear", "rain", "fog", "storm")
 AGES = ("Golden", "Ice", "Chaos", "Plague")
 AGE_FOOD_MULT = {"Golden": 1.25, "Ice": 0.55, "Chaos": 0.95, "Plague": 0.9}

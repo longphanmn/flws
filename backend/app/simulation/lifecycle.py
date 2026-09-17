@@ -49,6 +49,7 @@ except Exception:  # pragma: no cover
     _evolution = None  # type: ignore
 
 from .constants import *
+from .constants import _smooth_age_mult, _smooth_season_food_mult
 
 class LifecycleMixin:
     def _init_creature_evolution(
@@ -598,7 +599,7 @@ class LifecycleMixin:
         carrying = cfg.effective_carrying_capacity
         age = self._age()
         if age is not None:
-            cap_mult = AGE_CAP_MULT.get(age, 1.0)
+            cap_mult = _smooth_age_mult(self.tick, cfg.age_length, AGE_CAP_MULT)
             max_pop = max(2, round(max_pop * cap_mult))
             carrying = max(2, round(carrying * cap_mult))
 
@@ -619,13 +620,12 @@ class LifecycleMixin:
         if pop >= max_pop:
             return
 
-        # Fertility room drops aggressively when population crosses carrying capacity
+        # Fertility room drops smoothly when population crosses carrying capacity
         room = 1.0
         if pop >= carrying:
-            _d_steep = max(6.0, float(getattr(cfg, "damping_steepness", 12.0)))
-            room = max(0.0, math.exp(-_d_steep * _xi * 2.5))
-            # Hard clamp: if room is negligible or pop is >=15% over carrying (e.g. 402 for 350 cap)
-            if room < 0.01 or pop >= carrying * 1.15 or pop >= max_pop:
+            _d_steep = max(4.0, float(getattr(cfg, "damping_steepness", 10.0)))
+            room = max(0.0, math.exp(-_d_steep * _xi))
+            if room < 0.001 or pop >= max_pop:
                 return
 
         if room <= 0.0:
