@@ -2377,6 +2377,22 @@ def _restore_law_state(rt: RuntimeState) -> bool:
     if not laws:
         return False
     saved = _clean(data.get("saved_laws")) or dict(laws)
+
+    # Modernize legacy season_length that was locked 1:1 to age_length (12000 -> 2400)
+    preset_name = data.get("preset", "balance")
+    preset_cfg = PRESETS.get(preset_name, PRESETS.get("balance", {}))
+    if laws.get("season_length", 0) >= 12000 and laws.get("age_length", 0) == 12000:
+        modern_sl = preset_cfg.get("season_length", 2400)
+        laws["season_length"] = modern_sl
+        if "season_length" in saved and saved["season_length"] >= 12000:
+            saved["season_length"] = modern_sl
+        data["laws"] = laws
+        data["saved_laws"] = saved
+        try:
+            DB.set_setting(LAW_STATE_KEY, json.dumps(data))
+        except Exception:
+            pass
+
     try:
         with rt.lock:
             rt.config = replace(rt.config, **laws)
@@ -2907,10 +2923,11 @@ async def get_damping_metrics() -> dict:
             Kcap = int(getattr(cfg, "effective_carrying_capacity", getattr(cfg, "carrying_capacity", 350)))
             if sim is not None and hasattr(sim, "_age"):
                 try:
-                    from .simulation import AGE_CAP_MULT
-                    age_m = sim._age()
-                    if age_m is not None:
-                        Kcap = max(2, round(Kcap * AGE_CAP_MULT.get(age_m, 1.0)))
+                    from .simulation.constants import AGE_CAP_MULT, _smooth_age_mult, _smooth_season_cap_mult
+                    offset = int(getattr(cfg, "initial_season_offset", 0) or 0)
+                    cap_mult = _smooth_age_mult(sim.tick, cfg.age_length, AGE_CAP_MULT) if sim._age() is not None else 1.0
+                    season_cap_mult = _smooth_season_cap_mult(sim.tick, cfg.season_length, offset=offset)
+                    Kcap = max(2, round(Kcap * cap_mult * season_cap_mult))
                 except Exception:
                     pass
             xi = compute_xi(N, Kcap, enabled)

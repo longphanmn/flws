@@ -20,22 +20,22 @@ Legend: [P0] foundational · [P1] core Flatland identity · [P2] flavor/observab
 > 4. **Step Transitions**: Environmental multipliers jump instantly at tick boundaries rather than smoothly transitioning across days/seasons/ages.
 
 ### Ecological Realism & Continuous Dynamics [P0–P1]
-- [x] [P0] **BQ-1 Desynchronize Season & Age Cycles** (`config.py` / `main.py` / `environment.py`)
-  - Set `season_length` to coprime / natural multiples relative to `age_length` (e.g. 5 seasons per age: restoring `season_length = 2400` ticks = 2 days per season across `age_length = 12000`).
-  - Ensures every Age traverses different seasons over time (e.g., Ice experiences winter, spring, and summer) unlocking all 16 $(Season, Age)$ environmental permutations.
-- [x] [P0] **BQ-2 Smooth Seasonal & Age Astronomical Transitions** (`constants.py` / `environment.py` / `ecology.py`)
-  - Replaced discrete 1-tick step multiplier cliffs (`SEASON_FOOD_MULT`, `AGE_FOOD_MULT`, `AGE_CAP_MULT`) with continuous astronomical solar curve interpolation (cosine/smoothstep easing over cycle boundaries).
-  - Eliminated instantaneous shocks to ecosystem carrying capacity and food targets.
+- [x] [P0] **BQ-1 Desynchronize Season & Age Cycles & Database Migration** (`config.py` / `main.py` / `environment.py`)
+  - Set `season_length` to coprime / natural multiples relative to `age_length` (5 seasons per age: `season_length = 2400` ticks = 2 days per season across `age_length = 12000`).
+  - Added automatic database migration in `_restore_law_state()` to modernize legacy `season_length: 12000` from persisted `flatworld.db`, unlocking an 80-minute (48,000-tick) non-repeating super-cycle across all 16 $(Season, Age)$ environmental combinations.
+- [x] [P0] **BQ-2 Smooth Astronomical Midpoint Interpolation & Seasonal Capacity** (`constants.py` / `environment.py` / `ecology.py`)
+  - Replaced narrow 600-tick boundary windows with full-cycle continuous midpoint cosine interpolation in `_smooth_age_mult()`, ensuring zero flat plateaus across the 12,000-tick era.
+  - Introduced `_smooth_season_cap_mult()` providing continuous $\pm 12\%$ solar expansion and contraction of environmental carrying capacity through the seasons.
 - [x] [P0] **BQ-3 Dynamic Food Regrowth Flux & Grazing Depletion** (`ecology.py` / `core.py`)
   - Replaced per-tick hard equality enforcement (`len(foods) == target`) with a rate-limited sprout germination flux proportional to available carrying capacity and seasonal targets.
   - High creature density now genuinely overgrazes and depresses wild food levels, driving organic Lotka-Volterra predator-prey/resource oscillations.
   - Retained instantaneous divine decree adjustments when God changes food laws via API.
-- [x] [P0] **BQ-4 Organic Density Damping & Soft-Cap Smoothing** (`lifecycle.py` / `density_damping.py`)
-  - Replaced the rigid hard-stop birth clamp (`pop >= carrying * 1.15`) with continuous logistic carrying pressure and exponential decay damping room.
-  - Allowed natural metabolic energy availability, reproduction cooldowns, and gentle density damping to govern birth rates so population breathes and fluctuates organically around carrying capacity.
+- [x] [P0] **BQ-4 Multi-Harmonic Carrying Capacity & Smooth Logistic Soft-Cap** (`lifecycle.py` / `core.py` / `density_damping.py`)
+  - Replaced the rigid thermostat wall (`math.exp(-10 * xi)`) with smooth logistic easing between carrying capacity and maximum population.
+  - Unified carrying capacity calculations across `lifecycle.py` and `core.py` combining age and seasonal solar multipliers (`carrying * cap_mult * season_cap_mult`) so population naturally breathes and undulates around carrying capacity.
 - [x] [P1] **BQ-5 Live Telemetry, Test Suite & Health Dashboard Verification**
-  - Verified full test suite passes with 519 passing tests (0 failures).
-  - Added dedicated regression test suite `test_continuous_dynamics.py` covering solar curve continuity, age blending, desynchronization, smooth carrying capacity, and bounded regrowth flux.
+  - Verified full test suite passes across 522+ tests (0 failures).
+  - Expanded regression test suite `test_continuous_dynamics.py` covering solar carrying capacity, mid-era continuous variation, and non-plateau dynamics.
 
 ---
 

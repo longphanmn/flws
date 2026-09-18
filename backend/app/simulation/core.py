@@ -75,7 +75,7 @@ except Exception:
 
 
 from .constants import *  # noqa: F403
-from .constants import _clan_sig, _season_food_mult, _smooth_age_mult  # noqa: F401
+from .constants import _clan_sig, _season_food_mult, _smooth_age_mult, _smooth_season_cap_mult  # noqa: F401
 from .ecology import EcologyMixin
 from .environment import EnvironmentMixin
 from .settlement import SettlementMixin
@@ -1576,11 +1576,10 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
                 pop_d = len(self._cached_creatures)
                 carrying_d = self.config.effective_carrying_capacity
                 age_d = self._age()
-                if age_d is not None:
-                    cap_mult_d = _smooth_age_mult(self.tick, self.config.age_length, AGE_CAP_MULT)
-                    carrying_d = max(2, round(carrying_d * cap_mult_d))
-                if self.config.carrying_capacity > 0:
-                    carrying_d = min(carrying_d, round(self.config.carrying_capacity * 1.10))
+                offset_d = int(getattr(self.config, "initial_season_offset", 0) or 0)
+                cap_mult_d = _smooth_age_mult(self.tick, self.config.age_length, AGE_CAP_MULT) if age_d is not None else 1.0
+                season_cap_mult_d = _smooth_season_cap_mult(self.tick, self.config.season_length, offset=offset_d)
+                carrying_d = max(2, round(carrying_d * cap_mult_d * season_cap_mult_d))
                 if getattr(self, "_density_engine", None) is not None:
                     self._density_xi, self._density_scales = self._density_engine.update(pop_d, self.tick, carrying_d)
                 else:

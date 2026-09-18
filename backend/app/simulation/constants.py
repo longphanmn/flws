@@ -45,28 +45,55 @@ def _smooth_season_food_mult(tick: int, season_length: int, winter_mult: float, 
 
 
 def _smooth_age_mult(tick: int, age_length: int, mult_dict: dict[str, float], window_ticks: int = 600) -> float:
-    """Smoothly blends age multipliers across era boundaries over window_ticks."""
+    """Smoothly blends age multipliers across era cycles via continuous midpoint cosine interpolation."""
     if age_length <= 0:
         return 1.0
     if age_length < 100:
         idx = (tick // age_length) % len(AGES)
         return mult_dict.get(AGES[idx], 1.0)
-    cur_idx = (tick // age_length) % len(AGES)
-    cur_age = AGES[cur_idx]
-    target_mult = mult_dict.get(cur_age, 1.0)
-    age_tick = tick % age_length
-    blend_window = min(window_ticks, age_length // 4)
-    if blend_window > 0 and age_tick < blend_window:
-        if tick < age_length:
-            return target_mult
-        prev_idx = (cur_idx - 1) % len(AGES)
-        prev_age = AGES[prev_idx]
-        prev_mult = mult_dict.get(prev_age, 1.0)
-        t = age_tick / float(blend_window)
-        # Cosine / smoothstep blend
-        smooth_t = 0.5 * (1.0 - math.cos(math.pi * t))
-        return prev_mult + smooth_t * (target_mult - prev_mult)
-    return target_mult
+
+    # Each age spans age_length. Midpoint of age k is at (k + 0.5) * age_length.
+    cycle_len = len(AGES) * age_length
+    cur_cycle_tick = tick % cycle_len
+
+    # World dawn special case: first half of the very first age starts firmly at Golden target
+    if tick < age_length // 2:
+        return mult_dict.get(AGES[0], 1.0)
+
+    # Phase relative to age midpoints
+    phase = (cur_cycle_tick / float(age_length)) - 0.5
+    if phase < 0.0:
+        phase += len(AGES)
+
+    base_idx = int(math.floor(phase)) % len(AGES)
+    next_idx = (base_idx + 1) % len(AGES)
+    u = phase - math.floor(phase)
+
+    m_base = mult_dict.get(AGES[base_idx], 1.0)
+    m_next = mult_dict.get(AGES[next_idx], 1.0)
+
+    smooth_u = 0.5 * (1.0 - math.cos(math.pi * u))
+    return m_base + smooth_u * (m_next - m_base)
+
+
+def _smooth_season_cap_mult(tick: int, season_length: int, offset: int = 0) -> float:
+    """Astronomically continuous seasonal carrying capacity multiplier (solar harmonic).
+
+    Varies carrying capacity smoothly by ±12%:
+    - Spring equinox: 1.00
+    - Summer solstice: 1.12
+    - Autumn equinox: 1.00
+    - Winter solstice: 0.88
+    """
+    if season_length <= 0:
+        return 1.0
+    if season_length < 60:
+        return 1.0
+    year_len = 4 * season_length
+    current_tick = (tick + offset * season_length) % year_len
+    theta = 2.0 * math.pi * (current_tick / float(year_len))
+    return 1.0 + 0.12 * math.sin(theta)
+
 WEATHER_STATES = ("clear", "rain", "fog", "storm")
 AGES = ("Golden", "Ice", "Chaos", "Plague")
 AGE_FOOD_MULT = {"Golden": 1.25, "Ice": 0.55, "Chaos": 0.95, "Plague": 0.9}

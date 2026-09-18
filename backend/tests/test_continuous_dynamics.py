@@ -18,6 +18,7 @@ from app.simulation.constants import (
     AGE_FOOD_MULT,
     _smooth_age_mult,
     _smooth_season_food_mult,
+    _smooth_season_cap_mult,
 )
 from app.simulation.core import Simulation
 
@@ -149,3 +150,44 @@ def test_instant_divine_decree_food_law():
     sim.tick = 1
     sim._enforce_food_law()
     assert len([e for e in sim.world.entities.values() if e.kind == "food"]) == 200
+
+
+def test_smooth_season_cap_mult_continuity_and_range():
+    """Verify seasonal carrying capacity multiplier oscillates smoothly within ±12%."""
+    season_len = 2400
+    year_len = 4 * season_len
+
+    # Equinoxes should be ~1.0
+    assert abs(_smooth_season_cap_mult(0, season_len) - 1.0) < 1e-4
+    assert abs(_smooth_season_cap_mult(2 * season_len, season_len) - 1.0) < 1e-4
+
+    # Summer peak (~1.12) and Winter trough (~0.88)
+    summer = _smooth_season_cap_mult(season_len, season_len)
+    winter = _smooth_season_cap_mult(3 * season_len, season_len)
+    assert abs(summer - 1.12) < 1e-4
+    assert abs(winter - 0.88) < 1e-4
+
+    # Smoothness across the full year
+    for t in range(0, year_len, 100):
+        m1 = _smooth_season_cap_mult(t, season_len)
+        m2 = _smooth_season_cap_mult(t + 1, season_len)
+        assert abs(m2 - m1) < 0.001
+
+
+def test_mid_era_continuous_variation_no_flat_plateau():
+    """Verify that age multiplier does NOT stay flat for 19 minutes inside an era."""
+    age_len = 12000
+
+    # Test that between tick 6000 (mid-Golden) and tick 18000 (mid-Ice),
+    # the multiplier changes progressively and continuously across the era.
+    values = [_smooth_age_mult(t, age_len, AGE_CAP_MULT) for t in range(6000, 18001, 1000)]
+    
+    # Must be monotonically decreasing from Golden (1.10) to Ice (0.55)
+    for i in range(len(values) - 1):
+        assert values[i] > values[i + 1], f"Tick {6000 + i*1000} value {values[i]} not > {values[i+1]}"
+
+    # Test tick-to-tick step size is tiny (< 0.001)
+    for t in range(6000, 18000, 200):
+        m1 = _smooth_age_mult(t, age_len, AGE_CAP_MULT)
+        m2 = _smooth_age_mult(t + 1, age_len, AGE_CAP_MULT)
+        assert abs(m2 - m1) < 0.0005

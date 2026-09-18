@@ -49,7 +49,7 @@ except Exception:  # pragma: no cover
     _evolution = None  # type: ignore
 
 from .constants import *
-from .constants import _smooth_age_mult, _smooth_season_food_mult
+from .constants import _smooth_age_mult, _smooth_season_food_mult, _smooth_season_cap_mult
 
 class LifecycleMixin:
     def _init_creature_evolution(
@@ -598,10 +598,11 @@ class LifecycleMixin:
         max_pop = cfg.effective_max_population
         carrying = cfg.effective_carrying_capacity
         age = self._age()
-        if age is not None:
-            cap_mult = _smooth_age_mult(self.tick, cfg.age_length, AGE_CAP_MULT)
-            max_pop = max(2, round(max_pop * cap_mult))
-            carrying = max(2, round(carrying * cap_mult))
+        offset = int(getattr(cfg, "initial_season_offset", 0) or 0)
+        cap_mult = _smooth_age_mult(self.tick, cfg.age_length, AGE_CAP_MULT) if age is not None else 1.0
+        season_cap_mult = _smooth_season_cap_mult(self.tick, cfg.season_length, offset=offset)
+        max_pop = max(2, round(max_pop * cap_mult * season_cap_mult))
+        carrying = max(2, round(carrying * cap_mult * season_cap_mult))
 
         # Phase 4 Density-Dependent Soft-Cap Damping (xi) — computed via effective carrying capacity
         try:
@@ -620,11 +621,12 @@ class LifecycleMixin:
         if pop >= max_pop:
             return
 
-        # Fertility room drops smoothly when population crosses carrying capacity
+        # Fertility room drops smoothly when population crosses carrying capacity toward max_pop
         room = 1.0
         if pop >= carrying:
-            _d_steep = max(4.0, float(getattr(cfg, "damping_steepness", 10.0)))
-            room = max(0.0, math.exp(-_d_steep * _xi))
+            span = max(1, max_pop - carrying)
+            progress = min(1.0, max(0.0, float(pop - carrying) / float(span)))
+            room = 0.5 * (1.0 + math.cos(math.pi * progress))
             if room < 0.001 or pop >= max_pop:
                 return
 
