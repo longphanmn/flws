@@ -31,16 +31,18 @@ def test_scales_for_xi():
 
     # At xi = 0.10 (+10% overshoot), immediate suppression slope
     s1 = scales_for_xi(0.10, cfg)
-    assert s1["birth_rate_eff"] < 0.70  # strong linear suppression
-    assert s1["birth_cost_eff"] > 1.10
-    assert s1["cooldown_eff"] > 1.30
-    assert s1["decay_eff"] > 1.03
+    assert s1["birth_rate_eff"] < 0.90
+    assert s1["birth_cost_eff"] > 1.05
+    assert s1["cooldown_eff"] > 1.10
+    assert s1["decay_eff"] > 1.005
+    assert 0.95 < scales_for_xi(0.02, cfg)["birth_rate_eff"] < 1.0
 
     # At xi = 0.50 (+50% overshoot), heavy suppression
     s5 = scales_for_xi(0.50, cfg)
-    assert s5["birth_rate_eff"] < 0.10  # heavy suppression
-    assert s5["decay_eff"] > 1.20
-    assert s5["growth_eff"] < 0.70
+    assert s5["birth_rate_eff"] < 0.30
+    assert s5["decay_eff"] > 1.15
+    assert s5["growth_eff"] < 0.65
+    assert s5["birth_rate_eff"] < s1["birth_rate_eff"]
 
 
 def test_density_damping_engine():
@@ -126,10 +128,10 @@ def test_aggressive_soft_cap_suppression():
     xi = compute_xi(70, 50, enabled=True)
     assert xi == pytest.approx(0.40)
     scales = scales_for_xi(xi, cfg)
-    # Severe suppression: birth_rate_eff must be tiny (<0.07)
-    assert scales["birth_rate_eff"] < 0.07
-    # Crowding decay must be elevated (>1.5×)
-    assert scales["decay_eff"] > 1.5
+    # Severe suppression: birth_rate_eff must be tiny (<0.35)
+    assert scales["birth_rate_eff"] < 0.35
+    # Crowding decay must be elevated (>1.30×)
+    assert scales["decay_eff"] > 1.30
 
     # Run reproduction: no births should happen since pop == max_pop (70 >= 70)
     sim._reproduce()

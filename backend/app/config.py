@@ -328,7 +328,7 @@ class Config:
 
     # Phase 4 Density-Dependent Soft-Cap Damping — overpopulation homeostatic
     soft_cap_enabled: bool = True
-    damping_steepness: float = 12.0  # birth_rate divisor steepness (aggressive curve)
+    damping_steepness: float = 7.0  # birth_rate divisor steepness (aggressive curve)
     crowding_stress_mult: float = 1.0  # metabolic drain multiplier under crowding
     resource_strain_mult: float = 2.0  # plant growth/spread divisor under crowding
 

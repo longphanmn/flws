@@ -28,13 +28,15 @@ def compute_xi(N: int, Kcap: int, enabled: bool) -> float:
 def scales_for_xi(xi: float, config) -> Dict[str, float]:
     """Compute 4-channel damping scales for xi."""
     try:
-        damping = float(getattr(config, "damping_steepness", 12.0))
+        damping = float(getattr(config, "damping_steepness", 7.0))
         crowding = float(getattr(config, "crowding_stress_mult", 1.5))
         resource = float(getattr(config, "resource_strain_mult", 2.0))
+        k = float(getattr(config, "damping_sigmoid_k", 5.0))
     except Exception:
-        damping = 12.0
+        damping = 7.0
         crowding = 1.5
         resource = 2.0
+        k = 5.0
 
     if xi <= 0.0:
         return {
@@ -49,31 +51,37 @@ def scales_for_xi(xi: float, config) -> Dict[str, float]:
             "xi": 0.0,
         }
 
+    # Smooth sigmoid transition: sig = 1/(1+exp(k*xi)), w = 1 - 2*sig
+    # Continuous in value (1.0) and slope (0.0) at xi=0 with flat start,
+    # transitioning smoothly to existing suppression strength for larger xi.
+    sig = 1.0 / (1.0 + math.exp(min(50.0, k * xi)))
+    w = max(0.0, min(1.0, 1.0 - 2.0 * sig))
+
     # Channel 1: aggressive reproductive suppression (cubic & quadratic terms)
-    birth_rate_eff = 1.0 / (1.0 + 3.0 * damping * xi + (damping * xi) ** 2)
-    birth_cost_eff = 1.0 + 3.0 * xi + 2.0 * xi * xi
-    cooldown_eff = 1.0 + 5.0 * xi + 6.0 * xi * xi
-    mate_thr_eff = 1.0 + 2.5 * xi + 2.0 * xi * xi
+    raw_birth_rate_eff = 1.0 / (1.0 + 3.0 * damping * xi + (damping * xi) ** 2)
+    raw_birth_cost_eff = 1.0 + 3.0 * xi + 2.0 * xi * xi
+    raw_cooldown_eff = 1.0 + 5.0 * xi + 6.0 * xi * xi
+    raw_mate_thr_eff = 1.0 + 2.5 * xi + 2.0 * xi * xi
 
     # Channel 2: crowding stress (quadratic scaling to accelerate resolution)
-    decay_eff = 1.0 + crowding * xi + 0.8 * crowding * xi * xi
+    raw_decay_eff = 1.0 + crowding * xi + 0.8 * crowding * xi * xi
 
     # Channel 3: ecological strain
-    growth_eff = 1.0 / (1.0 + resource * xi * 1.5)
-    spread_eff = 1.0 / (1.0 + 3.0 * xi)
+    raw_growth_eff = 1.0 / (1.0 + resource * xi * 1.5)
+    raw_spread_eff = 1.0 / (1.0 + 3.0 * xi)
 
     # Channel 4: social friction (pathogens)
-    outbreak_eff = 1.0 + 4.0 * xi
+    raw_outbreak_eff = 1.0 + 4.0 * xi
 
     return {
-        "birth_rate_eff": birth_rate_eff,
-        "birth_cost_eff": birth_cost_eff,
-        "cooldown_eff": cooldown_eff,
-        "mate_thr_eff": mate_thr_eff,
-        "decay_eff": decay_eff,
-        "growth_eff": growth_eff,
-        "spread_eff": spread_eff,
-        "outbreak_eff": outbreak_eff,
+        "birth_rate_eff": 1.0 + w * (raw_birth_rate_eff - 1.0),
+        "birth_cost_eff": 1.0 + w * (raw_birth_cost_eff - 1.0),
+        "cooldown_eff": 1.0 + w * (raw_cooldown_eff - 1.0),
+        "mate_thr_eff": 1.0 + w * (raw_mate_thr_eff - 1.0),
+        "decay_eff": 1.0 + w * (raw_decay_eff - 1.0),
+        "growth_eff": 1.0 + w * (raw_growth_eff - 1.0),
+        "spread_eff": 1.0 + w * (raw_spread_eff - 1.0),
+        "outbreak_eff": 1.0 + w * (raw_outbreak_eff - 1.0),
         "xi": xi,
     }
 
