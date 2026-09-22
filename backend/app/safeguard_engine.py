@@ -70,7 +70,7 @@ class SafeguardEngine:
         self.last_N = 0
 
     def update(self, N: int, tick: int, sex_extinct: bool = False) -> Tuple[float, int, Dict[str, float]]:
-        cc = int(getattr(self.config, "carrying_capacity", 350))
+        cc = int(getattr(self.config, "effective_carrying_capacity", getattr(self.config, "carrying_capacity", 350)))
         relief = float(getattr(self.config, "safeguard_relief_ratio", 0.30))
         kcrit = int(getattr(self.config, "safeguard_critical_pop", 12))
         max_miracles = int(getattr(self.config, "safeguard_max_miracles", 1))

@@ -27,7 +27,7 @@
 | **Annealing $\lambda(g)$** | Genetics | Controls morphological drift from Abbott classical templates ($\lambda=1$ for $g < 15$) to open-ended speciation ($\lambda \to 0$). |
 | **The Sphere** | Theology / Macro | 3D entity observing from Spaceland. Enacts universal `GodLaws` (climate, mutation, carrying capacity) but cannot move or heal individual agents. |
 | **Extinction Safeguard ($\eta$)**| Macro Homeostasis | Relief factor $\eta \in [0, 1]$ active when $N < K_{\text{safe}}$. Boosts flora growth, reduces energy drain, enables morphological mercy, triggers Genesis Miracles. |
-| **Density Soft-Cap ($\xi$)** | Macro Homeostasis | Damping factor $\xi = (N - K_{\text{cap}})/K_{\text{cap}}$. Quadratically suppresses birth rates and elevates metabolic stress when population exceeds capacity. |
+| **Density Soft-Cap ($\xi$)** | Macro Homeostasis | Damping factor $\xi = \max(0, (N - 0.85 K_{\text{cap}})/K_{\text{cap}})$. Begins below the carrying edge (hysteresis) and releases exponentially toward its target with $\tau = 300$ ticks, quadratically suppressing birth rates and elevating metabolic stress as population approaches capacity. |
 | **Abbott Castes** | Social Hierarchy | Woman ($sides=2$, line), Isosceles Soldier ($sides=3$, acute), Artisan ($sides=3, \theta=60^\circ$), Gentleman ($sides=4$, square), Noble ($6 \le sides < 24$), Priest ($sides \ge 24$, circle). |
 | **Avatars of the Sphere** | Culture / Religion | 8 sacred totems: Radiant Circle, Celestial Strike, All-Seeing Vertex, Indomitable Monolith, Sacred Spiral, Cosmic Scales, Dimensional Rift, Eternal Hearth. |
 

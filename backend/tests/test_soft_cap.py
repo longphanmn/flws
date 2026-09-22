@@ -9,10 +9,12 @@ from app.simulation import Simulation
 
 
 def test_compute_xi():
+    # §BQ-6: partial damping now begins at 0.85*Kcap (hysteresis), scaled by Kcap.
     assert compute_xi(50, 100, enabled=True) == 0.0
-    assert compute_xi(100, 100, enabled=True) == 0.0
-    assert compute_xi(120, 100, enabled=True) == pytest.approx(0.20)
-    assert compute_xi(150, 100, enabled=True) == pytest.approx(0.50)
+    assert compute_xi(85, 100, enabled=True) == 0.0  # exactly at onset
+    assert compute_xi(100, 100, enabled=True) == pytest.approx(0.15)
+    assert compute_xi(120, 100, enabled=True) == pytest.approx(0.35)
+    assert compute_xi(150, 100, enabled=True) == pytest.approx(0.65)
     # Disabled or invalid Kcap
     assert compute_xi(150, 100, enabled=False) == 0.0
     assert compute_xi(150, -1, enabled=True) == 0.0
@@ -50,9 +52,42 @@ def test_density_damping_engine():
     engine = DensityDampingEngine(cfg)
 
     xi, scales = engine.update(120, 10)
-    assert xi == pytest.approx(0.20)
+    assert xi == pytest.approx(0.35)
     assert "birth_rate_eff" in scales
     assert engine.last_xi == xi
+
+
+def test_compute_xi_onset_below_k():
+    """§BQ-6 hysteresis: damping starts at 0.85*K, not at the K edge."""
+    assert compute_xi(84, 100, enabled=True) == 0.0
+    assert compute_xi(86, 100, enabled=True) == pytest.approx(0.01)
+
+
+def test_density_engine_release_slew():
+    """§BQ-6: xi must decay exponentially toward target, never snap to 0."""
+    cfg = Config(carrying_capacity=100, soft_cap_enabled=True)
+    engine = DensityDampingEngine(cfg)
+    xi_hi, _ = engine.update(150, 1)          # target = 0.65
+    assert xi_hi == pytest.approx(0.65)
+    xi_lo, _ = engine.update(85, 2)           # target = 0.0, release must lag
+    assert 0.0 < xi_lo < xi_hi
+    prev = xi_lo
+    for tick in range(3, 40):
+        xi, _ = engine.update(85, tick)
+        assert 0.0 < xi <= prev + 1e-12
+        prev = xi
+    for tick in range(40, 1600):
+        xi, _ = engine.update(85, tick)
+    assert xi < 0.01                          # fully released after ~5 tau
+
+
+def test_density_engine_idempotent_per_tick():
+    """step() and _reproduce() both call update() in one tick — no double decay."""
+    cfg = Config(carrying_capacity=100, soft_cap_enabled=True)
+    engine = DensityDampingEngine(cfg)
+    a = engine.update(150, 7)
+    b = engine.update(150, 7)
+    assert a == b
 
 
 def test_reproduction_hard_ceiling():
@@ -124,9 +159,9 @@ def test_aggressive_soft_cap_suppression():
     initial_count = len(sim.world.creatures())
     assert initial_count == 70
 
-    # Test that xi is computed at carrying_capacity=50 (xi = (70-50)/50 = 0.40)
+    # Test that xi is computed at carrying_capacity=50 (onset 42.5 -> xi=0.55)
     xi = compute_xi(70, 50, enabled=True)
-    assert xi == pytest.approx(0.40)
+    assert xi == pytest.approx(0.55)
     scales = scales_for_xi(xi, cfg)
     # Severe suppression: birth_rate_eff must be tiny (<0.35)
     assert scales["birth_rate_eff"] < 0.35

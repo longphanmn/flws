@@ -49,7 +49,6 @@ except Exception:  # pragma: no cover
     _evolution = None  # type: ignore
 
 from .constants import *
-from .constants import _smooth_age_mult, _smooth_season_food_mult, _smooth_season_cap_mult
 
 class LifecycleMixin:
     def _init_creature_evolution(
@@ -595,43 +594,47 @@ class LifecycleMixin:
         live = [c for c in creatures if c.id in self.world.entities]
         pop = len(live)
 
-        max_pop = cfg.effective_max_population
-        carrying = cfg.effective_carrying_capacity
-        age = self._age()
-        offset = int(getattr(cfg, "initial_season_offset", 0) or 0)
-        cap_mult = _smooth_age_mult(self.tick, cfg.age_length, AGE_CAP_MULT) if age is not None else 1.0
-        season_cap_mult = _smooth_season_cap_mult(self.tick, cfg.season_length, offset=offset)
-        max_pop = max(2, round(max_pop * cap_mult * season_cap_mult))
-        carrying = max(2, round(carrying * cap_mult * season_cap_mult))
+        # §BQ-6 The setpoint is FIXED: carrying capacity and the hard ceiling no
+        # longer ride the age & season multipliers. Multiplying by
+        # _smooth_age_mult(AGE_CAP_MULT) x _smooth_season_cap_mult made effective
+        # K wander ~185-468 (ceiling ~218-554) — a common-mode forcing that the
+        # food target tracked too, which is why food and population oscillated in
+        # phase. Those multipliers remain flavour for the *food* target only.
+        max_pop = max(2, cfg.effective_max_population)
+        carrying = max(2, cfg.effective_carrying_capacity)
 
-        # Phase 4 Density-Dependent Soft-Cap Damping (xi) — computed via effective carrying capacity
+        # Phase 4 Density-Dependent Soft-Cap Damping (xi) — use the canonical
+        # engine value so the release slew / hysteresis computed in step() is
+        # the one that actually governs births this tick (idempotent per tick).
         try:
-            from ..density_damping import compute_xi, scales_for_xi  # type: ignore
+            engine = getattr(self, "_density_engine", None)
+            _enabled = bool(getattr(cfg, "soft_cap_enabled", True)) and not _IS_TEST
+            if engine is not None and _enabled:
+                _xi, _scales = engine.update(pop, self.tick, carrying)
+            else:
+                from ..density_damping import compute_xi, scales_for_xi  # type: ignore
 
-            _xi = compute_xi(pop, carrying, bool(getattr(cfg, "soft_cap_enabled", True)) and not _IS_TEST)
+                _xi = compute_xi(pop, carrying, _enabled)
+                _scales = scales_for_xi(_xi, cfg)
             self._density_xi = _xi  # type: ignore
-            _scales = scales_for_xi(_xi, cfg)
             self._density_scales = _scales  # type: ignore
         except Exception:
             _xi = 0.0
             _scales = {}
             self._density_xi = 0.0  # type: ignore
 
-        # Absolute upper ceiling: no new births if at or above max population
-        if pop >= max_pop:
-            return
+        def _repro_room(n: int) -> float:
+            """Smooth cosine fertility room from carrying up to max_pop.
 
-        # Fertility room drops smoothly when population crosses carrying capacity toward max_pop
-        room = 1.0
-        if pop >= carrying:
+            Replaces the old hard `pop >= max_pop` brick wall: room tends to 0
+            continuously as N approaches the ceiling, so there is no release
+            discontinuity to drive a limit cycle.
+            """
+            if n <= carrying:
+                return 1.0
             span = max(1, max_pop - carrying)
-            progress = min(1.0, max(0.0, float(pop - carrying) / float(span)))
-            room = 0.5 * (1.0 + math.cos(math.pi * progress))
-            if room < 0.001 or pop >= max_pop:
-                return
-
-        if room <= 0.0:
-            return
+            progress = min(1.0, max(0.0, float(n - carrying) / float(span)))
+            return 0.5 * (1.0 + math.cos(math.pi * progress))
 
         # Phase 5 Tier2 effective mate threshold/radius via eta + soft-cap mate threshold
         _eta2 = float(getattr(self, "_safeguard_eta", 0.0) or 0.0)
@@ -666,7 +669,9 @@ class LifecycleMixin:
 
         mate_r2 = _mate_rad_eff * _mate_rad_eff
         for mother in females:
-            if pop >= max_pop:
+            # Smooth per-birth room from the live count — no hard ceiling snap.
+            room = _repro_room(pop)
+            if room <= 0.001:
                 break
             father = None
             best_d2 = mate_r2 + 1e-9
@@ -714,6 +719,15 @@ class LifecycleMixin:
                 continue
             self._birth(mother, father)
             pop += 1
+
+    def _jittered_cooldown(self, base: int) -> int:
+        """§BQ-6 desynchronize cohorts: ±30% jitter on the post-birth refractory period.
+
+        A single fixed reproduction_cooldown (theocracy: 280) released every
+        mother in lockstep, so births arrived in synchronized waves and the
+        resulting cohort died together one lifespan later.
+        """
+        return max(1, int(base * self.rng.uniform(0.7, 1.3)))
 
     def _birth(self, mother: Creature, father: Creature) -> None:
         self.births += 1
@@ -770,7 +784,7 @@ class LifecycleMixin:
                 x=x, y=y, angle=self.rng.uniform(0, 2 * math.pi),
                 energy=cfg.energy_start, generation=gen, born_tick=tick,
                 mother_id=mother.id, father_id=father.id,
-                lifespan=traits_for("Predator").lifespan * cfg.lifespan_mult,
+                lifespan=traits_for("Predator").lifespan * cfg.lifespan_mult * self.rng.uniform(0.7, 1.3),
                 is_predator=True,
                 caste="Predator",
                 clan_id=0,
@@ -789,7 +803,7 @@ class LifecycleMixin:
             }
             for p in (mother, father):
                 p.energy = max(10.0, p.energy - _birth_cost_eff)
-                p.repro_cooldown = _cooldown_eff
+                p.repro_cooldown = self._jittered_cooldown(_cooldown_eff)
                 p.emote = "love"
                 p.emote_ticks = 25
             event = HistoryEvent(
@@ -821,7 +835,7 @@ class LifecycleMixin:
                 x=x, y=y, angle=self.rng.uniform(0, 2 * math.pi),
                 energy=cfg.energy_start, generation=gen, born_tick=tick,
                 mother_id=mother.id, father_id=father.id,
-                lifespan=traits_for("Herbivore").lifespan * cfg.lifespan_mult,
+                lifespan=traits_for("Herbivore").lifespan * cfg.lifespan_mult * self.rng.uniform(0.7, 1.3),
                 is_herbivore=True,
                 caste="Herbivore",
                 clan_id=0,
@@ -840,7 +854,7 @@ class LifecycleMixin:
             }
             for p in (mother, father):
                 p.energy = max(10.0, p.energy - _birth_cost_eff)
-                p.repro_cooldown = _cooldown_eff
+                p.repro_cooldown = self._jittered_cooldown(_cooldown_eff)
                 p.emote = "love"
                 p.emote_ticks = 25
             event = HistoryEvent(
@@ -906,7 +920,7 @@ class LifecycleMixin:
                 x=x, y=y, angle=self.rng.uniform(0, 2 * math.pi),
                 energy=cfg.energy_start, generation=gen, born_tick=tick,
                 mother_id=mother.id, father_id=father.id,
-                lifespan=traits_for(caste).lifespan * cfg.lifespan_mult,
+                lifespan=traits_for(caste).lifespan * cfg.lifespan_mult * self.rng.uniform(0.7, 1.3),
                 irregularity=irregularity,
                 trait=ntrait,
             )
@@ -945,7 +959,7 @@ class LifecycleMixin:
                 x=x, y=y, angle=self.rng.uniform(0, 2 * math.pi),
                 energy=cfg.energy_start, generation=gen, born_tick=tick,
                 mother_id=mother.id, father_id=father.id,
-                lifespan=traits_for("Woman").lifespan * cfg.lifespan_mult,
+                lifespan=traits_for("Woman").lifespan * cfg.lifespan_mult * self.rng.uniform(0.7, 1.3),
                 irregularity=irregularity,
                 trait=dtrait,
             )
@@ -1014,19 +1028,19 @@ class LifecycleMixin:
                         _cost_scale = _scales_b.get("birth_cost_eff", 1.0) if _xi_birth else 1.0 if '_scales_b' in locals() else (1.0 + 1.5 * _xi_birth if _xi_birth else 1.0)
                         cost = max(5.0, cfg.energy_max * emax_scale * ratio * _cost_scale)
                         p.energy = max(10.0, p.energy - cost)
-                        p.repro_cooldown = _cooldown_eff
+                        p.repro_cooldown = self._jittered_cooldown(_cooldown_eff)
                 else:
                     for p in (mother, father):
                         p.energy = max(10.0, p.energy - _birth_cost_eff)
-                        p.repro_cooldown = _cooldown_eff
+                        p.repro_cooldown = self._jittered_cooldown(_cooldown_eff)
             except Exception:
                 for p in (mother, father):
                     p.energy = max(10.0, p.energy - _birth_cost_eff)
-                    p.repro_cooldown = _cooldown_eff
+                    p.repro_cooldown = self._jittered_cooldown(_cooldown_eff)
         else:
             for p in (mother, father):
                 p.energy = max(10.0, p.energy - _birth_cost_eff)
-                p.repro_cooldown = _cooldown_eff
+                p.repro_cooldown = self._jittered_cooldown(_cooldown_eff)
 
         event = HistoryEvent(
             type="birth", tick=tick, entity_id=child.id, caste=child.caste,

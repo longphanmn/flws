@@ -10,17 +10,28 @@ import math
 from typing import Dict
 
 
-def compute_xi(N: int, Kcap: int, enabled: bool) -> float:
-    """Overpopulation stress index xi(N).
+XI_ONSET_FRAC = 0.85   # partial damping begins at 0.85*K (below the old hard K edge)
+XI_RELEASE_TAU = 300.0  # ticks time-constant for the exponential xi release toward target
 
-    xi = (N - Kcap)/Kcap if N > Kcap and soft_cap_enabled else 0
+
+def compute_xi(N: int, Kcap: int, enabled: bool) -> float:
+    """Overpopulation stress index xi(N) with a hysteresis onset below K.
+
+    Damping now begins at XI_ONSET_FRAC * Kcap instead of exactly Kcap, then
+    scales by Kcap:
+
+        xi = max(0, (N - 0.85*Kcap) / Kcap)
+
+    Starting the restoring force below K gives the controller something to pull
+    with before the population overshoots, instead of a bang-bang edge at K.
     """
     if not enabled or Kcap <= 0:
         return 0.0
     try:
-        if N <= Kcap:
+        onset = float(Kcap) * XI_ONSET_FRAC
+        if N <= onset:
             return 0.0
-        return (float(N) - float(Kcap)) / float(Kcap)
+        return (float(N) - onset) / float(Kcap)
     except Exception:
         return 0.0
 
@@ -94,12 +105,32 @@ class DensityDampingEngine:
         self.last_xi = 0.0
         self.last_scales: Dict[str, float] = {}
         self.last_N = 0
+        self._last_decay_tick = -1
 
     def update(self, N: int, tick: int, Kcap: int | None = None) -> tuple[float, Dict[str, float]]:
+        # step() computes xi from the previous tick's cache for metabolism, then
+        # _reproduce() asks again with the live count. Allow the live count to
+        # raise xi immediately, but apply the *release* decay at most once per
+        # tick so two calls cannot double-count the slew.
         if Kcap is None:
             Kcap = int(getattr(self.config, "effective_carrying_capacity", getattr(self.config, "carrying_capacity", 350)))
         enabled = bool(getattr(self.config, "soft_cap_enabled", True))
-        xi = compute_xi(N, Kcap, enabled)
+        tau = float(getattr(self.config, "damping_release_tau", XI_RELEASE_TAU) or XI_RELEASE_TAU)
+        target = compute_xi(N, Kcap, enabled)
+        if not enabled:
+            xi = 0.0
+        elif target >= self.last_xi:
+            xi = target  # onset is immediate — no lag on the braking side
+        elif tick != self._last_decay_tick:
+            # Exponential release toward the target instead of snapping to 0.
+            # Prevents the birth brake from switching fully off the instant N
+            # dips below the onset edge (the textbook delay-induced limit cycle).
+            xi = target + (self.last_xi - target) * math.exp(-1.0 / max(1.0, tau))
+            if (xi - target) < 0.005:
+                xi = target
+            self._last_decay_tick = tick
+        else:
+            xi = self.last_xi
         scales = scales_for_xi(xi, self.config)
         self.last_xi = xi
         self.last_scales = scales

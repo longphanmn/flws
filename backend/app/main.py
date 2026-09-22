@@ -2103,9 +2103,11 @@ PRESETS: dict[str, dict] = {
         angle_mutation_std=0.02,
         topological_mutation_rate=0.01,
         soft_cap_enabled=True,
-        damping_steepness=4.0,
-        crowding_stress_mult=0.25,
-        resource_strain_mult=0.9,
+        # §BQ-6 follow the config-level damping defaults (7.0/1.0/2.0). The old
+        # pin (4.0/0.25/0.9) shadowed the tuned defaults so they never shipped.
+        damping_steepness=7.0,
+        crowding_stress_mult=1.0,
+        resource_strain_mult=2.0,
         safeguard_enabled=True,
         safeguard_critical_pop=15,
         safeguard_relief_ratio=0.35,
@@ -2392,6 +2394,30 @@ def _restore_law_state(rt: RuntimeState) -> bool:
             DB.set_setting(LAW_STATE_KEY, json.dumps(data))
         except Exception:
             pass
+
+    # §BQ-6 Modernize the legacy theocracy damping pins (4.0/0.25/0.9) that
+    # shadowed the config-level defaults and — because persisted laws out-vote
+    # preset/config edits at boot — kept the old controller alive across every
+    # restart. Only the exact known-stale tuple is rewritten, so intentional
+    # custom tuning is preserved.
+    if preset_name == "theocracy":
+        legacy = (4.0, 0.25, 0.9)
+        cur = (
+            laws.get("damping_steepness"),
+            laws.get("crowding_stress_mult"),
+            laws.get("resource_strain_mult"),
+        )
+        if cur == legacy:
+            for key in ("damping_steepness", "crowding_stress_mult", "resource_strain_mult"):
+                if key in preset_cfg:
+                    laws[key] = preset_cfg[key]
+                    saved[key] = preset_cfg[key]
+            data["laws"] = laws
+            data["saved_laws"] = saved
+            try:
+                DB.set_setting(LAW_STATE_KEY, json.dumps(data))
+            except Exception:
+                pass
 
     try:
         with rt.lock:
@@ -2894,7 +2920,7 @@ async def get_safeguards_metrics() -> dict:
                 mercy = bool(getattr(cfg, "safeguard_morph_mercy", False) and eta > 0.3)
         except Exception:
             pass
-        return {"enabled": True, "N": N, "eta": round(eta, 3), "tier": tier, "miracles": miracles, "mercy": mercy, "Kcrit": int(getattr(cfg, "safeguard_critical_pop", 12)), "Ksafe": round(float(getattr(cfg, "carrying_capacity", 350)) * float(getattr(cfg, "safeguard_relief_ratio", 0.30)), 1)}
+        return {"enabled": True, "N": N, "eta": round(eta, 3), "tier": tier, "miracles": miracles, "mercy": mercy, "Kcrit": int(getattr(cfg, "safeguard_critical_pop", 12)), "Ksafe": round(float(getattr(cfg, "effective_carrying_capacity", getattr(cfg, "carrying_capacity", 350))) * float(getattr(cfg, "safeguard_relief_ratio", 0.30)), 1)}
     except Exception as e:
         return {"enabled": False, "error": str(e), "N": 0}
 
@@ -2921,15 +2947,6 @@ async def get_damping_metrics() -> dict:
             from .density_damping import compute_xi, scales_for_xi
 
             Kcap = int(getattr(cfg, "effective_carrying_capacity", getattr(cfg, "carrying_capacity", 350)))
-            if sim is not None and hasattr(sim, "_age"):
-                try:
-                    from .simulation.constants import AGE_CAP_MULT, _smooth_age_mult, _smooth_season_cap_mult
-                    offset = int(getattr(cfg, "initial_season_offset", 0) or 0)
-                    cap_mult = _smooth_age_mult(sim.tick, cfg.age_length, AGE_CAP_MULT) if sim._age() is not None else 1.0
-                    season_cap_mult = _smooth_season_cap_mult(sim.tick, cfg.season_length, offset=offset)
-                    Kcap = max(2, round(Kcap * cap_mult * season_cap_mult))
-                except Exception:
-                    pass
             xi = compute_xi(N, Kcap, enabled)
             scales = scales_for_xi(xi, cfg)
             return {

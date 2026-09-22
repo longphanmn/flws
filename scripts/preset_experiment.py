@@ -14,13 +14,21 @@ import traceback
 from dataclasses import replace
 from collections import Counter, defaultdict
 
-# ensure backend/app on path
+# ensure backend/app on path. FLWS_BACKEND lets the A/B oscillation harness
+# import a different checkout (e.g. a git worktree at the pre-fix revision) so
+# world A and world B run on identical harness code.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(ROOT, "backend"))
+BACKEND_DIR = os.environ.get("FLWS_BACKEND", os.path.join(ROOT, "backend"))
+sys.path.insert(0, BACKEND_DIR)
 
 from app.config import Config
 from app.main import PRESETS
 from app.simulation import Simulation
+from app.simulation.constants import (
+    AGE_CAP_MULT,
+    _smooth_age_mult,
+    _smooth_season_cap_mult,
+)
 
 PRESET_ORDER = ["balance", "sustainable", "theocracy", "warlords", "chaos", "extinction", "boom"]
 SEEDS = [42, 123, 999]
@@ -335,6 +343,253 @@ def propose_adjustments(all_results):
     print("  Disease tuning:  outbreak_rate, disease_rate, radius, lethality, recovery_rate, weather_sickness/chill_drain")
     print("  Faith/temples:   tithe_rate, temple_faith_cost, theology_enabled, miracles, banquets_enabled")
 
+# ============================================================================
+# §BQ-6 Oscillation A/B harness
+# ----------------------------------------------------------------------------
+# Runs the theocracy preset long enough to span many generation times and
+# measures whether population is structurally bouncing. World A is the
+# pre-fix code (run this harness against a baseline checkout via FLWS_BACKEND),
+# world B is the fixed code. Gates (per seed, post burn-in):
+#   CV(N)                         <= 0.08
+#   amplitude (max-min)/mean      <= 0.25
+#   dN/dt sign reversals          <= 8 per 72k ticks (300-tick smoothing)
+#   old-age death burstiness      < 3   (max 100-tick bin / median)
+#   min N ever                    > 0.5 * K_eff_min
+# ============================================================================
+
+OSC_PRESET = "theocracy"
+OSC_SEEDS = [42, 123, 999]
+OSC_TOTAL_TICKS = 120000
+OSC_BURN_IN = 20000
+OSC_SAMPLE = 100
+OSC_GATES = {
+    "cv_max": 0.08,
+    "amplitude_max": 0.25,
+    "reversals_max_per_72k": 8.0,
+    "burstiness_max": 3.0,
+    "min_n_frac_min": 0.5,
+}
+
+
+def _osc_config(seed):
+    base = Config(width=W, height=H, seed=seed, tick_rate=10)
+    laws = PRESETS[OSC_PRESET]
+    cfg = replace(base, **{k: v for k, v in laws.items() if hasattr(base, k)})
+    return replace(cfg, width=W, height=H, seed=seed)
+
+
+def run_oscillation(seed, total_ticks=OSC_TOTAL_TICKS, burn_in=OSC_BURN_IN,
+                    sample=OSC_SAMPLE, modulated=None):
+    """Run one post-burn-in telemetry trace for the theocracy preset.
+
+    modulated=the setpoint is modulated by age/season (pre-fix world A).
+    modulated=False -> flat K (post-fix world B).
+    """
+    cfg = _osc_config(seed)
+    if modulated is None:
+        # auto-detect: does the running code still multiply carrying by age/season?
+        # B flattened it, so K stays cfg.effective_carrying_capacity. Probe by
+        # checking whether lifecycle still imports the seasonal cap helper.
+        modulated = True
+    sim = Simulation(cfg)
+    K = float(cfg.effective_carrying_capacity)
+    M = float(cfg.effective_max_population)
+    offset = int(getattr(cfg, "initial_season_offset", 0) or 0)
+
+    for _ in range(burn_in):
+        sim.step()
+    prev = dict(getattr(sim, "_death_counts", {}))
+    samples = []
+    t0 = time.perf_counter()
+    for t in range(burn_in + 1, total_ticks + 1):
+        sim.step()
+        if t % 10000 == 0 or t == total_ticks:
+            print(f"[osc]   t={t} pop={len(sim._cached_creatures)} food={sum(1 for e in sim.world.entities.values() if e.kind == 'food')} xi={float(getattr(sim, '_density_xi', 0.0) or 0.0):.3f} {time.perf_counter()-t0:.0f}s", flush=True)
+        if (t - burn_in) % sample == 0:
+            dbc = dict(getattr(sim, "_death_counts", {}))
+            deaths = {k: dbc.get(k, 0) - prev.get(k, 0) for k in set(dbc) | set(prev)}
+            prev = dbc
+            if getattr(cfg, "age_enabled", True) and cfg.age_length > 0:
+                age_mult = _smooth_age_mult(t, cfg.age_length, AGE_CAP_MULT)
+            else:
+                age_mult = 1.0
+            season_mult = _smooth_season_cap_mult(t, cfg.season_length, offset=offset)
+            samples.append({
+                "tick": t,
+                "pop": len(sim._cached_creatures),
+                "food": sum(1 for e in sim.world.entities.values() if e.kind == "food"),
+                "xi": float(getattr(sim, "_density_xi", 0.0) or 0.0),
+                "age_mult": round(age_mult, 5),
+                "season_mult": round(season_mult, 5),
+                "deaths": deaths,
+            })
+        if t > burn_in + 50 and not sim._cached_creatures:
+            break
+    elapsed = time.perf_counter() - t0
+    return {
+        "preset": OSC_PRESET,
+        "seed": seed,
+        "modulated": bool(modulated),
+        "K": K,
+        "M": M,
+        "total_ticks": sim.tick,
+        "burn_in": burn_in,
+        "sample": sample,
+        "elapsed_s": round(elapsed, 1),
+        "ms_per_tick": round(elapsed / max(1, total_ticks - burn_in) * 1000.0, 3),
+        "samples": samples,
+    }
+
+
+def _sign_flips(series, deadband=1e-9):
+    last = 0
+    flips = 0
+    for x in series:
+        s = 1 if x > deadband else (-1 if x < -deadband else 0)
+        if s == 0:
+            continue
+        if last != 0 and s != last:
+            flips += 1
+        last = s
+    return flips
+
+
+def osc_metrics(run):
+    """Derive the oscillation gate metrics from one run's samples."""
+    import statistics
+    samples = run["samples"]
+    if not samples:
+        return {"error": "no samples"}
+    pops = [s["pop"] for s in samples]
+    foods = [s["food"] for s in samples]
+    xi = [s["xi"] for s in samples]
+    sample = int(run.get("sample", OSC_SAMPLE))
+    n_ticks = len(samples) * sample
+    mean = statistics.mean(pops)
+    sd = statistics.pstdev(pops)
+    cv = sd / mean if mean else float("inf")
+    amp = (max(pops) - min(pops)) / mean if mean else float("inf")
+
+    # 300-tick smoothing then count d/dt sign reversals
+    win = max(1, int(round(300.0 / sample)))
+    smoothed = []
+    for i in range(len(pops)):
+        lo = max(0, i - win + 1)
+        seg = pops[lo:i + 1]
+        smoothed.append(sum(seg) / len(seg))
+    deriv = [smoothed[i + 1] - smoothed[i] for i in range(len(smoothed) - 1)]
+    reversals = _sign_flips(deriv)
+    reversals_per_72k = reversals * 72000.0 / max(1, n_ticks)
+
+    # old-age death burstiness over 100-tick bins
+    oa = [s["deaths"].get("old_age", 0) for s in samples]
+    star = [s["deaths"].get("starvation", 0) for s in samples]
+    med_oa = statistics.median(oa) if oa else 0
+    max_oa = max(oa) if oa else 0
+    burst = (max_oa / med_oa) if med_oa > 0 else float("inf")
+
+    # K_eff floor: modulated world A swings; flat world B is a constant.
+    K = float(run.get("K", 0.0))
+    if run.get("modulated"):
+        k_eff = [K * s["age_mult"] * s["season_mult"] for s in samples]
+    else:
+        k_eff = [K] * len(samples)
+    k_min = min(k_eff) if k_eff else K
+    k_max = max(k_eff) if k_eff else K
+    min_n_frac = (min(pops) / k_min) if k_min else float("inf")
+
+    return {
+        "seed": run["seed"],
+        "modulated": run.get("modulated"),
+        "K": K,
+        "K_eff_min": round(k_min, 1),
+        "K_eff_max": round(k_max, 1),
+        "N_mean": round(mean, 1),
+        "N_min": min(pops),
+        "N_max": max(pops),
+        "N_cv": round(cv, 4),
+        "amplitude": round(amp, 4),
+        "reversals": reversals,
+        "reversals_per_72k": round(reversals_per_72k, 2),
+        "old_age_bins_median": med_oa,
+        "old_age_bins_max": max_oa,
+        "old_age_burstiness": (round(burst, 2) if burst != float("inf") else None),
+        "starvation_total": int(sum(star)),
+        "old_age_total": int(sum(oa)),
+        "min_n_frac": round(min_n_frac, 3),
+        "food_mean": round(statistics.mean(foods), 1),
+        "food_min": min(foods),
+        "food_max": max(foods),
+        "xi_mean": round(statistics.mean(xi), 4),
+        "xi_max": round(max(xi), 4),
+        "ms_per_tick": run.get("ms_per_tick"),
+    }
+
+
+def _effective_flat(run):
+    """World B must have a flat setpoint; run_oscillation records whether the
+    caller declared it modulated. Re-derive by checking the sample age/season
+    multipliers actually applied to K -- but world B does not apply them, so
+    the caller passes modulated=False explicitly."""
+    return not bool(run.get("modulated"))
+
+
+def osc_gate_report(metrics, flat):
+    """Return (passed: bool, list[str]) against the hard gates."""
+    g = OSC_GATES
+    checks = []
+    checks.append(("CV(N)<=%.2f" % g["cv_max"], metrics["N_cv"] <= g["cv_max"], metrics["N_cv"]))
+    checks.append(("amplitude<=%.2f" % g["amplitude_max"], metrics["amplitude"] <= g["amplitude_max"], metrics["amplitude"]))
+    checks.append(("reversals/72k<=%.1f" % g["reversals_max_per_72k"], metrics["reversals_per_72k"] <= g["reversals_max_per_72k"], metrics["reversals_per_72k"]))
+    b = metrics["old_age_burstiness"]
+    checks.append(("burstiness<%.1f" % g["burstiness_max"], (b is not None and b < g["burstiness_max"]), b))
+    checks.append(("minNfrac>%.2f" % g["min_n_frac_min"], metrics["min_n_frac"] > g["min_n_frac_min"], metrics["min_n_frac"]))
+    return all(ok for _, ok, _ in checks), checks
+
+
+def osc_ab_run(args):
+    """CLI: run one world/seed trace and persist metrics+samples as JSON."""
+    world = args.get("world", "B").upper()
+    seed = int(args.get("seed", 42))
+    out = args.get("out", os.path.join(ROOT, "scripts", f"oscillation_{world}_{seed}.json"))
+    ticks = int(args.get("ticks", OSC_TOTAL_TICKS))
+    burn_in = int(args.get("burn_in", OSC_BURN_IN))
+    # World A = pre-fix code keeps the age/season moving setpoint.
+    modulated = (world == "A")
+    print(f"[osc] world={world} backend={BACKEND_DIR} seed={seed} ticks={ticks} burn_in={burn_in} modulated={modulated}", flush=True)
+    run = run_oscillation(seed, total_ticks=ticks, burn_in=burn_in, sample=OSC_SAMPLE, modulated=modulated)
+    m = osc_metrics(run)
+    passed, checks = osc_gate_report(m, _effective_flat(run))
+    payload = {"meta": {"world": world, "registry": OSC_GATES, "backend": BACKEND_DIR}, "metrics": m, "gates": [{"name": n, "pass": ok, "value": v} for n, ok, v in checks], "passed": passed, "samples": run["samples"]}
+    with open(out, "w") as f:
+        json.dump(payload, f, indent=2)
+    print(f"[osc] world={world} seed={seed} metrics={json.dumps(m)}", flush=True)
+    print(f"[osc] gates={'PASS' if passed else 'FAIL'} -> {out}", flush=True)
+    return payload
+
+
+def osc_compare(paths):
+    """Print the per-seed A-vs-B metrics table and overall gate verdict."""
+    runs = []
+    for p in paths:
+        with open(p) as f:
+            runs.append(json.load(f))
+    table = f"\n{'world':>5} {'seed':>5} {'Nmean':>6} {'Nmin':>5} {'Nmax':>5} {'CV':>7} {'amp':>6} {'rev/72k':>8} {'burst':>6} {'minNfrac':>9} {'starve':>7} {'oldage':>7} {'pass':>5}"
+    print(table)
+    print("-" * len(table))
+    all_a, all_b = [], []
+    for r in sorted(runs, key=lambda r: (r["meta"]["world"], r["metrics"]["seed"])):
+        m = r["metrics"]
+        b = m["old_age_burstiness"] if m["old_age_burstiness"] is not None else float("inf")
+        print(f"{r['meta']['world']:>5} {m['seed']:>5} {m['N_mean']:>6.0f} {m['N_min']:>5} {m['N_max']:>5} {m['N_cv']:>7.3f} {m['amplitude']:>6.3f} {m['reversals_per_72k']:>8.1f} {b:>6.1f} {m['min_n_frac']:>9.2f} {m['starvation_total']:>7} {m['old_age_total']:>7} {('PASS' if r['passed'] else 'FAIL'):>5}")
+        (all_a if r["meta"]["world"] == "A" else all_b).append(r["passed"])
+    print("-" * len(table))
+    print(f"A (baseline) all-seed pass={all(all_a) if all_a else 'n/a'}   B (fixed) all-seed pass={all(all_b) if all_b else 'n/a'}")
+    if all_b:
+        print("GATE VERDICT:", "B MEETS ALL GATES" if all(all_b) else "B FAILS GATES")
+    return runs
+
+
 def main():
     all_results=[]
     total_start=time.perf_counter()
@@ -380,5 +635,26 @@ def main():
         verdict="OK" if lo<=avg<=hi else ("HIGH" if avg>hi else "LOW")
         print(f"{preset:<12} {avg:9.0f} {mn:5.0f} {mx:5.0f} {f'{lo}-{hi}':>13} {dead:9.0f} {wars:7.0f} {houses:6.0f} {ms:6.1f} {verdict}")
 
+def _parse_osc_args(argv):
+    args = {}
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a in ("--world", "--seed", "--out", "--ticks", "--burn-in"):
+            key = a.lstrip("-").replace("-", "_")
+            args[key] = argv[i + 1]
+            i += 2
+        else:
+            i += 1
+    return args
+
+
 if __name__=="__main__":
-    main()
+    argv = sys.argv[1:]
+    if "--osc-run" in argv:
+        osc_ab_run(_parse_osc_args(argv))
+    elif "--osc-compare" in argv:
+        idx = argv.index("--osc-compare")
+        osc_compare(argv[idx + 1:])
+    else:
+        main()

@@ -22,7 +22,7 @@ class SerializationMixin:
             return False
         sg_tier = getattr(self, "_safeguard_tier", 0)
         sg_eta = getattr(self, "_safeguard_eta", 0.0)
-        cc = int(getattr(self.config, "carrying_capacity", 350))
+        cc = int(getattr(self.config, "effective_carrying_capacity", getattr(self.config, "carrying_capacity", 350)))
         relief = float(getattr(self.config, "safeguard_relief_ratio", 0.30))
         ksafe = cc * relief
         if alive >= ksafe and sg_tier < 3:

@@ -1574,12 +1574,9 @@ class Simulation(SerializationMixin, EcologyMixin, EnvironmentMixin, SettlementM
         if getattr(self.config, "soft_cap_enabled", True) and not _IS_TEST:
             try:
                 pop_d = len(self._cached_creatures)
+                # §BQ-6: fixed setpoint — K is no longer modulated by age/season
+                # (see _reproduce). The food target keeps its seasonal flavour.
                 carrying_d = self.config.effective_carrying_capacity
-                age_d = self._age()
-                offset_d = int(getattr(self.config, "initial_season_offset", 0) or 0)
-                cap_mult_d = _smooth_age_mult(self.tick, self.config.age_length, AGE_CAP_MULT) if age_d is not None else 1.0
-                season_cap_mult_d = _smooth_season_cap_mult(self.tick, self.config.season_length, offset=offset_d)
-                carrying_d = max(2, round(carrying_d * cap_mult_d * season_cap_mult_d))
                 if getattr(self, "_density_engine", None) is not None:
                     self._density_xi, self._density_scales = self._density_engine.update(pop_d, self.tick, carrying_d)
                 else:

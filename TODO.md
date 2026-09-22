@@ -39,6 +39,26 @@ Legend: [P0] foundational · [P1] core Flatland identity · [P2] flavor/observab
 
 ---
 
+## §BQ-6 Fix Structural Population Bouncing (Moving Setpoint + Cohort Resonance) — 2026-09-22
+
+> **Context**: Live theocracy world (raw K=380) bounced N 218↔519 with ~23 sign reversals in 2h; food oscillated in phase (181↔565). Instrumented 24k-tick run: `corr(food, K_set)=0.99`, `corr(pop, food)=0.77`, CV(N)=0.29, old-age deaths bursty (max 100-tick bin / median = 7.3), starvation only 14% of old-age+starvation deaths. Two independent brainstorms plus the probe ruled out Lotka–Volterra food coupling (regrowth ~10/tick vs consumption ~0.26/tick).
+
+- [x] [P0] **BQ-6.1 Flatten the setpoint** (`lifecycle.py` / `core.py` / `main.py`)
+  - Removed `_smooth_age_mult(AGE_CAP_MULT) × _smooth_season_cap_mult` from both `carrying` and `max_pop`; effective K is now the fixed raw K (380 theocracy). The food target keeps its seasonal/era flavour.
+  - Replaced the `pop >= max_pop` brick wall with the existing smooth cosine fertility room only.
+- [x] [P0] **BQ-6.2 Desynchronize cohorts** (`lifecycle.py`)
+  - All four birth sites now jitter `lifespan` by U(0.7, 1.3); post-birth `repro_cooldown` jittered U(0.7, 1.3) at every parent assignment.
+- [x] [P0] **BQ-6.3 Hysteresis + release slew** (`density_damping.py`)
+  - `compute_xi` now starts partial damping at `0.85 × K` (not the hard K edge).
+  - `DensityDampingEngine` releases xi exponentially toward its target with τ = 300 ticks instead of snapping to 0; onset stays immediate. Decay is applied at most once per tick so `step()` + `_reproduce()` cannot double-count.
+- [x] [P1] **BQ-6.4 Hygiene** (`safeguard_engine.py` / `serialization.py` / `main.py`)
+  - One shared K: safeguard relief and telemetry now use `effective_carrying_capacity`, matching the soft-cap.
+  - Theocracy preset no longer pins `damping_steepness=4.0` / `crowding=0.25` / `resource=0.9`; it follows config defaults 7.0/1.0/2.0. A boot migration rewrites only the exact legacy tuple from persisted law state so the tuning actually ships.
+- [x] [P0] **BQ-6.5 A/B verification** (`scripts/preset_experiment.py --osc-run/--osc-compare`)
+  - 120k ticks, 20k burn-in, seeds 42/123/999, theocracy A (baseline) vs B (fixed); gates on CV(N), amplitude, dN/dt reversals, old-age burstiness, min-N floor.
+
+---
+
 ## Parked — decided, not pending (10 items)
 
 These are documented decisions with rationale, not overdue work.
