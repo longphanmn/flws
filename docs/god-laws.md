@@ -55,7 +55,7 @@ The God Panel is organized into two primary top-level sections:
 | `energy_decay_per_tick` | Float | `0.018` *(Config: 0.025)* | Baseline metabolic burn rate per tick without food intake; shelter and infancy reduce decay. |
 | `energy_from_food` | Float | `32.0` | Base energy yield from harvesting a mature plant (berry: 48, grass: 32, mushroom: 24, poison: 8). |
 | `food_decay_enabled` | Boolean | `true` | Enables mature plants to naturally wither over time and fertilize the living soil. |
-| `food_lifespan_ticks` | Integer | `9000` | Ticks a mature plant lives before naturally withering into the living soil grid. |
+| `food_lifespan_ticks` | Integer | `8000` *(Config: 9000)* | Ticks a mature plant lives before naturally withering into the living soil grid. |
 | `soil_depletion_enabled` | Boolean | `true` | Repeated harvesting from the same soil cell temporarily reduces subsequent crop yield. |
 | `fertile_patches` | Integer | `-1` | Number of high-yield fertile biome regions generated across the terrain. |
 | `fertile_food_bias` | Float | `0.7` | Growth rate multiplier for plants sprouting within fertile agricultural patches. |
@@ -99,9 +99,9 @@ The God Panel is organized into two primary top-level sections:
 ### Life Cycle & Mortality
 | Law Parameter | Type | Default | Ecological Effect & Hint |
 |---|:---:|:---:|---|
-| `lifespan_mult` | Float | `1.0` | Multiplier scaling all caste natural lifespans (Woman: 4,800t -> Priest: 9,000t). |
+| `lifespan_mult` | Float | `1.0` | Multiplier scaling all caste natural lifespans (Woman: 4,800t -> Priest: 9,000t); births apply ±30% uniform random jitter ($U(0.7, 1.3)$) to break cohort mortality cascades. |
 | `adult_age` | Float | `240.0` *(Config: 600.0)* | Ticks required for a juvenile to reach physical maturity and reproductive eligibility. |
-| `health_max` | String | `—` | Maximum physiological hit points of regular creatures. |
+| `health_max` | String | `—` | Caste-level maximum physiological hit points (e.g. Soldier 120, Priest 100, Woman 70); trait property, not a tunable god law. |
 | `euthanasia_threshold` | Float | `0.7` | Irregularity threshold at adulthood that triggers Spartan-style societal elimination. |
 | `sex_ratio` | Float | `0.5` | Probability a newborn offspring is female (Line caste). |
 | `creature_density` | Float | `0.0013` | Scaling factor for founding population density. |
@@ -113,7 +113,7 @@ The God Panel is organized into two primary top-level sections:
 | `birth_enabled` | Boolean | `true` | Master switch permitting mating and generational births. |
 | `birth_rate` | Float | `0.080` *(Config: 0.05)* | Base mating probability per tick for mature, fertile couples within contact radius. |
 | `birth_energy_cost` | Float | `16.0` *(Config: 20.0)* | Maternal energy investment expended upon delivering offspring. |
-| `reproduction_cooldown` | Integer | `240` *(Config: 600)* | Ticks a female must rest after giving birth before becoming fertile again. |
+| `reproduction_cooldown` | Integer | `240` *(Config: 600)* | Base ticks a female must rest after birth before becoming fertile again; perturbed by ±30% jitter ($U(0.7, 1.3)$) to desynchronize reproductive cycles. |
 | `mate_radius` | Float | `10.0` | Spatial proximity required between two eligible partners to initiate courtship. |
 | `mate_energy_min` | Float | `24.0` *(Config: 30.0)* | Minimum metabolic energy required for an adult to engage in mating. |
 | `mutation_rate` | Float | `0.05` | Probability a child deviates from classical Abbott caste inheritance (n+1). |
@@ -125,12 +125,12 @@ The God Panel is organized into two primary top-level sections:
 ### Density Soft-Cap Damping & Boom
 | Law Parameter | Type | Default | Ecological Effect & Hint |
 |---|:---:|:---:|---|
-| `carrying_capacity` | Integer | `400` *(Config: 350)* | Equilibrium population threshold K_cap where non-linear damping begins. |
-| `max_population` | Integer | `500` | Absolute hard population ceiling; halts all births when reached. |
-| `soft_cap_enabled` | Boolean | `true` | Enables non-linear quadratic birth suppression and metabolic crowding penalty. |
-| `damping_steepness` | Float | `6.0` | Exponent scaling birth suppression strength under population overshoot. |
-| `crowding_stress_mult` | Float | `0.35` | Metabolic decay multiplier under high population crowding. |
-| `resource_strain_mult` | Float | `1.2` | Resource renewal throttling multiplier under ecological strain. |
+| `carrying_capacity` | Integer | `400` *(Config: 350)* | Equilibrium population threshold K_cap. Damping begins at $0.85 K_{\text{cap}}$ (hysteresis onset) and releases exponentially ($\tau = 300\text{t}$); fixed setpoint across seasons/ages. |
+| `max_population` | Integer | `500` *(Config: 420)* | Population ceiling governed by a smooth cosine fertility room ramp from $K_{\text{cap}}$ to $max\_pop$, replacing hard ceiling snaps to eliminate limit cycles. |
+| `soft_cap_enabled` | Boolean | `true` | Enables multi-channel homeostatic damping factor $\xi = \max(0, (N - 0.85 K_{\text{cap}})/K_{\text{cap}})$ with exponential release slew ($\tau = 300\text{t}$). |
+| `damping_steepness` | Float | `12.0` *(Config: 7.0)* | Non-linear birth suppression steepness with smooth sigmoid transition ($k=5.0$) at onset. Config default is 7.0; Balance preset is 12.0; Theocracy preset follows 7.0. |
+| `crowding_stress_mult` | Float | `1.0` *(Config: 1.0)* | Metabolic decay multiplier under high population crowding ($1 + \text{crowding}\cdot\xi + 0.8\cdot\text{crowding}\cdot\xi^2$). |
+| `resource_strain_mult` | Float | `2.0` *(Config: 2.0)* | Resource renewal and vegetation spread throttling multiplier under overpopulation strain. |
 | `boom_ramp_days` | Float | `1.2` | Founding day grace period where reproduction ramps smoothly to prevent day-1 explosion. |
 | `boom_birth_floor` | Float | `0.4` | Initial reproductive throttle during world founding ramp. |
 | `boom_cooldown_mult` | Float | `1.0` | Multiplier on mating cooldowns during population boom phases. |
@@ -140,11 +140,9 @@ The God Panel is organized into two primary top-level sections:
 | Law Parameter | Type | Default | Ecological Effect & Hint |
 |---|:---:|:---:|---|
 | `safeguard_enabled` | Boolean | `true` | Multi-tier automatic relief system preventing complete colony collapse. |
-| `safeguard_relief_ratio` | Float | `0.3` | Population fraction threshold activating emergency relief. |
-| `safeguard_crit_pop` | String | `—` | Critical population floor K_crit triggering a divine Genesis Miracle. |
-| `safeguard_critical_pop` | Integer | `12` | Alias for critical population threshold for miracle intervention. |
+| `safeguard_relief_ratio` | Float | `0.3` | Population fraction threshold ($K_{\text{safe}} = K_{\text{eff}} \times 0.30$) activating emergency relief, evaluated against unified effective carrying capacity. |
+| `safeguard_critical_pop` | Integer | `12` | Critical population floor $K_{\text{crit}}$ triggering emergency Genesis Miracles when population faces imminent extinction. |
 | `safeguard_genesis_batch` | Integer | `6` | Number of pristine regular beings created during an emergency Genesis Miracle. |
-| `safeguard_cooldown_ticks` | String | `—` | Cooldown period between consecutive Genesis Miracles. |
 | `safeguard_max_miracles` | Integer | `1` | Maximum number of Genesis Miracles permitted per world run. |
 | `safeguard_morph_mercy` | Boolean | `true` | Suspends adult irregularity euthanasia during demographic crises. |
 
@@ -156,16 +154,16 @@ The God Panel is organized into two primary top-level sections:
 | `disease_outbreak_rate` | Float | `6e-05` | Frequency of regional epidemic outbreaks during plague cycles. |
 | `disease_radius` | Float | `3.0` | Proximity radius within which infected organisms can transmit pathogens. |
 | `disease_energy_drain` | Float | `0.05` | Continuous metabolic energy drain inflicted by active infection. |
-| `disease_lethality` | Float | `0.07` | Damage inflicted per tick when fighting advanced infection. |
-| `recovery_rate` | Float | `0.06` | Probability per tick that an infected creature naturally clears the illness. |
+| `disease_lethality` | Float | `0.07` *(Config: 0.18)* | Damage inflicted per tick when fighting advanced infection. |
+| `recovery_rate` | Float | `0.06` *(Config: 0.03)* | Probability per tick that an infected creature naturally clears the illness. |
 | `wet_disease_mult` | Float | `1.5` | Multiplier increasing disease contagion and spread during rain and winter. |
 
 ### Micro-RNN Neuroevolution & Locomotion
 | Law Parameter | Type | Default | Ecological Effect & Hint |
 |---|:---:|:---:|---|
-| `perceive_radius` | Float | `16.0` | Base perception sight radius for sensory raycasting. |
+| `perceive_radius` | Float | `16.0` *(Config: 20.0)* | Base perception sight radius for sensory raycasting. |
 | `eat_radius` | Float | `1.4` | Interaction distance required to ingest food or harvest plants. |
-| `speed_mult` | String | `—` | Universal locomotion velocity multiplier across all castes. |
+| `speed_mult` | String | `—` | Locomotion scale determined by caste base speed, modulated by kinematics and modifiers (e.g. desperate_speed_mult, rain_speed_mult); not a direct law. |
 | `steer_turn` | Float | `0.45` | Maximum angular steering rate per tick, modulated by moment of inertia I_zz. |
 | `wander_turn` | Float | `0.35` | Heading jitter applied when an organism has no active objective. |
 | `flock_radius` | Float | `6.0` | Neighbor detection radius for local boids flocking behavior. |
@@ -180,30 +178,30 @@ The God Panel is organized into two primary top-level sections:
 | Law Parameter | Type | Default | Ecological Effect & Hint |
 |---|:---:|:---:|---|
 | `morphology_annealing_enabled` | Boolean | `true` | Blends Abbott geometric templates into freely evolving polar polygon genomes. |
-| `annealing_start_generation` | Integer | `15` | Generation where morphological annealing decay begins. |
-| `annealing_decay_generations` | Integer | `250` | Generations over which annealing factor lambda transitions from 1.0 to 0.0. |
+| `annealing_start_generation` | Integer | `50` *(Config: 15)* | Generation where morphological annealing decay begins. |
+| `annealing_decay_generations` | Integer | `150` *(Config: 250)* | Generations over which annealing factor lambda transitions from 1.0 to 0.0. |
 | `morph_lambda_override` | String | `None` | Manual override fixing lambda in [0, 1] (None follows natural generational curve). |
-| `vertex_mutation_std` | Float | `0.025` | Standard deviation of radial vertex perturbations per generation. |
-| `angle_mutation_std` | Float | `0.012` | Standard deviation of angular vertex shifts per generation. |
-| `topological_mutation_rate` | Float | `0.008` | Frequency of vertex insertion/deletion mutations altering K in [3, 24]. |
+| `vertex_mutation_std` | Float | `0.05` *(Config: 0.025)* | Standard deviation of radial vertex perturbations per generation. |
+| `angle_mutation_std` | Float | `0.02` *(Config: 0.012)* | Standard deviation of angular vertex shifts per generation. |
+| `topological_mutation_rate` | Float | `0.01` *(Config: 0.008)* | Frequency of vertex insertion/deletion mutations altering K in [3, 24]. |
 | `max_sides` | Integer | `24` | Maximum allowable polygon vertex count K for evolving organisms. |
 
 ### Predation, Carnivory & Cannibalism
 | Law Parameter | Type | Default | Ecological Effect & Hint |
 |---|:---:|:---:|---|
-| `predation_enabled` | Boolean | `true` | Enables carnivorous predators that hunt peaceful herbivores and flatland castes. |
-| `predator_ratio` | Float | `0.008` | Proportion of founding predator beasts in the ecosystem. |
+| `predation_enabled` | Boolean | `true` *(Config: False)* | Enables carnivorous predators that hunt peaceful herbivores and flatland castes. |
+| `predator_ratio` | Float | `0.008` *(Config: 0.0)* | Proportion of founding predator beasts in the ecosystem. |
 | `beast_ratio` | Float | `0.0` | Proportion of wild carnivore spawns relative to standard castes. |
-| `bite_damage` | Float | `16.0` | Combat damage inflicted per predator strike. |
+| `bite_damage` | Float | `16.0` *(Config: 28.0)* | Combat damage inflicted per predator strike. |
 | `bite_cooldown` | Integer | `15` | Ticks between consecutive predator attacks. |
-| `hunt_radius` | Float | `8.0` | Sensory tracking radius of hunting predators seeking prey. |
+| `hunt_radius` | Float | `7.0` *(Config: 8.0)* | Sensory tracking radius of hunting predators seeking prey. |
 | `energy_from_prey` | Float | `40.0` | Metabolic energy yield gained by predators from consuming caught prey. |
 | `cannibalism_enabled` | Boolean | `true` | Allows desperate starving organisms to consume fallen corpses of their own species. |
 | `cannibalism_energy` | Float | `35.0` | Energy harvested from consuming a fallen kin corpse. |
 | `cannibalism_hunger_ratio` | Float | `0.08` | Extreme starvation threshold required before a creature resorts to cannibalism. |
-| `eat_kin_enabled` | Boolean | `false` | Whether consuming a clan member's corpse is physically possible under starvation. |
+| `eat_kin_enabled` | Boolean | `false` *(Config: True)* | Whether consuming a clan member's corpse is physically possible under starvation. |
 | `eat_enemy_enabled` | Boolean | `true` | Whether consuming a defeated rival clan soldier is permitted. |
-| `kin_stigma` | Integer | `40` | Social penalty and trust loss incurred when caught consuming kin. |
+| `kin_stigma` | Integer | `35` *(Config: 40)* | Social penalty and trust loss incurred when caught consuming kin. |
 | `exile_on_kin_eat` | Boolean | `true` | Automatic exile from clan upon committing kin cannibalism. |
 
 ---
@@ -216,7 +214,7 @@ The God Panel is organized into two primary top-level sections:
 | `weather_enabled` | Boolean | `true` | Enables dynamic weather cycles (Clear, Fog, Rain, Storm). |
 | `weather_change_rate` | Float | `0.002` | Frequency of spontaneous atmospheric weather state transitions. |
 | `day_length` | Integer | `1200` | Duration of one full day/night cycle in simulation ticks (120s at 10 tps). |
-| `season_length` | Integer | `14400` | Duration of each astronomical season in ticks (Spring, Summer, Autumn, Winter). |
+| `season_length` | Integer | `2400` *(Config: 14400)* | Duration of each astronomical season in ticks (2400t = 2 days per season, desynchronized from 12000t Age cycle). |
 | `initial_season_offset` | Integer | `0` | Starting season offset when launching a new world seed. |
 | `night_sight_mult` | Float | `0.6` | Sensory sight attenuation factor during the dark of night (0.6x). |
 | `rain_growth_mult` | Float | `1.25` | Accelerated botanical growth multiplier during rainfall. |
@@ -232,8 +230,8 @@ The God Panel is organized into two primary top-level sections:
 | `weather_sickness_enabled` | Boolean | `false` | Enables exposure penalties and chill accumulation. |
 | `chill_rate` | Float | `0.04` | Rate of chill accumulation per tick when caught unsheltered in storms or winter nights. |
 | `chill_threshold` | Float | `12.0` | Chill level above which continuous hypothermia damage begins (0.18 HP/tick). |
-| `chill_drain` | Float | `0.18` | Continuous health damage per tick suffered from severe hypothermia. |
-| `exposure_drain` | Float | `0.03` | Metabolic energy penalty incurred from staying exposed outdoors in harsh weather. |
+| `chill_drain` | Float | `0.09` *(Config: 0.18)* | Continuous health damage per tick suffered from severe hypothermia. |
+| `exposure_drain` | Float | `0.02` *(Config: 0.03)* | Metabolic energy penalty incurred from staying exposed outdoors in harsh weather. |
 
 ### Shelter & Recovery
 | Law Parameter | Type | Default | Ecological Effect & Hint |
@@ -241,7 +239,7 @@ The God Panel is organized into two primary top-level sections:
 | `sleep_enabled` | Boolean | `true` | Organisms require periodic circadian rest to restore stamina. |
 | `shelter_enabled` | Boolean | `true` | Walled houses provide thermal protection, safe rest, and predator immunity. |
 | `sleep_energy_mult` | Float | `0.5` | Metabolic burn discount enjoyed while sleeping indoors. |
-| `rest_recovery_mult` | Float | `2.0` | Health regeneration rate multiplier while resting comfortably in shelter. |
+| `rest_recovery_mult` | Float | `2.5` *(Config: 2.0)* | Health regeneration rate multiplier while resting comfortably in shelter. |
 | `hearths_enabled` | Boolean | `true` | Indoor hearths provide warmth and accelerate chill dissipation (2.5x). |
 
 ---
@@ -264,9 +262,9 @@ The God Panel is organized into two primary top-level sections:
 | `house_min_size` | Float | `5.5` | Minimum interior dimension of generated house structures. |
 | `house_max_size` | Float | `8.0` | Maximum interior dimension of clan halls and main houses. |
 | `house_gap` | Float | `6.0` | Minimum clearance distance between neighboring houses. |
-| `house_capacity` | Integer | `14` | Maximum number of creature occupants permitted inside a single house. |
+| `house_capacity` | Integer | `14` *(Config: 12)* | Maximum number of creature occupants permitted inside a single house. |
 | `door_clearance` | Float | `1.5` | Width of creature-sized entrance doorways in house perimeter walls. |
-| `house_decay_ticks` | Integer | `2400` | Lifespan ticks of uninhabited houses before crumbling into ruins. |
+| `house_decay_ticks` | Integer | `3000` *(Config: 2400)* | Lifespan ticks of uninhabited houses before crumbling into ruins. |
 
 ### Communication & Knowledge
 | Law Parameter | Type | Default | Ecological Effect & Hint |
@@ -295,10 +293,10 @@ The God Panel is organized into two primary top-level sections:
 | `coalitions_enabled` | Boolean | `true` | Clans form defensive mutual pacts against dominant expansionist hegemonies. |
 | `coalition_min_size` | Integer | `2` | Minimum allied clans required to declare a formal mutual defense league. |
 | `coalition_threshold` | Integer | `40` | Minimum threat score required before a coalition activates military defense. |
-| `alliance_threshold` | Integer | `50` | Diplomatic relation score required to formalize an alliance treaty. |
-| `rivalry_threshold` | Integer | `-45` | Negative relation score triggering hostile rivalry and border skirmishes. |
-| `relation_drift_rate` | Float | `2.2` | Baseline rate at which inter-clan diplomatic tensions decay toward neutrality. |
-| `trespass_decay` | Float | `0.45` | Rate at which border trespass grievances decay over time. |
+| `alliance_threshold` | Integer | `55` *(Config: 50)* | Diplomatic relation score required to formalize an alliance treaty. |
+| `rivalry_threshold` | Integer | `-45` *(Config: -75)* | Negative relation score triggering hostile rivalry and border skirmishes. |
+| `relation_drift_rate` | Float | `1.8` *(Config: 2.2)* | Baseline rate at which inter-clan diplomatic tensions decay toward neutrality. |
+| `trespass_decay` | Float | `0.45` *(Config: 0.25)* | Rate at which border trespass grievances decay over time. |
 | `tribute_enabled` | Boolean | `true` | Weaker clans pay food grain tribute to avoid destructive military invasion. |
 | `envoys_enabled` | Boolean | `true` | Clans dispatch peaceful diplomatic emissaries to negotiate treaties. |
 | `markets_enabled` | Boolean | `true` | Inter-clan trade caravans barter goods and share combat/farming techniques. |
@@ -308,8 +306,8 @@ The God Panel is organized into two primary top-level sections:
 | Law Parameter | Type | Default | Ecological Effect & Hint |
 |---|:---:|:---:|---|
 | `schism_enabled` | Boolean | `true` | Overcrowded or oppressed factions can rebel and split into independent clans. |
-| `schism_min_pop` | Integer | `8` | Minimum clan population required before a civil schism can trigger. |
-| `schism_threshold` | Float | `0.6` | Internal clan friction threshold required to spark a revolutionary schism. |
+| `schism_min_pop` | Integer | `6` *(Config: 6)* | Minimum clan population required before a civil schism can trigger. |
+| `schism_threshold` | Float | `0.55` *(Config: 0.5)* | Internal clan friction threshold required to spark a revolutionary schism. |
 | `defection_enabled` | Boolean | `true` | Dissatisfied individuals can abandon their clan and swear loyalty to rivals. |
 | `betrayal_enabled` | Boolean | `true` | Corrupt leaders or ambitious soldiers can stage coups and seize power. |
 
@@ -321,7 +319,7 @@ The God Panel is organized into two primary top-level sections:
 | Law Parameter | Type | Default | Ecological Effect & Hint |
 |---|:---:|:---:|---|
 | `theology_enabled` | Boolean | `true` | Priests build shrines and temples to channel the higher-dimensional Sphere. |
-| `temple_faith_cost` | Float | `400.0` | Faith points required to consecrate a grand temple dedicated to The Sphere. |
+| `temple_faith_cost` | Float | `250.0` *(Config: 400.0)* | Faith points required to consecrate a grand temple dedicated to The Sphere. |
 | `tithe_rate` | Float | `0.04` | Fraction of harvested grains tithed to priestly temples to generate divine favor. |
 | `culture_enabled` | Boolean | `true` | Spreads cultural memes and traditions that provide passive bonuses to members. |
 | `culture_spread_rate` | Float | `0.005` | Velocity of cultural meme transmission between allied settlement houses. |
@@ -377,9 +375,9 @@ The God Panel is organized into two primary top-level sections:
 
 Flatland includes 7 balanced, pre-configured world profiles:
 
-1. **⚖️ Balance (Default)**: Goldilocks harmony tuned for **200–350 inhabitants** with 380 food, carrying capacity 400 (max 500), gentle wars, rare predation, agriculture, soft-cap damping (ξ), extinction safeguards (η), and flourishing multi-generational clans.
+1. **⚖️ Balance (Default)**: Goldilocks harmony tuned for **200–350 inhabitants** with 380 food, flat carrying capacity 400 (max 500 with smooth cosine fertility room ramp), damping parameters (12.0/1.0/2.0) with $0.85 K$ hysteresis and $\tau = 300\text{t}$ release slew, gentle wars, rare predation, agriculture, extinction safeguards (η), and flourishing multi-generational clans.
 2. **🌿 Sustainable**: 1000-day prosperous peace, abundant food (550), carrying capacity 550 (max 600), rich granaries, harvest festivals, and banquets.
-3. **🔮 Theocracy**: Age of the Sphere, divine avatars, glowing temples, avatar miracles, 3D epiphanies, and holy synods.
+3. **🔮 Theocracy**: Age of the Sphere, divine avatars, glowing temples, avatar miracles, 3D epiphanies, and holy synods. Tuned with flat raw $K=380$, and damping parameters (7.0/1.0/2.0) matching Config defaults via automatic database law migration from legacy 4.0/0.25/0.9 pins.
 4. **⚔️ Warlords**: Clash of clans, imperial conquests, granary raids, house takeovers, territorial expansion, and defensive coalitions.
 5. **🔥 Chaos**: High predator ratio, lethal wars, wildfires, frequent plagues, earthquakes, and fast seasonal turnover.
 6. **💀 Extinction**: Severe famine (120 food), harsh winter (0.3×), high exposure decay, testing societal resilience under collapse.

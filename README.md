@@ -33,9 +33,9 @@
 In Flatland, The Sphere (God) sets the **laws of nature** from Spaceland but never touches an individual life. The Sphere cannot kill, heal, or move a single creature; the simulation advances deterministically under physical and biological rules.
 - **The Sphere Panel (`⚖ The Sphere`)**: Full control over world dynamics via a dedicated **🎯 Presets** selector and 6 streamlined **⚖️ Macro Domains** (Ecology & Survival, Biology & Evolution, Climate & Sky, Society, Warfare & Trade, Theology & Sacred Avatars, World Physics & Disasters) with instant search, modified-only filtering, baseline comparison, and real-time dual sliders.
 - **Curated World Presets**:
-  - **⚖️ Balance (Default)**: Goldilocks harmony tuned for **200–350 inhabitants** with 380 food, carrying capacity 400 (max 500), gentle wars, rare predation, agriculture, soft-cap damping ($\xi$), extinction safeguards ($\eta$), and flourishing multi-generational clans.
+  - **⚖️ Balance (Default)**: Goldilocks harmony tuned for **200–350 inhabitants** with 380 food, flat carrying capacity 400 (max 500 with smooth cosine fertility room ramp), gentle wars, rare predation, agriculture, soft-cap damping ($\xi$, onset $0.85 K$, $\tau=300\text{t}$ release), extinction safeguards ($\eta$), and flourishing multi-generational clans.
   - **🌿 Sustainable**: 1000-day prosperous peace, abundant food (550), carrying capacity 550 (max 600), rich granaries, and banquets.
-  - **🔮 Theocracy**: Age of the Sphere, divine avatars, glowing temples, avatar miracles, 3D epiphanies, and holy synods.
+  - **🔮 Theocracy**: Age of the Sphere, divine avatars, glowing temples, avatar miracles, 3D epiphanies, and holy synods. Tuned with flat raw $K=380$, and damping parameters (7.0/1.0/2.0) matching Config defaults via automatic database migration from legacy 4.0/0.25/0.9 pins.
   - **⚔️ Warlords**: Clash of clans, imperial conquests, granary raids, house takeovers, and defensive coalitions.
   - **🔥 Chaos**: High predator ratio, lethal wars, wildfires, frequent plagues, earthquakes, and fast seasonal turnover.
   - **💀 Extinction**: Famine (120 food), harsh winter (0.3×), high exposure decay, testing societal resilience under collapse.
@@ -53,7 +53,7 @@ In Flatland, The Sphere (God) sets the **laws of nature** from Spaceland but nev
   - Infants burn 55% less energy per tick (`0.45×`); elders move and see with reduced vigor.
   - Hunger activates enhanced foraging sight; extreme starvation triggers desperate speed and pulsing indicators.
 - **Dynamic Homeostasis & Extinction Prevention**:
-  - **Density-Dependent Soft-Cap Damping ($\xi$)**: Non-linear negative feedback suppresses birth rate and scales metabolic strain when exceeding carrying capacity.
+  - **Density-Dependent Soft-Cap Damping ($\xi$)**: Non-linear negative feedback with hysteresis onset starting at $0.85 K_{\text{cap}}$ and exponential release slew ($\tau = 300\text{t}$) smoothly suppresses birth rates (sigmoid transition $k=5.0$) and scales metabolic strain. Births ramp continuously to zero via a smooth cosine fertility room curve up to $max\_pop$, while $\pm 30\%$ lifespan and cooldown jitter ($U(0.7, 1.3)$) breaks cohort resonance.
   - **Extinction Safeguards ($\eta$)**: Emergency multi-tier relief scales and Sphere Genesis miracles prevent collapse when population falls below critical thresholds.
   - **Neural Sensory Foraging**: Micro-RNN 16-sensor raycasting and inductive food-homing biases guide organisms toward sustenance and prevent starvation traps.
 
@@ -71,7 +71,7 @@ Evolution emerges 100% autonomously without artificial intervention:
 - **Cognitive Agency & Tactical Intelligence**: Multi-objective utility AI scoring replaces rigid if/else trees (evaluating survival, duty, traits, and kin needs); spatial waypoint mental maps (`home`, `rich_food`, `danger`, `patrol`); tactical soldier phalanxes, line kiting maneuvers, and interpersonal trust-based buddy pairing.
 
 ### 3.1 Geometric Physics & Morphological Evolution (§BC)
-- **Polar Genomes & Physical Trait Baking**: Every organism is defined by polar coordinates $(r_i,\phi_i)$ with vertex count $K\in[3,64]$ (ultra-circles up to 64). Biomechanical traits are computed in real time via Green-Gauss and Shoelace formulas: Area $A$, Perimeter $P$, Rotational Inertia $I_{zz}$, Minimum Interior Apex Angle $\theta_{\min}$, and Damage Multiplier $D_{\text{mult}}$.
+- **Polar Genomes & Physical Trait Baking**: Every organism is defined by polar coordinates $(r_i,\phi_i)$ with vertex count $K\in[3,24]$ for Abbott orthodox castes (with genome representations supporting ultra-polygons up to 64). Biomechanical traits are computed in real time via Green-Gauss and Shoelace formulas: Area $A$, Perimeter $P$, Rotational Inertia $I_{zz}$, Minimum Interior Apex Angle $\theta_{\min}$, and Damage Multiplier $D_{\text{mult}}$.
 - **Evolutionary Annealing $\lambda(g)$**: Foundational generations adhere strictly to Abbott orthodoxy ($\lambda=1$); as generations elapse, $\lambda \to 0$ unlocks open-ended speciation, meiotic two-parent crossover, and macro-mutation spurts.
 - **Micro-Elman RNN Controllers**: 295 evolvable neural controller weights ($16 \to 12 \to 7$) driving real-time sensory raycasting, predator evasion, forage navigation, and buddy-trust bonding.
 
@@ -249,7 +249,7 @@ flws/
 │   │   ├── wiki_i18n.py         # Multilingual Wiki renderer (EN, FR, VI)
 │   │   └── main.py              # FastAPI app, SimEngine thread, Hub broadcaster, REST & WebSocket
 │   ├── tui/                     # Textual terminal client (standalone WebSocket client)
-│   └── tests/                   # Pytest test suite (503+ automated tests across 44 suites)
+│   └── tests/                   # Pytest test suite (523+ automated tests across 70 suites)
 ├── docs/                        # Architecture specs, design philosophies & notes
 ├── scripts/                     # Benchmark & stress test utilities
 ├── run.sh                       # Local orchestrator (backend, TUI, full stack)

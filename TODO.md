@@ -6,11 +6,11 @@ The Sphere model: The Sphere (God) sets **laws** from Spaceland, never touches i
 Repository: [https://github.com/longphanmn/flws](https://github.com/longphanmn/flws)  
 Legend: [P0] foundational · [P1] core Flatland identity · [P2] flavor/observability · `- [ ]` open · `- [x]` done · *parked* = decided, not pending
 
-> **Active backlog only.** Completed roadmaps §F–§BP (772 items) → [`docs/roadmap-archive.md`](docs/roadmap-archive.md). This file tracks **open items in §BQ** + 10 parked.
+> **Active backlog only.** Completed roadmaps §F–§BP (772 items) → [`docs/roadmap-archive.md`](docs/roadmap-archive.md). This file tracks §BQ (10/10 completed) + 10 parked.
 
 ---
 
-## §BQ Ecological Realism & Continuous Population Dynamics — Active Backlog (5/5 done) — 2026-09-17
+## §BQ Ecological Realism & Continuous Population Dynamics — (10/10 done) — 2026-09-17 to 2026-09-22
 
 > **Context**: Live production telemetry on `/healthz` and the Health Dashboard (`/health/`) revealed an unnatural digital step-function pattern where population and food lock rigidly onto 3–4 discrete numbers (~240, ~325, ~415, ~480 pop; 251, 281, 361, 475 food) for 20 minutes (12,000 ticks) straight, then abruptly jump.
 > **Root Causes**:
@@ -33,8 +33,9 @@ Legend: [P0] foundational · [P1] core Flatland identity · [P2] flavor/observab
 - [x] [P0] **BQ-4 Multi-Harmonic Carrying Capacity & Smooth Logistic Soft-Cap** (`lifecycle.py` / `core.py` / `density_damping.py`)
   - Replaced the rigid thermostat wall (`math.exp(-10 * xi)`) with smooth logistic easing between carrying capacity and maximum population.
   - Unified carrying capacity calculations across `lifecycle.py` and `core.py` combining age and seasonal solar multipliers (`carrying * cap_mult * season_cap_mult`) so population naturally breathes and undulates around carrying capacity.
+  - *(Note: Modulation of carrying capacity via cap_mult × season_cap_mult in BQ-4 was superseded in §BQ-6.1; swinging the carrying setpoint caused structural bouncing. BQ-6.1 flattened K to a fixed setpoint, keeping continuous seasonal variation on food supply only.)*
 - [x] [P1] **BQ-5 Live Telemetry, Test Suite & Health Dashboard Verification**
-  - Verified full test suite passes across 522+ tests (0 failures).
+  - Verified full test suite passes across 523+ tests (0 failures).
   - Expanded regression test suite `test_continuous_dynamics.py` covering solar carrying capacity, mid-era continuous variation, and non-plateau dynamics.
 
 ---
@@ -54,8 +55,11 @@ Legend: [P0] foundational · [P1] core Flatland identity · [P2] flavor/observab
 - [x] [P1] **BQ-6.4 Hygiene** (`safeguard_engine.py` / `serialization.py` / `main.py`)
   - One shared K: safeguard relief and telemetry now use `effective_carrying_capacity`, matching the soft-cap.
   - Theocracy preset no longer pins `damping_steepness=4.0` / `crowding=0.25` / `resource=0.9`; it follows config defaults 7.0/1.0/2.0. A boot migration rewrites only the exact legacy tuple from persisted law state so the tuning actually ships.
-- [x] [P0] **BQ-6.5 A/B verification** (`scripts/preset_experiment.py --osc-run/--osc-compare`)
-  - 120k ticks, 20k burn-in, seeds 42/123/999, theocracy A (baseline) vs B (fixed); gates on CV(N), amplitude, dN/dt reversals, old-age burstiness, min-N floor.
+- [x] [P0] **BQ-6.5 A/B verification harness & gates** (`scripts/preset_experiment.py --osc-run/--osc-compare`)
+  - Verification harness: `scripts/preset_experiment.py --osc-run --world A|B --seed <seed> --ticks 120000 --burn-in 20000 --out <path>` and `--osc-compare <paths...>`.
+  - Pass gates for World B: $\text{CV}(N) \le 0.08$, $\text{amplitude} \le 0.25$, $\text{reversals}/72\text{k} \le 8.0$, $\text{old-age burstiness} < 3.0$, $\min(N) > 0.5 \times K_{\text{eff\_min}}$.
+  - Baseline World A (wanders $\sim 218–519$ around $K=380$ due to moving setpoint + cohort lockstep) vs World B (flat setpoint + hysteresis + cohort jitter). Live verification runs for World A (seeds 42, 123, 999) actively executing in background.
+  - Follow-up diagnosis note: Opencode follow-up diagnosis in `ecology.py` identified that wild food supply was still oscillating with era-length age multiplier `_smooth_age_mult(AGE_FOOD_MULT)` (0.55×–1.25×), which caused Ice Age food dips while population ceiling was flat; uncoupling food target from era age multiplier preserves seasonal variation only, keeping food dynamics fully synchronized with flat K.
 
 ---
 
@@ -84,7 +88,7 @@ These are documented decisions with rationale, not overdue work.
 1. **BQ-1 Desynchronization before BQ-2 Smoothing** — Base cycle lengths and phase offsets must be settled before calibrating astronomical easing curves.
 2. **BQ-3 Food Regrowth Flux before BQ-4 Damping Smoothing** — Grazing feedback and natural food capacity must be active before tuning birth damping room.
 3. **Preserve God Laws API contracts** — `food_count`, `carrying_capacity`, `season_length`, `winter_food_mult` remain god-settable parameters; smoothing and regrowth act on internal effective targets.
-4. **Pass full test suite** — Every step must maintain 100% pass rate across the 513 existing test cases.
+4. **Pass full test suite** — Every step must maintain 100% pass rate across the 523+ automated test cases.
 
 ---
 

@@ -9,7 +9,7 @@
   2. **Dual-Path Acceleration:** Broadphase spatial sweeps, raycasting, and line intersections are accelerated via embedded C99 OpenMP (`_flatland_core.so`), backed by 100% deterministic pure-Python fallbacks.
   3. **Structure-of-Arrays (SoA) Vectorization:** `AgentSoA` stores entity kinematics, sensors, and vitals in contiguous memory buffers feeding a 295-parameter Micro-Elman Recurrent Neural Network forward inference engine.
   4. **Polar Polygon Biomechanics:** Organisms possess continuous $K$-vertex polar morphologies ($K \in [3, 24]$) evaluated via Green-Gauss polygon integration for rotational inertia ($I_{zz}$), Shoelace area, and Separating Axis Theorem (SAT) collision dynamics.
-  5. **Macro Homeostasis:** Dual feedback loops prevent ecosystem collapse: Extinction Safeguard Factor ($\eta$) provides relief during near-extinction; Density Soft-Cap Damping ($\xi$) curbs overpopulation.
+  5. **Macro Homeostasis & Structural Stability:** Dual feedback loops prevent ecosystem collapse and oscillation lock-in: Extinction Safeguard Factor ($\eta$) provides emergency relief during demographic crises using unified effective carrying capacity; Density Soft-Cap Damping ($\xi$) with $0.85 K_{\text{cap}}$ hysteresis onset, exponential release slew ($\tau = 300\text{t}$), smooth cosine fertility room ramp (replacing hard ceilings), and $\pm 30\%$ lifespan/cooldown jitter ($U(0.7, 1.3)$) stabilizes population around a flat carrying setpoint.
 
 ---
 
@@ -26,8 +26,8 @@
 | **Micro-Elman RNN** | Neuroevolution | 295 float32 weights ($W_1: 16\times12, W_2: 12\times7$). Inputs: 8 raycasts, velocity, energy, health, day/night, temp, recurrent state. Outputs: thrust, steer, interact, posture, vocalization. |
 | **Annealing $\lambda(g)$** | Genetics | Controls morphological drift from Abbott classical templates ($\lambda=1$ for $g < 15$) to open-ended speciation ($\lambda \to 0$). |
 | **The Sphere** | Theology / Macro | 3D entity observing from Spaceland. Enacts universal `GodLaws` (climate, mutation, carrying capacity) but cannot move or heal individual agents. |
-| **Extinction Safeguard ($\eta$)**| Macro Homeostasis | Relief factor $\eta \in [0, 1]$ active when $N < K_{\text{safe}}$. Boosts flora growth, reduces energy drain, enables morphological mercy, triggers Genesis Miracles. |
-| **Density Soft-Cap ($\xi$)** | Macro Homeostasis | Damping factor $\xi = \max(0, (N - 0.85 K_{\text{cap}})/K_{\text{cap}})$. Begins below the carrying edge (hysteresis) and releases exponentially toward its target with $\tau = 300$ ticks, quadratically suppressing birth rates and elevating metabolic stress as population approaches capacity. |
+| **Extinction Safeguard ($\eta$)**| Macro Homeostasis | Relief factor $\eta \in [0, 1]$ active when $N < K_{\text{safe}}$ ($K_{\text{safe}} = K_{\text{eff}} \times \text{relief\_ratio}$, unified with $K_{\text{cap}}$). Boosts flora growth, reduces energy drain, enables morphological mercy, triggers Genesis Miracles. |
+| **Density Soft-Cap ($\xi$)** | Macro Homeostasis | Damping factor $\xi = \max(0, (N - 0.85 K_{\text{cap}})/K_{\text{cap}})$. Begins at $0.85 K_{\text{cap}}$ (hysteresis onset) and releases exponentially toward target with $\tau = 300\text{t}$, suppressing birth rates (via sigmoid $k=5.0$) and elevating metabolic stress. Combined with cosine fertility room to $max\_pop$ and $U(0.7, 1.3)$ cohort jitter. |
 | **Abbott Castes** | Social Hierarchy | Woman ($sides=2$, line), Isosceles Soldier ($sides=3$, acute), Artisan ($sides=3, \theta=60^\circ$), Gentleman ($sides=4$, square), Noble ($6 \le sides < 24$), Priest ($sides \ge 24$, circle). |
 | **Avatars of the Sphere** | Culture / Religion | 8 sacred totems: Radiant Circle, Celestial Strike, All-Seeing Vertex, Indomitable Monolith, Sacred Spiral, Cosmic Scales, Dimensional Rift, Eternal Hearth. |
 
@@ -98,13 +98,19 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 # Or connect to remote:
 ./run.sh tui ws://remote-host:8000/ws
 
-# 6. Execute full Pytest test suite (503+ tests)
+# 6. Execute full Pytest test suite (523+ tests)
 cd backend && uv run pytest -v
 uv run pytest tests/test_physics_core.py -v
 uv run pytest tests/test_neuroevolution.py -v
+uv run pytest tests/test_soft_cap.py -v
 
 # 7. Run with Docker Compose
 docker compose up --build
+
+# 8. Execute A/B population oscillation verification harness & compare gates
+# Gates: CV(N) <= 0.08, amplitude <= 0.25, reversals/72k <= 8.0, burstiness < 3.0, min N > 0.5*K_eff_min
+python3 scripts/preset_experiment.py --osc-run --world B --seed 42 --ticks 120000 --burn-in 20000 --out scripts/oscillation_B_42.json
+python3 scripts/preset_experiment.py --osc-compare scripts/oscillation_A_42.json scripts/oscillation_B_42.json
 ```
 
 ---
