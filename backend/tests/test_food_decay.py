@@ -145,7 +145,7 @@ def test_wilting_flag_surfaces_near_the_end():
     assert payload.get("withering") is True
 
 
-def test_wither_events_never_reach_the_db(client):
+def test_wither_events_never_reach_the_db(client, extended_testclient_god_rate_limit):
     # a live world ticking under short lifespans: chronicle keeps withers,
     # the durable events table does not (throttled like blooms)
     r = client.post("/api/laws?persist=false", json={"food_lifespan_ticks": 100})

@@ -2,8 +2,10 @@
 
 import asyncio
 import json
+import logging
 import os
 import random
+import secrets
 import sys
 import threading
 import time
@@ -12,13 +14,22 @@ import traceback
 from contextlib import asynccontextmanager
 from dataclasses import asdict, replace
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from pydantic import ValidationError
 
-from .auth import PasskeyAuth, SetupPasskey, require_god, check_rate_limit
+from .auth import (
+    PasskeyAuth,
+    SetupPasskey,
+    check_client_rate_limit,
+    check_rate_limit,
+    request_client_ip,
+    require_god,
+    websocket_client_ip,
+)
 from .config import Config
 from .db import CLAN_PAYLOAD_KEYS, Database
 from .protocol import ControlAction, ControlMessage, GodLaws, HelloMessage, StateMessage
@@ -840,6 +851,8 @@ def _try_restore_snapshot() -> bool:
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     DB.connect()
+    _initialize_bootstrap_auth()
+    _log_security_configuration()
     # Restore persisted preset + laws BEFORE snapshot rehydration, so the
     # continued world (or a fresh founding) runs the remembered rules —
     # otherwise every deploy silently reverts to env defaults relabelled
@@ -930,12 +943,13 @@ async def lifespan(_: FastAPI):
 app = FastAPI(
     title="Flatland World Simulation",
     version="0.1.6",
-    description="Flatland — 2D world simulation by Long Phan <long@minhnhan.in>",
-    contact={"name": "Long Phan", "email": "long@minhnhan.in"},
+    description="Flatland — 2D autonomous world simulation",
     lifespan=lifespan,
 )
 AUTH = PasskeyAuth(DB)
 app.state.god_auth = AUTH
+app.state.bootstrap_token = None
+_BOOTSTRAP_LOCK = threading.Lock()
 DEFAULT_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
@@ -945,50 +959,127 @@ DEFAULT_ALLOWED_ORIGINS = [
     "https://longphanmn.github.io",
 ]
 
-_extra_origins = [o.strip() for o in os.getenv("FLATWORLD_ALLOWED_ORIGINS", "").split(",") if o.strip()]
-ALLOWED_ORIGINS: list[str] = list(dict.fromkeys(DEFAULT_ALLOWED_ORIGINS + _extra_origins))
+
+def _valid_origin(origin: str) -> bool:
+    try:
+        parsed = urlsplit(origin)
+        _ = parsed.port
+    except ValueError:
+        return False
+    return (
+        parsed.scheme in ("http", "https")
+        and bool(parsed.hostname)
+        and not any(character.isspace() for character in origin)
+        and parsed.username is None
+        and parsed.password is None
+        and not parsed.path
+        and not parsed.query
+        and not parsed.fragment
+    )
+
+
+def parse_allowed_origins(raw: str) -> tuple[list[str], list[str]]:
+    valid_extras: list[str] = []
+    invalid: list[str] = []
+    for entry in raw.split(","):
+        origin = entry.strip()
+        if not origin:
+            continue
+        if _valid_origin(origin):
+            valid_extras.append(origin)
+        else:
+            invalid.append(origin)
+    return list(dict.fromkeys(DEFAULT_ALLOWED_ORIGINS + valid_extras)), invalid
+
+
+ALLOWED_ORIGINS, INVALID_ALLOWED_ORIGINS = parse_allowed_origins(
+    os.getenv("FLATWORLD_ALLOWED_ORIGINS", "")
+)
 ALLOWED_ORIGINS_SET: set[str] = set(ALLOWED_ORIGINS)
+
+
+def _initialize_bootstrap_auth() -> None:
+    auth = app.state.god_auth
+    if auth.source == "env" or auth.configured():
+        app.state.bootstrap_token = None
+        return
+    if app.state.bootstrap_token is not None:
+        return
+    token = os.environ.get("FLATWORLD_BOOTSTRAP_TOKEN", "").strip()
+    if not token:
+        token = secrets.token_urlsafe(32)
+    app.state.bootstrap_token = token
+    print(f"FLATWORLD_BOOTSTRAP_TOKEN={token}", flush=True)
+
+
+def _log_security_configuration() -> None:
+    print(f"[security] effective allowed origins: {', '.join(ALLOWED_ORIGINS)}", flush=True)
+    for origin in INVALID_ALLOWED_ORIGINS:
+        print(f"[security] warning: skipping invalid allowed origin: {origin!r}", flush=True)
+    if set(ALLOWED_ORIGINS) == set(DEFAULT_ALLOWED_ORIGINS):
+        print(
+            "[security] warning: effective origin allowlist contains only compiled defaults; "
+            "set FLATWORLD_ALLOWED_ORIGINS for LAN or production browser origins",
+            flush=True,
+        )
+
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "X-God-Key"],
+    allow_headers=["Content-Type", "X-God-Key", "X-Bootstrap-Token"],
     allow_credentials=False,
 )
 
 
+def _validated_origin(headers) -> tuple[bool, str | None]:
+    origins = headers.getlist("origin")
+    if not origins:
+        return True, None
+    if len(origins) != 1 or "," in origins[0]:
+        return False, None
+    origin = origins[0]
+    return origin in ALLOWED_ORIGINS_SET, origin
+
+
 @app.middleware("http")
 async def csrf_origin_guard(request: Request, call_next):
-    if request.method in ("POST", "PUT", "PATCH", "DELETE"):
-        origin = request.headers.get("origin")
-        if origin is not None and origin not in ALLOWED_ORIGINS_SET:
-            return JSONResponse(status_code=403, content={"detail": "Forbidden: invalid origin"})
+    valid_origin, origin = _validated_origin(request.headers)
+    if not valid_origin:
+        return JSONResponse(status_code=403, content={"detail": "Forbidden: invalid origin"})
+    if (
+        request.method in ("POST", "PUT", "PATCH", "DELETE")
+        and origin is None
+        and request.url.path != "/api/auth/setup"
+    ):
+        privileged = await asyncio.to_thread(_is_privileged_request, request)
+        if not privileged:
+            return JSONResponse(status_code=403, content={"detail": "Forbidden: non-browser authentication required"})
     return await call_next(request)
 
 
 def _is_privileged_request(request: Request) -> bool:
-    client_host = request.client.host if request.client else None
-    if client_host in ("127.0.0.1", "::1", "localhost", "testclient"):
-        xff = request.headers.get("x-forwarded-for")
-        if not xff:
-            return True
-        first_ip = xff.split(",")[0].strip()
-        if first_ip in ("127.0.0.1", "::1", "localhost"):
-            return True
-
-    auth = getattr(request.app.state, "god_auth", None)
     god_key = request.headers.get("X-God-Key")
-    if auth and god_key and auth.verify(god_key):
+    if not god_key:
+        return False
+    check_rate_limit(request, "god_api", capacity=60.0, refill_rate=5.0)
+    auth = getattr(request.app.state, "god_auth", None)
+    if auth and auth.verify(god_key):
+        logging.getLogger("flatworld.security").info(
+            "privileged diagnostics client_ip=%s", request_client_ip(request)
+        )
         return True
-
     return False
 
 
 MAX_GLOBAL_WS_CLIENTS = int(os.getenv("FLATWORLD_MAX_WS_CLIENTS", "100"))
 MAX_CLIENT_WS_CONNECTIONS = int(os.getenv("FLATWORLD_MAX_CLIENT_WS", "10"))
+MAX_WS_AUTH_FAILURES = int(os.getenv("FLATWORLD_MAX_WS_AUTH_FAILURES", "5"))
 _WS_CLIENT_IPS: dict[str, int] = {}
 _WS_IP_LOCK = threading.Lock()
+_WS_GLOBAL_RESERVED = 0
+_WS_GLOBAL_LOCK = asyncio.Lock()
 
 
 
@@ -2570,25 +2661,37 @@ def apply_laws(laws: GodLaws, persist: bool = True) -> dict:
 # ---------------------------------------------------------------- websocket
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket) -> None:
-    origin = ws.headers.get("origin")
-    if origin is not None and origin not in ALLOWED_ORIGINS_SET:
+    valid_origin, _origin = _validated_origin(ws.headers)
+    if not valid_origin:
         await ws.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
-    if len(HUB.clients) >= MAX_GLOBAL_WS_CLIENTS:
+    global _WS_GLOBAL_RESERVED
+    async with _WS_GLOBAL_LOCK:
+        if _WS_GLOBAL_RESERVED >= MAX_GLOBAL_WS_CLIENTS:
+            global_reserved = False
+        else:
+            _WS_GLOBAL_RESERVED += 1
+            global_reserved = True
+    if not global_reserved:
         await ws.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
-    client_ip = ws.client.host if ws.client else "unknown"
-    if client_ip != "testclient":
-        with _WS_IP_LOCK:
-            curr = _WS_CLIENT_IPS.get(client_ip, 0)
-            if curr >= MAX_CLIENT_WS_CONNECTIONS:
-                await ws.close(code=status.WS_1008_POLICY_VIOLATION)
-                return
-            _WS_CLIENT_IPS[client_ip] = curr + 1
-
+    client_ip = websocket_client_ip(ws)
+    ip_reserved = False
+    subscribed = False
+    auth_failures = 0
+    auth = ws.app.state.god_auth
     try:
+        with _WS_IP_LOCK:
+            current = _WS_CLIENT_IPS.get(client_ip, 0)
+            if current < MAX_CLIENT_WS_CONNECTIONS:
+                _WS_CLIENT_IPS[client_ip] = current + 1
+                ip_reserved = True
+        if not ip_reserved:
+            await ws.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
+
         await ws.accept()
         # AZ Phase 1 P0: refresh frozen cache on connect so HTTP doesn't stay stale
         try:
@@ -2630,8 +2733,9 @@ async def ws_endpoint(ws: WebSocket) -> None:
                 ws.send_text(snap_text),
                 timeout=HUB.SEND_TIMEOUT,
             )
-            # Subscribe to subsequent delta broadcasts only after full state has been sent
+            # Transfer the pre-accept global reservation into the live client set.
             HUB.clients.add(ws)
+            subscribed = True
             while True:
                 raw = await ws.receive_json()
                 try:
@@ -2640,8 +2744,18 @@ async def ws_endpoint(ws: WebSocket) -> None:
                     continue
                 # God control over the socket needs the passkey too (pause/step/
                 # reset are as much a hand on the world as any law).
-                if not AUTH.verify(raw.get("key")):
-                    configured = AUTH.configured()
+                try:
+                    check_client_rate_limit(client_ip, "ws_auth", capacity=10.0, refill_rate=1.0)
+                except HTTPException:
+                    await ws.close(code=status.WS_1008_POLICY_VIOLATION)
+                    return
+                configured = auth.configured()
+                verified = await asyncio.to_thread(auth.verify, raw.get("key")) if configured else False
+                if not verified:
+                    auth_failures += 1
+                    if auth_failures >= MAX_WS_AUTH_FAILURES:
+                        await ws.close(code=status.WS_1008_POLICY_VIOLATION)
+                        return
                     await asyncio.wait_for(
                         ws.send_json(
                             {
@@ -2661,18 +2775,22 @@ async def ws_endpoint(ws: WebSocket) -> None:
         except WebSocketDisconnect:
             pass
     finally:
-        HUB.disconnect(ws)
-        if client_ip != "testclient":
+        if subscribed:
+            HUB.disconnect(ws)
+        if ip_reserved:
             with _WS_IP_LOCK:
                 if client_ip in _WS_CLIENT_IPS:
                     _WS_CLIENT_IPS[client_ip] -= 1
                     if _WS_CLIENT_IPS[client_ip] <= 0:
                         del _WS_CLIENT_IPS[client_ip]
+        if global_reserved:
+            async with _WS_GLOBAL_LOCK:
+                _WS_GLOBAL_RESERVED = max(0, _WS_GLOBAL_RESERVED - 1)
 
 
 # --------------------------------------------------------------------- rest
 @app.get("/healthz")
-async def healthz(
+def healthz(
     request: Request,
     range: str | None = None,
     minutes: int | None = None,
@@ -2839,7 +2957,7 @@ async def health_dashboard() -> HTMLResponse:
 
 
 @app.get("/api/perf/telemetry")
-async def get_telemetry(request: Request, window_seconds: int = 60) -> dict:
+def get_telemetry(request: Request, window_seconds: int = 60) -> dict:
     """Return rolling performance telemetry over recent ticks and CPU core load."""
     now = time.monotonic()
     durs = list(RT._tick_durs)
@@ -3067,7 +3185,7 @@ async def get_damping_metrics() -> dict:
 
 
 @app.get("/api/version")
-async def get_version(request: Request) -> dict:
+def get_version(request: Request) -> dict:
     """Public version endpoint — strips developer PII and git hash unless privileged."""
     if _is_privileged_request(request):
         return {"version": APP_VERSION, "revision": GIT_REVISION}
@@ -3088,7 +3206,7 @@ PUBLIC_CONFIG_KEYS = {
 
 
 @app.get("/api/config")
-async def get_config(request: Request) -> dict:
+def get_config(request: Request) -> dict:
     cfg_dict = asdict(RT.config)
     if _is_privileged_request(request):
         return cfg_dict
@@ -3109,15 +3227,38 @@ async def auth_status() -> dict:
 
 
 @app.post("/api/auth/setup")
-async def auth_setup(request: Request, body: SetupPasskey) -> dict:
-    """First-time enrollment: register the god passkey (only before one exists)."""
+def auth_setup(request: Request, body: SetupPasskey) -> dict:
+    """Register the first database credential using the one-time bootstrap token."""
     check_rate_limit(request, "setup", capacity=10.0, refill_rate=0.5)
-    try:
-        AUTH.setup(body.passkey)
-    except ValueError as exc:
-        raise HTTPException(422, str(exc)) from exc
-    except PermissionError as exc:
-        raise HTTPException(409, {"error": "god_key_already_configured", "detail": str(exc)}) from exc
+    auth: PasskeyAuth = request.app.state.god_auth
+    with _BOOTSTRAP_LOCK:
+        if auth.source == "env":
+            raise HTTPException(
+                409,
+                {
+                    "error": "god_key_env_configured",
+                    "detail": "FLATWORLD_GOD_KEY is authoritative; database setup is disabled",
+                },
+            )
+        if auth.configured():
+            raise HTTPException(403, {"error": "bootstrap_unavailable", "detail": "first-time enrollment is already complete"})
+        expected_token = getattr(request.app.state, "bootstrap_token", None)
+        supplied_token = request.headers.get("X-Bootstrap-Token")
+        if (
+            not expected_token
+            or not supplied_token
+            or not secrets.compare_digest(
+                supplied_token.encode("utf-8"), expected_token.encode("utf-8")
+            )
+        ):
+            raise HTTPException(403, {"error": "invalid_bootstrap_token", "detail": "valid X-Bootstrap-Token header required"})
+        try:
+            auth.setup(body.passkey)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        except PermissionError as exc:
+            raise HTTPException(409, {"error": "god_key_already_configured", "detail": str(exc)}) from exc
+        request.app.state.bootstrap_token = None
     return {"ok": True, "configured": True}
 
 
@@ -3827,6 +3968,26 @@ def _clans_payload(sim: Simulation | None = None, include_extinct: bool = False)
     return {"clans": clans, "names": names, "tick": sim.tick}
 
 # BD.1.3 High-Performance Analytics REST API — 1s memoization, rate-limited
+_ANALYTICS_SUMMARY_KEYS = {
+    "tick",
+    "ring",
+    "mortality",
+    "generational",
+    "trophic",
+    "biodiversity",
+    "heritability",
+    "hegemony",
+    "gini",
+    "trade",
+    "casus",
+    "famine",
+    "extinction",
+    "law_impact",
+    "unrest",
+    "time",
+}
+
+
 def _analytics_payload(sim) -> dict:
     try:
         from .analytics import get_engine  # type: ignore
@@ -3837,9 +3998,13 @@ def _analytics_payload(sim) -> dict:
                 eng.on_tick(sim)
             except Exception:
                 pass
-        return eng.summary(sim)
+        payload = eng.summary(sim)
+        if not isinstance(payload, dict) or payload.get("error"):
+            return {"error": "analytics_unavailable", "tick": getattr(sim, "tick", 0)}
+        return {key: payload[key] for key in _ANALYTICS_SUMMARY_KEYS if key in payload}
     except Exception:
-        return {"error": "internal_error", "tick": getattr(sim, "tick", 0)}
+        logging.getLogger(__name__).exception("analytics endpoint failed")
+        return {"error": "analytics_unavailable", "tick": getattr(sim, "tick", 0)}
 
 
 @app.get("/api/analytics/summary")

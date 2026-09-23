@@ -57,6 +57,15 @@ elif [ -f "$ROOT/backend/.env" ]; then
   set +a
 fi
 
+LAN_IP="$(ipconfig getifaddr en0 2>/dev/null || hostname -I 2>/dev/null | awk '{print $1}' || echo 'localhost')"
+if [ -n "$LAN_IP" ] && [ "$LAN_IP" != "localhost" ]; then
+  LAN_ORIGIN="http://${LAN_IP}:5173"
+  case ",${FLATWORLD_ALLOWED_ORIGINS:-}," in
+    *",${LAN_ORIGIN},"*) ;;
+    *) export FLATWORLD_ALLOWED_ORIGINS="${FLATWORLD_ALLOWED_ORIGINS:+${FLATWORLD_ALLOWED_ORIGINS},}${LAN_ORIGIN}" ;;
+  esac
+fi
+
 # ------------------------------------------------------------ clone & setup flws-web
 setup_frontend() {
   FE_DIR="${FRONTEND_DIR:-}"
@@ -165,7 +174,6 @@ else
   echo "[frontend] Note: frontend directory ($FE_DIR) or npm not found; running backend only."
 fi
 
-LAN_IP="$(ipconfig getifaddr en0 2>/dev/null || hostname -I 2>/dev/null | awk '{print $1}' || echo 'localhost')"
 echo ""
 echo "  World UI : http://localhost:5173  (or http://${LAN_IP}:5173 on LAN)"
 echo "  API docs : http://localhost:8000/docs"

@@ -107,6 +107,7 @@ def test_healthz_includes_120m_history():
         advance_world(RT)
     start_world()
     c = TestClient(app)
+    c.headers["X-God-Key"] = "test-key"
     # default (curl-style) Accept stays JSON
     r = c.get("/healthz")
     assert r.status_code == 200
@@ -150,6 +151,7 @@ def test_healthz_reports_subsystem_timing():
     RT.sim.step()
     start_world()
     c = TestClient(app)
+    c.headers["X-God-Key"] = "test-key"
     r = c.get("/healthz")
     assert r.status_code == 200
     body = r.json()

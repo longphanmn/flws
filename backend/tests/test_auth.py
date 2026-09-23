@@ -11,6 +11,7 @@ from app.main import RT, app, start_world
 from app.simulation import Simulation
 
 KEY = "open-sesame"
+BOOTSTRAP = "test-bootstrap-token"
 
 
 @pytest.fixture(autouse=True)
@@ -31,6 +32,7 @@ def swap_auth(monkeypatch) -> None:
     monkeypatch.delenv("FLATWORLD_GOD_KEY", raising=False)
     auth = PasskeyAuth(Database(":memory:"))
     monkeypatch.setattr(app.state, "god_auth", auth)
+    monkeypatch.setattr(app.state, "bootstrap_token", BOOTSTRAP, raising=False)
     monkeypatch.setattr(app_main, "AUTH", auth)
 
 
@@ -39,12 +41,13 @@ def test_god_calls_rejected_until_passkey_exists(monkeypatch):
     c = TestClient(app)
     assert c.get("/api/auth/status").json() == {"configured": False}
 
-    r = c.post("/api/control", json={"action": "pause"})
+    origin = {"Origin": "http://localhost:5173"}
+    r = c.post("/api/control", headers=origin, json={"action": "pause"})
     assert r.status_code == 409
     assert r.json()["detail"]["error"] == "god_key_not_configured"
-    r = c.post("/api/laws", json={"food_count": 5})
+    r = c.post("/api/laws", headers=origin, json={"food_count": 5})
     assert r.status_code == 409
-    r = c.post("/api/presets/chaos")
+    r = c.post("/api/presets/chaos", headers=origin)
     assert r.status_code == 409
 
 
@@ -52,23 +55,44 @@ def test_setup_then_key_required(monkeypatch):
     swap_auth(monkeypatch)
     c = TestClient(app)
 
-    # enroll (first time only)
+    # missing bootstrap token refuses
     r = c.post("/api/auth/setup", json={"passkey": KEY})
+    assert r.status_code == 403
+
+    # too-short passkeys refuse without consuming the bootstrap token
+    r = c.post(
+        "/api/auth/setup",
+        headers={"X-Bootstrap-Token": BOOTSTRAP},
+        json={"passkey": "abc"},
+    )
+    assert r.status_code == 422
+
+    # enroll (first time only)
+    r = c.post(
+        "/api/auth/setup",
+        headers={"X-Bootstrap-Token": BOOTSTRAP},
+        json={"passkey": KEY},
+    )
     assert r.status_code == 200 and r.json()["configured"] is True
     assert c.get("/api/auth/status").json() == {"configured": True}
 
-    # second enrollment refuses
-    r = c.post("/api/auth/setup", json={"passkey": "another-key"})
-    assert r.status_code == 409
-
-    # too-short passkeys refuse
-    r = c.post("/api/auth/setup", json={"passkey": "abc"})
-    assert r.status_code == 422
+    # bootstrap is dead after the first successful enrollment
+    r = c.post(
+        "/api/auth/setup",
+        headers={"X-Bootstrap-Token": BOOTSTRAP},
+        json={"passkey": "another-key"},
+    )
+    assert r.status_code == 403
 
     # without key: 401; wrong key: 401; right key: 200
-    r = c.post("/api/control", json={"action": "pause"})
+    auth_headers = {"Origin": "http://localhost:5173"}
+    r = c.post("/api/control", headers=auth_headers, json={"action": "pause"})
     assert r.status_code == 401
-    r = c.post("/api/control", json={"action": "pause"}, headers={"X-God-Key": "wrong"})
+    r = c.post(
+        "/api/control",
+        headers={**auth_headers, "X-God-Key": "wrong"},
+        json={"action": "pause"},
+    )
     assert r.status_code == 401
     r = c.post(
         "/api/control", json={"action": "pause"}, headers={"X-God-Key": KEY}
@@ -76,7 +100,7 @@ def test_setup_then_key_required(monkeypatch):
     assert r.status_code == 200 and r.json()["paused"] is True
 
     # laws + presets honour it too
-    r = c.post("/api/laws?persist=false", json={"food_count": 5})
+    r = c.post("/api/laws?persist=false", headers=auth_headers, json={"food_count": 5})
     assert r.status_code == 401
     r = c.post(
         "/api/laws?persist=false",
@@ -91,7 +115,11 @@ def test_setup_then_key_required(monkeypatch):
 def test_admin_cli_can_reset_and_clear(monkeypatch):
     swap_auth(monkeypatch)
     c = TestClient(app)
-    c.post("/api/auth/setup", json={"passkey": KEY})
+    c.post(
+        "/api/auth/setup",
+        headers={"X-Bootstrap-Token": BOOTSTRAP},
+        json={"passkey": KEY},
+    )
     auth = app.state.god_auth
     assert auth.configured()
 
@@ -104,10 +132,18 @@ def test_admin_cli_can_reset_and_clear(monkeypatch):
     auth.clear()
     assert not auth.configured()
     assert not auth.verify("fresh-key")
-    r = c.post("/api/control", json={"action": "pause"})
+    r = c.post(
+        "/api/control",
+        headers={"Origin": "http://localhost:5173"},
+        json={"action": "pause"},
+    )
     assert r.status_code == 409
-    r = c.post("/api/auth/setup", json={"passkey": KEY})
-    assert r.status_code == 200
+    r = c.post(
+        "/api/auth/setup",
+        headers={"X-Bootstrap-Token": BOOTSTRAP},
+        json={"passkey": KEY},
+    )
+    assert r.status_code == 403
 
 
 def test_websocket_control_requires_key(monkeypatch):
@@ -122,7 +158,11 @@ def test_websocket_control_requires_key(monkeypatch):
         assert err["type"] == "auth_error"
         assert err["error"] == "god_key_not_configured"
 
-        c.post("/api/auth/setup", json={"passkey": KEY})
+        c.post(
+            "/api/auth/setup",
+            headers={"X-Bootstrap-Token": BOOTSTRAP},
+            json={"passkey": KEY},
+        )
         ws.send_json({"action": "step"})  # still no key on this message
         err = ws.receive_json()
         assert err["type"] == "auth_error"

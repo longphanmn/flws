@@ -3,6 +3,8 @@
 import os
 import tempfile
 
+import pytest
+
 os.environ["FLATWORLD_DB"] = os.path.join(
     tempfile.mkdtemp(prefix="flatworld_test_"), "test_flatland.db"
 )
@@ -24,3 +26,19 @@ try:
     _Cfg.morphology_annealing_enabled = False  # type: ignore
 except Exception:
     pass
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiters():
+    from app import auth
+
+    auth._RATE_LIMITERS.clear()
+    yield
+    auth._RATE_LIMITERS.clear()
+
+
+@pytest.fixture
+def extended_testclient_god_rate_limit():
+    from app import auth
+
+    auth._RATE_LIMITERS["god_api:testclient"] = auth.TokenBucket(10_000, 10_000)

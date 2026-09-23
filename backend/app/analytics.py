@@ -1,5 +1,6 @@
 """BD World Analytics & Telemetry Engine — high-performance macro intelligence."""
 from __future__ import annotations
+import logging
 import math, time
 from collections import Counter, deque
 from typing import Any
@@ -543,8 +544,9 @@ class AnalyticsEngine:
                 "unrest": self.unrest(sim),
                 "time": round(now, 2),
             }
-        except Exception as e:
-            payload = {"error": str(e), "tick": getattr(sim, "tick", 0)}
+        except Exception:
+            logging.getLogger(__name__).exception("analytics summary computation failed")
+            payload = {"error": "analytics_unavailable", "tick": getattr(sim, "tick", 0)}
         self._last_summary = payload
         self._last_summary_tick = getattr(sim, "tick", 0)
         self._last_summary_time = now

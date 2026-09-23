@@ -102,7 +102,7 @@ def test_lifespan_mult_law_scales_new_creatures(client):
     assert lifespans == {2400.0, 2700.0, 3000.0, 3300.0, 3600.0, 4500.0}
 
 
-def test_deaths_appear_in_history_api(client):
+def test_deaths_appear_in_history_api(client, extended_testclient_god_rate_limit):
     # famine + fast decay: starvation is inevitable under these laws
     client.post("/api/laws", json={"food_count": 0, "energy_decay_per_tick": 2.0})
     for _ in range(45):

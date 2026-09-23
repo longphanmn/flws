@@ -78,6 +78,7 @@ def test_healthz_surfaces_last_error():
     from app.main import RT
 
     client = TestClient(app)
+    client.headers["X-God-Key"] = "test-key"
     r = client.get("/healthz")
     assert r.status_code == 200
     body = r.json()

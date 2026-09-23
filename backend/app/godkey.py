@@ -65,7 +65,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "reset":
         try:
             (auth.reset if was_configured else auth.setup)(args.passkey)
-        except ValueError as exc:
+        except (ValueError, PermissionError) as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
         verb = "reset" if was_configured else "created"
@@ -75,7 +75,11 @@ def main(argv: list[str] | None = None) -> int:
     if not was_configured:
         print("no god passkey exists — nothing to clear.")
         return 0
-    auth.clear()
+    try:
+        auth.clear()
+    except PermissionError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     print("god passkey cleared. The web UI will ask to create a new one.")
     return 0
 

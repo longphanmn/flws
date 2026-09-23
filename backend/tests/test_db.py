@@ -45,7 +45,7 @@ def test_reset_closes_old_world_row(client):
     assert rows[RT.world_id]["ended_at"] is None
 
 
-def test_death_event_persisted(client):
+def test_death_event_persisted(client, extended_testclient_god_rate_limit):
     # famine + fast decay: starvation is inevitable under these laws
     client.post("/api/laws", json={"food_count": 0, "energy_decay_per_tick": 2.0})
     for _ in range(45):

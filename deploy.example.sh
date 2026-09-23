@@ -2,6 +2,7 @@
 set -euo pipefail
 
 SERVER="${SERVER:-root@your-server-ip}"
+SERVER_HOST="${SERVER_HOST:-${SERVER#*@}}"
 REMOTE_DIR="~/app/fl"
 LOCAL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -328,6 +329,7 @@ GTM_ID="$GTM_ID"
 GTM_CLEAR=$GTM_CLEAR
 GA_ID="$GA_ID"
 GA_CLEAR=$GA_CLEAR
+SERVER_HOST="$SERVER_HOST"
 echo "[remote] Backend changed: \$BACKEND_CHANGED, Frontend changed: \$FRONTEND_CHANGED, Clear DB: \$CLEAR_DB"
 
 # Handle Google Tag Manager & Google Analytics (purely deploy-time, zero source code change)
@@ -498,6 +500,11 @@ if [ "$BACKEND_CHANGED" = "1" ]; then
   ls -lh app/_flatland_core.so 2>/dev/null | awk '{print "[remote] native core:", \$9, \$5}' || true
   if nm -D app/_flatland_core.so 2>/dev/null | grep -q c_batch_update_creatures_omp; then echo "[remote] OpenMP kernel: OK (c_batch_update_creatures_omp)"; else echo "[remote] OpenMP kernel: serial fallback"; fi
   echo "[remote] Starting backend on 0.0.0.0:8000 (bg) — permessage-deflate off (AX P0)"
+  REMOTE_LAN_ORIGIN="http://\${SERVER_HOST}:5173"
+  case ",\${FLATWORLD_ALLOWED_ORIGINS:-}," in
+    *",\${REMOTE_LAN_ORIGIN},"*) ;;
+    *) export FLATWORLD_ALLOWED_ORIGINS="\${FLATWORLD_ALLOWED_ORIGINS:+\${FLATWORLD_ALLOWED_ORIGINS},}\${REMOTE_LAN_ORIGIN}" ;;
+  esac
   nohup .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --ws-per-message-deflate false > ~/app/fl/backend.log 2>&1 &
   echo "[remote] backend pid \$! log: ~/app/fl/backend.log"
   cd ~/app/fl

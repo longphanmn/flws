@@ -31,6 +31,7 @@ def fresh_auth(monkeypatch):
     auth = PasskeyAuth(Database(":memory:"))
     auth.setup(GOD_KEY)
     monkeypatch.setattr(app.state, "god_auth", auth)
+    monkeypatch.setattr(app.state, "bootstrap_token", None, raising=False)
     monkeypatch.setattr(app_main, "AUTH", auth)
     start_world()
     yield
@@ -115,7 +116,11 @@ def test_websocket_origin_check():
 def test_god_passkey_query_param_rejected():
     client = TestClient(app)
     # Query param ?key= must NOT be accepted for authentication
-    res = client.post(f"/api/control?key={GOD_KEY}", json={"action": "pause"})
+    res = client.post(
+        f"/api/control?key={GOD_KEY}",
+        headers={"Origin": "http://localhost:5173"},
+        json={"action": "pause"},
+    )
     assert res.status_code == 401
 
     # Header X-God-Key MUST be accepted
