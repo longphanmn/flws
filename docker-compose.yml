@@ -25,6 +25,9 @@ services:
       FLATWORLD_OMP_ENABLED: ${FLATWORLD_OMP_ENABLED:-true}
       FLATWORLD_OMP_THRESHOLD: ${FLATWORLD_OMP_THRESHOLD:-100}
       FLATWORLD_GOD_KEY: ${FLATWORLD_GOD_KEY:-}
+    read_only: true
+    tmpfs:
+      - /tmp
     volumes:
       - flatland-data:/data
     healthcheck:

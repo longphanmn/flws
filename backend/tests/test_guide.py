@@ -48,7 +48,7 @@ def test_guide_contains_expected_sections():
         "Data model",
         "Configuration",
         "simulation.py:335",  # file:line anchor
-        "protocol.py:108",
+        "protocol.py:98",
         "TODO.md",
     ]:
         assert phrase in body

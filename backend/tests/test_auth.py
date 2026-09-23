@@ -58,7 +58,7 @@ def test_setup_then_key_required(monkeypatch):
     assert c.get("/api/auth/status").json() == {"configured": True}
 
     # second enrollment refuses
-    r = c.post("/api/auth/setup", json={"passkey": "another"})
+    r = c.post("/api/auth/setup", json={"passkey": "another-key"})
     assert r.status_code == 409
 
     # too-short passkeys refuse

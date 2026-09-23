@@ -116,9 +116,9 @@ if [ "$MODE" = "backend" ] || [ "$MODE" = "--backend" ]; then
   echo "[backend] installing deps + starting on :8000 (0.0.0.0)"
   cd "$ROOT/backend"
   [ -d .venv ] || uv sync --quiet
-  exec uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 \
-    --reload-dir app \
-    --reload-exclude "*.db*" --reload-exclude "*.log" --reload-exclude "__pycache__" --reload-exclude ".venv" \
+  # Finding #17: remove --reload to eliminate file watcher attack surface
+  # 0.0.0.0 binding kept for container/LAN accessibility (Docker compatible)
+  exec uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 \
     --ws-per-message-deflate false
 fi
 
@@ -149,12 +149,9 @@ trap cleanup EXIT INT TERM
 echo "[backend] installing deps + starting on :8000 (0.0.0.0)"
 cd "$ROOT/backend"
 [ -d .venv ] || uv sync --quiet
-# --reload watches app/ only; DB/WAL, logs and caches are excluded to avoid spurious reloads
-# that used to kill the tick loop (WAL changes every 5s via DB writer).
+# Finding #17: remove --reload to eliminate file watcher attack surface
 # §AX P0: permessage-deflate disabled on LAN — synchronous zlib cost 33% CPU
-uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 \
-  --reload-dir app \
-  --reload-exclude "*.db*" --reload-exclude "*.log" --reload-exclude "__pycache__" --reload-exclude ".venv" \
+uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 \
   --ws-per-message-deflate false &
 PIDS+=("$!")
 

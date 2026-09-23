@@ -44,9 +44,11 @@ RUN gcc -O3 -shared -fPIC -fopenmp -march=native -ffast-math -Wall app/flatland_
     ls -lh app/_flatland_core.so 2>/dev/null || true && \
     (nm -D app/_flatland_core.so 2>/dev/null | grep -q c_batch_update_creatures_omp && echo "[docker] OpenMP kernel: OK" || echo "[docker] OpenMP kernel: serial/unavailable") || true
 
-# Data volume for SQLite persistence
-RUN mkdir -p /data
+# Data volume for SQLite persistence and non-root user execution
+RUN useradd -r -u 1000 app && mkdir -p /data && chown -R app:app /data /app
 VOLUME ["/data"]
+
+USER app
 
 EXPOSE 8000
 

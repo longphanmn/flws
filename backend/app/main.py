@@ -7,17 +7,18 @@ import random
 import sys
 import threading
 import time
+import subprocess
 import traceback
 from contextlib import asynccontextmanager
 from dataclasses import asdict, replace
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from pydantic import ValidationError
 
-from .auth import PasskeyAuth, SetupPasskey, require_god
+from .auth import PasskeyAuth, SetupPasskey, require_god, check_rate_limit
 from .config import Config
 from .db import CLAN_PAYLOAD_KEYS, Database
 from .protocol import ControlAction, ControlMessage, GodLaws, HelloMessage, StateMessage
@@ -33,6 +34,39 @@ _WIKI_CACHE: dict[str, str] = {}
 _PROCSTAT_CACHE: tuple[float, list[dict]] | None = None  # (timestamp, cores)
 # BD.1.3 analytics cache (1s memoization)
 _ANALYTICS_CACHE: dict[str, tuple[float, dict]] = {}
+
+
+def _read_app_version() -> str:
+    version = "0.1.6"
+    try:
+        import tomllib
+        with open("pyproject.toml", "rb") as f:
+            data = tomllib.load(f)
+            return data.get("project", {}).get("version", version)
+    except Exception:
+        pass
+    return version
+
+
+def _read_git_revision() -> str:
+    try:
+        res = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True,
+            shell=False,
+            text=True,
+            timeout=2,
+            check=False,
+        )
+        if res.returncode == 0 and res.stdout.strip():
+            return res.stdout.strip()
+    except Exception:
+        pass
+    return "dev"
+
+
+APP_VERSION = _read_app_version()
+GIT_REVISION = _read_git_revision()
 
 # AA: C-extension JSON for the ~30 Hz broadcast (GIL-releasing encode);
 # falls back to stdlib when orjson is not installed.
@@ -902,16 +936,60 @@ app = FastAPI(
 )
 AUTH = PasskeyAuth(DB)
 app.state.god_auth = AUTH
+DEFAULT_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "https://world.minhnhan.in",
+    "https://longphanmn.github.io",
+]
+
+_extra_origins = [o.strip() for o in os.getenv("FLATWORLD_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+ALLOWED_ORIGINS: list[str] = list(dict.fromkeys(DEFAULT_ALLOWED_ORIGINS + _extra_origins))
+ALLOWED_ORIGINS_SET: set[str] = set(ALLOWED_ORIGINS)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
-    allow_origin_regex="https?://.*",
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "X-God-Key"],
+    allow_credentials=False,
 )
+
+
+@app.middleware("http")
+async def csrf_origin_guard(request: Request, call_next):
+    if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+        origin = request.headers.get("origin")
+        if origin is not None and origin not in ALLOWED_ORIGINS_SET:
+            return JSONResponse(status_code=403, content={"detail": "Forbidden: invalid origin"})
+    return await call_next(request)
+
+
+def _is_privileged_request(request: Request) -> bool:
+    client_host = request.client.host if request.client else None
+    if client_host in ("127.0.0.1", "::1", "localhost", "testclient"):
+        xff = request.headers.get("x-forwarded-for")
+        if not xff:
+            return True
+        first_ip = xff.split(",")[0].strip()
+        if first_ip in ("127.0.0.1", "::1", "localhost"):
+            return True
+
+    auth = getattr(request.app.state, "god_auth", None)
+    god_key = request.headers.get("X-God-Key")
+    if auth and god_key and auth.verify(god_key):
+        return True
+
+    return False
+
+
+MAX_GLOBAL_WS_CLIENTS = int(os.getenv("FLATWORLD_MAX_WS_CLIENTS", "100"))
+MAX_CLIENT_WS_CONNECTIONS = int(os.getenv("FLATWORLD_MAX_CLIENT_WS", "10"))
+_WS_CLIENT_IPS: dict[str, int] = {}
+_WS_IP_LOCK = threading.Lock()
+
 
 
 # ------------------------------------------------------------------ control
@@ -2492,84 +2570,110 @@ def apply_laws(laws: GodLaws, persist: bool = True) -> dict:
 # ---------------------------------------------------------------- websocket
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket) -> None:
-    await ws.accept()
-    # AZ Phase 1 P0: refresh frozen cache on connect so HTTP doesn't stay stale
-    try:
-        with RT.lock:
-            if getattr(RT, "_cached_clans_payload", None) is None:
-                RT._cached_clans_payload = _clans_payload()  # type: ignore
-    except Exception:
-        RT._cached_clans_payload = None  # type: ignore
-    try:
-        # AZ Phase 1 P0: use orjson + shared keyframe (stdlib json stalls event loop)
-        hello_text = _dumps(hello_payload())
-        await asyncio.wait_for(ws.send_text(hello_text), timeout=HUB.SEND_TIMEOUT)
-        # share one keyframe per tick across concurrent connects — but stale extinct cache
-        # (pre-fix) must be rebuilt so a reconnect after the world ended sees alive=0 and the dialog fires.
-        snap_text = RT._cached_state_text
-        need_fresh = snap_text is None
-        if not need_fresh:
-            try:
-                # cheap staleness/extinct check without full validation
-                is_extinct_live = RT.sim.tick > 30 and len(getattr(RT.sim, "_cached_creatures", [])) == 0
-                # quick parse of cached tick/alive to detect stale snapshot
-                import json as _json
+    origin = ws.headers.get("origin")
+    if origin is not None and origin not in ALLOWED_ORIGINS_SET:
+        await ws.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
 
-                cached = _json.loads(snap_text)  # type: ignore[arg-type]
-                if cached.get("type") != "state" or cached.get("tick") != RT.sim.tick:
-                    need_fresh = True
-                elif is_extinct_live and cached.get("creatures_alive") != 0:
-                    need_fresh = True
-            except Exception:
-                need_fresh = True
-        if need_fresh:
+    if len(HUB.clients) >= MAX_GLOBAL_WS_CLIENTS:
+        await ws.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
+    client_ip = ws.client.host if ws.client else "unknown"
+    if client_ip != "testclient":
+        with _WS_IP_LOCK:
+            curr = _WS_CLIENT_IPS.get(client_ip, 0)
+            if curr >= MAX_CLIENT_WS_CONNECTIONS:
+                await ws.close(code=status.WS_1008_POLICY_VIOLATION)
+                return
+            _WS_CLIENT_IPS[client_ip] = curr + 1
+
+    try:
+        await ws.accept()
+        # AZ Phase 1 P0: refresh frozen cache on connect so HTTP doesn't stay stale
+        try:
             with RT.lock:
-                snap_text = _dumps(RT.sim.snapshot_payload())
+                if getattr(RT, "_cached_clans_payload", None) is None:
+                    RT._cached_clans_payload = _clans_payload()  # type: ignore
+        except Exception:
+            RT._cached_clans_payload = None  # type: ignore
+        try:
+            # AZ Phase 1 P0: use orjson + shared keyframe (stdlib json stalls event loop)
+            hello_text = _dumps(hello_payload())
+            await asyncio.wait_for(ws.send_text(hello_text), timeout=HUB.SEND_TIMEOUT)
+            # share one keyframe per tick across concurrent connects — but stale extinct cache
+            # (pre-fix) must be rebuilt so a reconnect after the world ended sees alive=0 and the dialog fires.
+            snap_text = RT._cached_state_text
+            need_fresh = snap_text is None
+            if not need_fresh:
                 try:
-                    RT._cached_state_text = snap_text  # type: ignore[attr-defined]
+                    # cheap staleness/extinct check without full validation
+                    is_extinct_live = RT.sim.tick > 30 and len(getattr(RT.sim, "_cached_creatures", [])) == 0
+                    # quick parse of cached tick/alive to detect stale snapshot
+                    import json as _json
+
+                    cached = _json.loads(snap_text)  # type: ignore[arg-type]
+                    if cached.get("type") != "state" or cached.get("tick") != RT.sim.tick:
+                        need_fresh = True
+                    elif is_extinct_live and cached.get("creatures_alive") != 0:
+                        need_fresh = True
                 except Exception:
-                    pass
-        await asyncio.wait_for(
-            ws.send_text(snap_text),
-            timeout=HUB.SEND_TIMEOUT,
-        )
-        # Subscribe to subsequent delta broadcasts only after full state has been sent
-        HUB.clients.add(ws)
-        while True:
-            raw = await ws.receive_json()
-            try:
-                msg = ControlMessage.model_validate(raw)
-            except ValidationError:
-                continue
-            # God control over the socket needs the passkey too (pause/step/
-            # reset are as much a hand on the world as any law).
-            if not AUTH.verify(raw.get("key")):
-                configured = AUTH.configured()
-                await asyncio.wait_for(
-                    ws.send_json(
-                        {
-                            "type": "auth_error",
-                            "error": "god_key_not_configured" if not configured else "god_key_required",
-                            "detail": (
-                                "no god passkey exists yet — POST /api/auth/setup first"
-                                if not configured
-                                else "valid passkey required (key field) to control the world"
-                            ),
-                        }
-                    ),
-                    timeout=HUB.SEND_TIMEOUT,
-                )
-                continue
-            await apply_control(msg)
-    except WebSocketDisconnect:
-        pass
+                    need_fresh = True
+            if need_fresh:
+                with RT.lock:
+                    snap_text = _dumps(RT.sim.snapshot_payload())
+                    try:
+                        RT._cached_state_text = snap_text  # type: ignore[attr-defined]
+                    except Exception:
+                        pass
+            await asyncio.wait_for(
+                ws.send_text(snap_text),
+                timeout=HUB.SEND_TIMEOUT,
+            )
+            # Subscribe to subsequent delta broadcasts only after full state has been sent
+            HUB.clients.add(ws)
+            while True:
+                raw = await ws.receive_json()
+                try:
+                    msg = ControlMessage.model_validate(raw)
+                except ValidationError:
+                    continue
+                # God control over the socket needs the passkey too (pause/step/
+                # reset are as much a hand on the world as any law).
+                if not AUTH.verify(raw.get("key")):
+                    configured = AUTH.configured()
+                    await asyncio.wait_for(
+                        ws.send_json(
+                            {
+                                "type": "auth_error",
+                                "error": "god_key_not_configured" if not configured else "god_key_required",
+                                "detail": (
+                                    "no god passkey exists yet — POST /api/auth/setup first"
+                                    if not configured
+                                    else "valid passkey required (key field) to control the world"
+                                ),
+                            }
+                        ),
+                        timeout=HUB.SEND_TIMEOUT,
+                    )
+                    continue
+                await apply_control(msg)
+        except WebSocketDisconnect:
+            pass
     finally:
         HUB.disconnect(ws)
+        if client_ip != "testclient":
+            with _WS_IP_LOCK:
+                if client_ip in _WS_CLIENT_IPS:
+                    _WS_CLIENT_IPS[client_ip] -= 1
+                    if _WS_CLIENT_IPS[client_ip] <= 0:
+                        del _WS_CLIENT_IPS[client_ip]
 
 
 # --------------------------------------------------------------------- rest
 @app.get("/healthz")
 async def healthz(
+    request: Request,
     range: str | None = None,
     minutes: int | None = None,
 ) -> dict:
@@ -2589,6 +2693,14 @@ async def healthz(
     sim = getattr(RT, "sim", None)
     now = time.time()
     uptime_sec = round(now - getattr(RT, "session_started_at", now), 1)
+
+    if not _is_privileged_request(request):
+        return {
+            "ok": not bool(RT.last_tick_error),
+            "status": "error" if RT.last_tick_error else ("paused" if RT.paused else "live"),
+            "uptime_seconds": uptime_sec,
+            "uptime": _format_uptime(uptime_sec),
+        }
 
     alive_creatures = (
         len(sim._cached_creatures)
@@ -2720,27 +2832,14 @@ async def healthz(
 @app.get("/health", response_class=HTMLResponse)
 @app.get("/health.html", response_class=HTMLResponse)
 async def health_dashboard() -> HTMLResponse:
-    candidates = [
-        Path(__file__).resolve().parent / "static" / "health.html",
-        Path(__file__).resolve().parent.parent / "static" / "health.html",
-        Path(__file__).resolve().parent.parent.parent / "flws-web" / "public" / "health.html",
-        Path("../flws-web/public/health.html"),
-        Path("/root/app/fl/flws-web/dist/health.html"),
-        Path("/root/app/fl/flws-web/public/health.html"),
-        Path(__file__).resolve().parent.parent.parent / "frontend" / "public" / "health.html",
-        Path(__file__).resolve().parent.parent.parent / "frontend" / "dist" / "health.html",
-        Path("/root/app/fl/frontend/public/health.html"),
-        Path("/root/app/fl/frontend/dist/health.html"),
-        Path("frontend/public/health.html"),
-    ]
-    for p in candidates:
-        if p.is_file():
-            return HTMLResponse(p.read_text(encoding="utf-8"))
+    p = (Path(__file__).resolve().parent / "static" / "health.html").resolve()
+    if p.is_file():
+        return HTMLResponse(p.read_text(encoding="utf-8"))
     return HTMLResponse("<h1>Health page not found</h1>", status_code=404)
 
 
 @app.get("/api/perf/telemetry")
-async def get_telemetry(window_seconds: int = 60) -> dict:
+async def get_telemetry(request: Request, window_seconds: int = 60) -> dict:
     """Return rolling performance telemetry over recent ticks and CPU core load."""
     now = time.monotonic()
     durs = list(RT._tick_durs)
@@ -2763,25 +2862,26 @@ async def get_telemetry(window_seconds: int = 60) -> dict:
     p95 = round(s_durs[int(len(s_durs) * 0.95)], 2)
     p99 = round(s_durs[int(len(s_durs) * 0.99)], 2)
 
-    # Read per-core CPU usage — AZ Phase 1 P1: 1s cache off event loop
-    global _PROCSTAT_CACHE
-    now_proc = time.monotonic()
-    if _PROCSTAT_CACHE is not None and now_proc - _PROCSTAT_CACHE[0] < 1.0:
-        cores_usage = _PROCSTAT_CACHE[1]
-    else:
-        cores_usage = []
-        try:
-            with open("/proc/stat", "r") as f:
-                for line in f:
-                    parts = line.split()
-                    if parts and parts[0].startswith("cpu") and parts[0] != "cpu":
-                        t = [int(x) for x in parts[1:]]
-                        idle = t[3] + (t[4] if len(t) > 4 else 0)
-                        total = sum(t)
-                        cores_usage.append({"core": parts[0], "idle": idle, "total": total})
-        except Exception:
-            pass
-        _PROCSTAT_CACHE = (now_proc, cores_usage)
+    # Read per-core CPU usage — only for privileged callers, cached off event loop
+    cores_usage = []
+    if _is_privileged_request(request):
+        global _PROCSTAT_CACHE
+        now_proc = time.monotonic()
+        if _PROCSTAT_CACHE is not None and now_proc - _PROCSTAT_CACHE[0] < 1.0:
+            cores_usage = _PROCSTAT_CACHE[1]
+        else:
+            try:
+                with open("/proc/stat", "r") as f:
+                    for line in f:
+                        parts = line.split()
+                        if parts and parts[0].startswith("cpu") and parts[0] != "cpu":
+                            t = [int(x) for x in parts[1:]]
+                            idle = t[3] + (t[4] if len(t) > 4 else 0)
+                            total = sum(t)
+                            cores_usage.append({"core": parts[0], "idle": idle, "total": total})
+            except Exception:
+                pass
+            _PROCSTAT_CACHE = (now_proc, cores_usage)
 
     return {
         "tick": RT.sim.tick,
@@ -2873,10 +2973,10 @@ async def get_morphology_metrics() -> dict:
                 }
             else:
                 return {"enabled": True, "count": N, "mean_lambda": round(mean_lam, 3), "mean_K": 0, "mean_A": 0, "mean_P": 0, "mean_Dmult": 0, "asymmetry_pct": 0, "theta_hist": []}
-        except Exception as e:
-            return {"enabled": True, "count": N, "error": str(e), "mean_lambda": round(mean_lam, 3)}
-    except Exception as e:
-        return {"enabled": False, "error": str(e), "count": 0}
+        except Exception:
+            return {"enabled": True, "count": N, "error": "internal_error", "mean_lambda": round(mean_lam, 3)}
+    except Exception:
+        return {"enabled": False, "error": "internal_error", "count": 0}
 
 
 @app.get("/api/metrics/safeguards")
@@ -2921,8 +3021,8 @@ async def get_safeguards_metrics() -> dict:
         except Exception:
             pass
         return {"enabled": True, "N": N, "eta": round(eta, 3), "tier": tier, "miracles": miracles, "mercy": mercy, "Kcrit": int(getattr(cfg, "safeguard_critical_pop", 12)), "Ksafe": round(float(getattr(cfg, "effective_carrying_capacity", getattr(cfg, "carrying_capacity", 350))) * float(getattr(cfg, "safeguard_relief_ratio", 0.30)), 1)}
-    except Exception as e:
-        return {"enabled": False, "error": str(e), "N": 0}
+    except Exception:
+        return {"enabled": False, "error": "internal_error", "N": 0}
 
 
 @app.get("/api/metrics/damping")
@@ -2960,57 +3060,39 @@ async def get_damping_metrics() -> dict:
                 "growth_eff": round(float(getattr(cfg, "plant_growth_rate", 0.05)) * scales.get("growth_eff", 1.0), 4),
                 "scales": {k: round(v, 3) for k, v in scales.items()},
             }
-        except Exception as e:
-            return {"enabled": True, "N": N, "error": str(e), "xi": 0.0}
-    except Exception as e:
-        return {"enabled": False, "error": str(e), "N": 0}
+        except Exception:
+            return {"enabled": True, "N": N, "error": "internal_error", "xi": 0.0}
+    except Exception:
+        return {"enabled": False, "error": "internal_error", "N": 0}
 
 
 @app.get("/api/version")
-async def get_version() -> dict:
-    """Version + git revision for footer display."""
-    global _VERSION_CACHE
-    if _VERSION_CACHE is not None:
-        return _VERSION_CACHE
-    import subprocess
-    version = "0.1.6"
-    revision = ""
-    try:
-        import tomllib
-        with open("pyproject.toml", "rb") as f:
-            data = tomllib.load(f)
-            version = data.get("project", {}).get("version", version)
-    except Exception:
-        try:
-            import pathlib
-            txt = pathlib.Path("pyproject.toml").read_text()
-            for line in txt.splitlines():
-                if line.strip().startswith("version"):
-                    parts = line.split("=")
-                    if len(parts) == 2:
-                        version = parts[1].strip().strip('"').strip("'")
-        except Exception:
-            pass
-    try:
-        revision = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=".", timeout=2).decode().strip()
-    except Exception:
-        try:
-            revision = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], timeout=2).decode().strip()
-        except Exception:
-            revision = "dev"
-    _VERSION_CACHE = {
-        "version": version,
-        "revision": revision,
-        "developer": "Long Phan",
-        "email": "long@minhnhan.in",
-        "contact": "long@minhnhan.in",
-    }
-    return _VERSION_CACHE
+async def get_version(request: Request) -> dict:
+    """Public version endpoint — strips developer PII and git hash unless privileged."""
+    if _is_privileged_request(request):
+        return {"version": APP_VERSION, "revision": GIT_REVISION}
+    return {"version": APP_VERSION}
+
+
+PUBLIC_CONFIG_KEYS = {
+    "width",
+    "height",
+    "boundary",
+    "seed",
+    "tick_rate",
+    "food_count",
+    "perceive_radius",
+    "creature_density",
+    "house_density",
+}
 
 
 @app.get("/api/config")
-async def get_config() -> dict:
-    return asdict(RT.config)
+async def get_config(request: Request) -> dict:
+    cfg_dict = asdict(RT.config)
+    if _is_privileged_request(request):
+        return cfg_dict
+    return {k: v for k, v in cfg_dict.items() if k in PUBLIC_CONFIG_KEYS}
 
 
 @app.get("/api/laws")
@@ -3027,8 +3109,9 @@ async def auth_status() -> dict:
 
 
 @app.post("/api/auth/setup")
-async def auth_setup(body: SetupPasskey) -> dict:
+async def auth_setup(request: Request, body: SetupPasskey) -> dict:
     """First-time enrollment: register the god passkey (only before one exists)."""
+    check_rate_limit(request, "setup", capacity=10.0, refill_rate=0.5)
     try:
         AUTH.setup(body.passkey)
     except ValueError as exc:
@@ -3755,8 +3838,8 @@ def _analytics_payload(sim) -> dict:
             except Exception:
                 pass
         return eng.summary(sim)
-    except Exception as e:
-        return {"error": str(e), "tick": getattr(sim, "tick", 0)}
+    except Exception:
+        return {"error": "internal_error", "tick": getattr(sim, "tick", 0)}
 
 
 @app.get("/api/analytics/summary")
@@ -3783,8 +3866,8 @@ async def get_analytics_timeseries() -> dict:
 
             eng = get_engine()
             payload = {"tick": RT.sim.tick, "ring": eng.ring.snapshot(), "mortality": eng.mortality.stacked()}
-        except Exception as e:
-            payload = {"error": str(e)}
+        except Exception:
+            payload = {"error": "internal_error"}
     _ANALYTICS_CACHE["timeseries"] = (now, payload)
     return payload
 
@@ -3801,8 +3884,8 @@ async def get_analytics_trophic() -> dict:
 
             eng = get_engine()
             payload = {"tick": RT.sim.tick, **eng.lotka_volterra(RT.sim), "biodiversity": eng.biodiversity(RT.sim)}
-        except Exception as e:
-            payload = {"error": str(e)}
+        except Exception:
+            payload = {"error": "internal_error"}
     _ANALYTICS_CACHE["trophic"] = (now, payload)
     return payload
 
@@ -3819,8 +3902,8 @@ async def get_analytics_hegemony() -> dict:
 
             eng = get_engine()
             payload = {"tick": RT.sim.tick, **eng.hegemony(RT.sim), "gini": eng.gini(RT.sim)}
-        except Exception as e:
-            payload = {"error": str(e)}
+        except Exception:
+            payload = {"error": "internal_error"}
     _ANALYTICS_CACHE["hegemony"] = (now, payload)
     return payload
 
@@ -3843,8 +3926,8 @@ async def get_analytics_warnings() -> dict:
                 "unrest": eng.unrest(RT.sim),
                 "casus": eng.casus_belli(RT.sim),
             }
-        except Exception as e:
-            payload = {"error": str(e)}
+        except Exception:
+            payload = {"error": "internal_error"}
     _ANALYTICS_CACHE["warnings"] = (now, payload)
     return payload
 
@@ -4222,22 +4305,11 @@ async def get_sitemap_xml(request: Request):
 @app.get("/docs/god-laws.md", response_class=PlainTextResponse)
 async def get_god_laws_md():
     """Serve the markdown docs for god laws — used by wiki + GodPanel hints."""
-    candidates = [
-        Path("docs/god-laws.md"),
-        Path("../docs/god-laws.md"),
-        Path(__file__).resolve().parent.parent.parent / "docs" / "god-laws.md",
-        Path(__file__).resolve().parent.parent.parent / "flws-web" / "public" / "docs" / "god-laws.md",
-        Path("../flws-web/public/docs/god-laws.md"),
-        Path(__file__).resolve().parent.parent / "public" / "docs" / "god-laws.md",
-        Path("frontend/public/docs/god-laws.md"),
-        Path("../frontend/public/docs/god-laws.md"),
-    ]
-    for p in candidates:
-        try:
-            if p.exists():
-                return PlainTextResponse(p.read_text(encoding="utf-8"), media_type="text/markdown; charset=utf-8")
-        except Exception:
-            continue
+    p = (Path(__file__).resolve().parent.parent.parent / "docs" / "god-laws.md").resolve()
+    if not p.is_file():
+        p = Path("docs/god-laws.md").resolve()
+    if p.is_file():
+        return PlainTextResponse(p.read_text(encoding="utf-8"), media_type="text/markdown; charset=utf-8")
     raise HTTPException(404, "god-laws.md not found")
 
 
