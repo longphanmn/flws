@@ -1062,7 +1062,7 @@ class EnvironmentMixin:
         if self.weather == "storm":
             ignite_chance = max(ignite_chance, 0.002)  # lightning
         if self.rng.random() < ignite_chance:
-            foods = [e for e in (self._cached_foods or self.world.entities.values()) if isinstance(e, Food) and e.growth > 0.5]
+            foods = [e for e in (self._cached_foods or self.world.entities.values()) if isinstance(e, Food) and e.growth > 0.5 and e.id in self.world.entities]
             if foods:
                 wx, wy = self._cos_wind, self._sin_wind
                 f0 = max(self.fires, key=lambda f: f["r"]) if self.fires else None
@@ -1085,6 +1085,11 @@ class EnvironmentMixin:
             for f in list(self.fires):
                 for e in self.world.query_radius(f["x"], f["y"], 6.0):
                     if not isinstance(e, Food):
+                        continue
+                    if e.id not in self.world.entities:
+                        # BQ-6.6: spatial index is a per-tick snapshot; Food removed
+                        # earlier this tick is stale here. Re-igniting it appended a
+                        # duplicate fire per remaining fire (O(fires^2) explosion).
                         continue
                     d = self.world.distance(f["x"], f["y"], e.x, e.y) or 1.0
                     tailwind = max(0.0, ((e.x - f["x"]) / d) * wx + ((e.y - f["y"]) / d) * wy)

@@ -96,7 +96,12 @@ def _smooth_season_cap_mult(tick: int, season_length: int, offset: int = 0) -> f
 
 WEATHER_STATES = ("clear", "rain", "fog", "storm")
 AGES = ("Golden", "Ice", "Chaos", "Plague")
-AGE_FOOD_MULT = {"Golden": 1.25, "Ice": 0.55, "Chaos": 0.95, "Plague": 0.9}
+# §BQ-6.2 Wild-food era coupon. It MUST stay flat (1.0) while K is a flat
+# setpoint: the old 0.55x Ice coupon starved a population the 380 cap still
+# allowed (B_42: 802 starvation deaths -> Allee collapse, min_n_frac 0.003).
+# Seasonal variation (SEASON_FOOD_MULT) remains the only food forcing, so the
+# supply stays in phase with the fixed carrying capacity.
+AGE_FOOD_MULT = {"Golden": 1.0, "Ice": 1.0, "Chaos": 1.0, "Plague": 1.0}
 AGE_MUTATION_MULT = {"Golden": 0.9, "Ice": 1.1, "Chaos": 1.8, "Plague": 1.0}
 AGE_DISEASE_MULT = {"Golden": 0.8, "Ice": 1.1, "Chaos": 1.0, "Plague": 1.8}
 AGE_BIRTH_MULT = {"Golden": 1.3, "Ice": 0.85, "Chaos": 1.0, "Plague": 0.9}
