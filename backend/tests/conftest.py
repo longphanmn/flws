@@ -42,3 +42,18 @@ def extended_testclient_god_rate_limit():
     from app import auth
 
     auth._RATE_LIMITERS["god_api:testclient"] = auth.TokenBucket(10_000, 10_000)
+
+
+@pytest.fixture
+def enable_morphology(monkeypatch):
+    """Enable morphology annealing for tests requesting morphology parity."""
+    monkeypatch.setenv("FLATWORLD_MORPHOLOGY_ANNEALING_ENABLED", "true")
+    from app.config import Config
+    old_default = Config.__dataclass_fields__["morphology_annealing_enabled"].default
+    old_cls = getattr(Config, "morphology_annealing_enabled", False)
+    Config.__dataclass_fields__["morphology_annealing_enabled"].default = True
+    Config.morphology_annealing_enabled = True  # type: ignore
+    yield
+    Config.__dataclass_fields__["morphology_annealing_enabled"].default = old_default
+    Config.morphology_annealing_enabled = old_cls  # type: ignore
+

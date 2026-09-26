@@ -32,18 +32,18 @@ class AgentSoA:
         self.genome_size = int(genome_size)
         self.N = 0  # active count
         if HAS_NUMPY:
-            self.pos = np.zeros((capacity, 2), dtype=np.float32)
-            self.vel = np.zeros((capacity, 2), dtype=np.float32)
-            self.angle = np.zeros((capacity,), dtype=np.float32)
+            self.pos = np.zeros((capacity, 2), dtype=np.float64)
+            self.vel = np.zeros((capacity, 2), dtype=np.float64)
+            self.angle = np.zeros((capacity,), dtype=np.float64)
             # stats: [energy, max_energy, health, chill]
-            self.stats = np.zeros((capacity, 4), dtype=np.float32)
-            self.hidden_state = np.zeros((capacity, 1), dtype=np.float32)
-            self.genomes = np.zeros((capacity, genome_size), dtype=np.float32)
+            self.stats = np.zeros((capacity, 4), dtype=np.float64)
+            self.hidden_state = np.zeros((capacity, 1), dtype=np.float64)
+            self.genomes = np.zeros((capacity, genome_size), dtype=np.float64)
             self.active_mask = np.zeros((capacity,), dtype=np.bool_)
             self.ids = np.zeros((capacity,), dtype=np.int32) - 1
             # BC morphology buffers
-            self.morph_radii = np.ones((capacity, self.KMAX), dtype=np.float32)
-            self.morph_angles = np.zeros((capacity, self.KMAX), dtype=np.float32)
+            self.morph_radii = np.ones((capacity, self.KMAX), dtype=np.float64)
+            self.morph_angles = np.zeros((capacity, self.KMAX), dtype=np.float64)
             # regular K=4 default for first 4 verts, rest uniform
             for k in range(self.KMAX):
                 if k < 4:
@@ -52,7 +52,7 @@ class AgentSoA:
                     self.morph_angles[:, k] = 2 * np.pi * k / self.KMAX
             self.morph_k = np.full((capacity,), 4, dtype=np.int32)
             self.morph_k = np.clip(self.morph_k, 3, 24)  # clamp per spec
-            self.morph_traits = np.zeros((capacity, 6), dtype=np.float32)  # A,P,Izz,theta_min,asym,Dmult
+            self.morph_traits = np.zeros((capacity, 6), dtype=np.float64)  # A,P,Izz,theta_min,asym,Dmult
             # new spec name physical_traits (alias for backward compat)
             self.physical_traits = self.morph_traits  # alias, same buffer; slot names per spec
             self.reproduction_role = np.zeros((capacity,), dtype=np.int8)
@@ -76,9 +76,9 @@ class AgentSoA:
 
         # pre-allocated buffers for Step 5.2
         if HAS_NUMPY:
-            self.inputs_buf = np.zeros((capacity, 16), dtype=np.float32)
-            self.outputs_buf = np.zeros((capacity, 7), dtype=np.float32)
-            self.hidden_buf = np.zeros((capacity, 1), dtype=np.float32)
+            self.inputs_buf = np.zeros((capacity, 16), dtype=np.float64)
+            self.outputs_buf = np.zeros((capacity, 7), dtype=np.float64)
+            self.hidden_buf = np.zeros((capacity, 1), dtype=np.float64)
         else:
             self.inputs_buf = [[0.0]*16 for _ in range(capacity)]
             self.outputs_buf = [[0.0]*7 for _ in range(capacity)]

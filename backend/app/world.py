@@ -6,14 +6,23 @@ from typing import Iterator
 from .config import Config
 from .entities import Creature, Entity
 
-# AY M-2: cached native flag at import (no per-call try) — disabled for determinism (fast-math drift breaks wrap tests)
+# AY M-2 / Stage 1: compiled C acceleration bridge with exact IEEE-754 float64 parity
 try:
-    from .native_core import is_native_available as _is_native_available, native_toroidal_dist_sq as _native_toroidal_dist_sq  # type: ignore
+    from .native_core import (
+        is_native_available as _is_native_available,
+        native_toroidal_dist_sq as _native_toroidal_dist_sq,
+        native_segments_intersect as _native_segments_intersect,
+        native_path_crosses_wall as _native_path_crosses_wall,
+        native_query_radius as _native_query_radius,
+    )
 
-    _HAS_NATIVE = False  # force python path for exact wrap math; native available via is_native_available()
+    _HAS_NATIVE = bool(_is_native_available())
 except Exception:  # pragma: no cover
     _HAS_NATIVE = False
     _native_toroidal_dist_sq = None  # type: ignore
+    _native_segments_intersect = None  # type: ignore
+    _native_path_crosses_wall = None  # type: ignore
+    _native_query_radius = None  # type: ignore
 
 
 def _cross(ax: float, ay: float, bx: float, by: float) -> float:
@@ -27,6 +36,8 @@ def segments_intersect(
     q2: tuple[float, float],
 ) -> bool:
     """True if segment p1-p2 intersects segment q1-q2."""
+    if _HAS_NATIVE and _native_segments_intersect is not None:
+        return _native_segments_intersect(p1, p2, q1, q2)
     rx, ry = p2[0] - p1[0], p2[1] - p1[1]
     sx, sy = q2[0] - q1[0], q2[1] - q1[1]
     denom = _cross(rx, ry, sx, sy)

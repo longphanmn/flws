@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import os
+import queue
 import random
 import secrets
 import sys
@@ -602,18 +603,51 @@ class SimEngine:
         self._loop: asyncio.AbstractEventLoop | None = None
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
+        # Stage 0: background serialization worker (double-buffered queue)
+        self._serialize_queue: queue.Queue = queue.Queue(maxsize=2)
+        self._serialize_thread: threading.Thread | None = None
 
     def start(self, loop: asyncio.AbstractEventLoop | None = None) -> None:
         self._loop = loop or asyncio.get_running_loop()
         self._stop.clear()
+        self._serialize_thread = threading.Thread(target=self._serialize_worker, name="serializer-engine", daemon=True)
+        self._serialize_thread.start()
         self._thread = threading.Thread(target=self._run, name="tick-engine", daemon=True)
         self._thread.start()
 
     def stop(self, timeout: float = 5.0) -> None:
         self._stop.set()
+        try:
+            self._serialize_queue.put_nowait(None)
+        except Exception:
+            pass
         if self._thread is not None:
             self._thread.join(timeout=timeout)
             self._thread = None
+        if self._serialize_thread is not None:
+            self._serialize_thread.join(timeout=timeout)
+            self._serialize_thread = None
+
+    def _serialize_worker(self) -> None:
+        """Stage 0: background worker that drains payloads and serializes to JSON."""
+        while not self._stop.is_set():
+            try:
+                item = self._serialize_queue.get(timeout=0.2)
+            except Exception:
+                continue
+            if item is None:
+                break
+            payload, is_state = item
+            try:
+                text = _dumps(payload)
+                if is_state:
+                    self.rt._cached_state_text = text  # type: ignore[attr-defined]
+                if text is not None and self._loop is not None:
+                    self.hub.enqueue_text(text, self._loop)
+            except Exception:
+                pass
+            finally:
+                self._serialize_queue.task_done()
 
     def _run(self) -> None:
         assert self._loop is not None
@@ -622,7 +656,6 @@ class SimEngine:
             interval = 1.0 / max(self.rt.speed, MIN_SPEED)
             started = time.monotonic()
             payload = None
-            text: str | None = None
             # BJ-4: step under lock, serialize outside — HTTP stays responsive.
             if not self.rt.paused:
                 payload = advance_world_lockless(self.rt, self.hub)
@@ -635,12 +668,26 @@ class SimEngine:
                         except Exception:
                             pass
             if payload is not None:
+                is_state = isinstance(payload, dict) and payload.get("type") == "state"
+                # Stage 0: hand off wire JSON serialization to background double-buffered worker
                 try:
-                    text = _dumps(payload)
-                    if isinstance(payload, dict) and payload.get("type") == "state":
-                        self.rt._cached_state_text = text  # type: ignore[attr-defined]
+                    if self._serialize_queue.full():
+                        try:
+                            self._serialize_queue.get_nowait()
+                            self._serialize_queue.task_done()
+                        except Exception:
+                            pass
+                    self._serialize_queue.put_nowait((payload, is_state))
                 except Exception:
-                    text = None
+                    # Sync fallback
+                    try:
+                        text = _dumps(payload)
+                        if is_state:
+                            self.rt._cached_state_text = text  # type: ignore[attr-defined]
+                        if text is not None:
+                            self.hub.enqueue_text(text, self._loop)
+                    except Exception:
+                        pass
                 # AZ Phase 1 P1: take lock for clan cache build; reset to None on exception
                 if getattr(self.rt, "sim", None) and (self.rt.sim.tick % 10 == 0 or getattr(self.rt, "_cached_clans_payload", None) is None):
                     try:
@@ -655,15 +702,6 @@ class SimEngine:
                         self.rt._cached_clans_payload = _clans_payload(self.rt.sim)  # type: ignore[attr-defined]
                 except Exception:
                     self.rt._cached_clans_payload = None  # type: ignore[attr-defined]
-            if text is not None:
-                self.hub.enqueue_text(text, self._loop)
-            elif payload is not None:
-                # Fallback if dumps failed — broadcast dict the old way
-                try:
-                    text2 = _dumps(payload)
-                    self.hub.enqueue_text(text2, self._loop)
-                except Exception:
-                    pass
             elapsed = time.monotonic() - started
             stop.wait(max(0.0, interval - elapsed))
 

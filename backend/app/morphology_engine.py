@@ -127,7 +127,7 @@ def batch_compute_traits(morph_radii, morph_angles, morph_k, out_traits=None):
     if HAS_NUMPY and isinstance(morph_radii, np.ndarray):
         N = morph_radii.shape[0]
         if out_traits is None:
-            out_traits = np.zeros((N, 6), dtype=np.float32)
+            out_traits = np.zeros((N, 6), dtype=np.float64)
         for idx in range(N):
             k = int(morph_k[idx]) if hasattr(morph_k, "__getitem__") else int(morph_k)
             if k < 3:
