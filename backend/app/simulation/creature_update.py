@@ -48,6 +48,30 @@ except Exception:  # pragma: no cover
     _evolution = None  # type: ignore
 
 class CreatureUpdateMixin:
+    def _senescence_due(self, c: Creature) -> bool:
+        """§G4 Is this creature's old-age death due this tick?
+
+        Disabled (the default) this is exactly the old ``age >= lifespan``
+        threshold and consumes no randomness, so a disabled law cannot move the
+        RNG stream. Enabled, it replaces the threshold above
+        ``old_hazard_onset_frac * lifespan`` with a memoryless hazard of rate
+        ``1 / (lifespan - onset)``: the mean age at death is still ``lifespan``,
+        but the deaths spread uniformly over the old-age window instead of
+        arriving in one cohort-locked lump. A degenerate lifespan falls back to
+        the threshold rather than immortalising the creature.
+        """
+        cfg = self.config
+        if not bool(getattr(cfg, "old_age_hazard_enabled", False)):
+            return c.age >= c.lifespan
+        lifespan = float(getattr(c, "lifespan", 0.0) or 0.0)
+        onset = float(getattr(cfg, "old_hazard_onset_frac", 0.75) or 0.0) * lifespan
+        span = lifespan - onset
+        if lifespan <= 0.0 or span <= 0.0:
+            return c.age >= c.lifespan
+        if c.age < onset:
+            return False
+        return self.rng.random() < 1.0 / span
+
     def _update_creature(
         self,
         c: Creature,
@@ -329,7 +353,7 @@ class CreatureUpdateMixin:
                         self._kill(c, "starvation")
                 elif c.health <= 0:
                     self._kill(c, "disease")
-                elif c.age >= c.lifespan:
+                elif self._senescence_due(c):
                     self._kill(c, "old_age")
                 # Asleep means STILL: no steering, no wandering, no fleeing —
                 # the body does not move again until dawn (or death).
@@ -353,7 +377,7 @@ class CreatureUpdateMixin:
                 c.emote_ticks = 15
             if c.energy <= 0:
                 self._kill(c, "starvation")
-            elif c.age >= c.lifespan:
+            elif self._senescence_due(c):
                 self._kill(c, "old_age")
             return
 
@@ -2478,11 +2502,13 @@ class CreatureUpdateMixin:
                 self._kill(c, "exhaustion")
                 return
         if c.stage == "elder":
-            elder_decay = ELDER_DECAY_RATE
-            if _xi_pop > 0:
-                # Under overpopulation, elder senescence accelerates so population normalizes rapidly
-                elder_decay *= (1.0 + 8.0 * _xi_pop + 12.0 * (_xi_pop ** 2))
-            c.health -= elder_decay
+            # §G3 Senescence is a property of the body, not of the census. The
+            # former `* (1 + 8*xi + 12*xi^2)` made elder mortality a function of
+            # total population; since xi only exists above 0.85*K, a whole elder
+            # cohort accumulated under high xi died in one compressed window
+            # after a release — a phase-locked old-age burst that put gate 4
+            # (burstiness) out of reach of any tuning.
+            c.health -= ELDER_DECAY_RATE
             if c.health <= 0:
                 self._kill(c, "old_age")
                 return
@@ -2671,7 +2697,7 @@ class CreatureUpdateMixin:
             else:
                 self._kill(c, "starvation")
                 return
-        if c.age >= c.lifespan:
+        if self._senescence_due(c):
             self._kill(c, "old_age")
 
     def _creature_tick_timers(self, c: Creature, *args, **kwargs) -> None:

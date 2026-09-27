@@ -602,6 +602,22 @@ class LifecycleMixin:
         # phase. Those multipliers remain flavour for the *food* target only.
         max_pop = max(2, cfg.effective_max_population)
         carrying = max(2, cfg.effective_carrying_capacity)
+        try:
+            from ..density_damping import (  # type: ignore
+                envelope_lower_boost as _env_floor,
+                population_envelope as _pop_env,
+            )
+
+            _band = _pop_env(cfg)
+        except Exception:
+            _band = None
+            _env_floor = None
+        _env_lo = _band[0] if _band else None
+        _env_hi = _band[1] if _band else None
+        _env_boost = (
+            max(0.0, float(getattr(cfg, "pop_env_lo_birth_boost", 0.0) or 0.0))
+            if _band else 0.0
+        )
 
         # Phase 4 Density-Dependent Soft-Cap Damping (xi) — use the canonical
         # engine value so the release slew / hysteresis computed in step() is
@@ -629,12 +645,26 @@ class LifecycleMixin:
             Replaces the old hard `pop >= max_pop` brick wall: room tends to 0
             continuously as N approaches the ceiling, so there is no release
             discontinuity to drive a limit cycle.
+
+            §G1 The envelope's two edges are both on births, and they are both
+            absorbing: the ceiling vetoes, the floor lifts. A lower edge that
+            killed creatures would be inverted — imposing deaths on a population
+            that is already short drives it further away from the band.
             """
+            # The upper edge is a veto, not a taper: above K*pop_env_hi_frac
+            # there are no births at all, so the ceiling reflects instead of
+            # being approached and left again.
+            if _env_hi is not None and n >= _env_hi:
+                return 0.0
             if n <= carrying:
-                return 1.0
-            span = max(1, max_pop - carrying)
-            progress = min(1.0, max(0.0, float(n - carrying) / float(span)))
-            return 0.5 * (1.0 + math.cos(math.pi * progress))
+                room = 1.0
+            else:
+                span = max(1, max_pop - carrying)
+                progress = min(1.0, max(0.0, float(n - carrying) / float(span)))
+                room = 0.5 * (1.0 + math.cos(math.pi * progress))
+            if _env_floor is not None and _env_lo is not None and _env_boost > 0.0:
+                room *= 1.0 + _env_floor(n, _env_lo, _env_hi, _env_boost)
+            return room
 
         # Phase 5 Tier2 effective mate threshold/radius via eta + soft-cap mate threshold
         _eta2 = float(getattr(self, "_safeguard_eta", 0.0) or 0.0)

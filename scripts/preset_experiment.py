@@ -10,6 +10,8 @@ import sys
 import os
 import time
 import json
+import hashlib
+import subprocess
 import traceback
 from dataclasses import replace
 from collections import Counter, defaultdict
@@ -371,21 +373,27 @@ OSC_GATES = {
 }
 
 
-def _osc_config(seed):
+def _osc_config(seed, overrides=None):
     base = Config(width=W, height=H, seed=seed, tick_rate=10)
     laws = PRESETS[OSC_PRESET]
     cfg = replace(base, **{k: v for k, v in laws.items() if hasattr(base, k)})
-    return replace(cfg, width=W, height=H, seed=seed)
+    cfg = replace(cfg, width=W, height=H, seed=seed)
+    # A proposal is applied *after* the preset, so the run is the proposal and not
+    # the preset. Nothing here reads Config.from_env(): the gate path is
+    # deliberately F7-immune, so a proposal has to arrive explicitly.
+    if overrides:
+        cfg = replace(cfg, **overrides)
+    return cfg
 
 
 def run_oscillation(seed, total_ticks=OSC_TOTAL_TICKS, burn_in=OSC_BURN_IN,
-                    sample=OSC_SAMPLE, modulated=None):
+                    sample=OSC_SAMPLE, modulated=None, overrides=None):
     """Run one post-burn-in telemetry trace for the theocracy preset.
 
     modulated=the setpoint is modulated by age/season (pre-fix world A).
     modulated=False -> flat K (post-fix world B).
     """
-    cfg = _osc_config(seed)
+    cfg = _osc_config(seed, overrides=overrides)
     if modulated is None:
         # auto-detect: does the running code still multiply carrying by age/season?
         # B flattened it, so K stays cfg.effective_carrying_capacity. Probe by
@@ -454,6 +462,21 @@ def _sign_flips(series, deadband=1e-9):
     return flips
 
 
+def _osc_smooth(pops, sample, window_ticks=300.0):
+    """Trailing mean over `window_ticks`, the smoother the gates are defined on.
+
+    Single source of truth: osc_metrics and the Phase 1 gate linter must smooth
+    identically or the linter measures a different series than the gate does.
+    """
+    win = max(1, int(round(window_ticks / sample)))
+    out = []
+    for i in range(len(pops)):
+        lo = max(0, i - win + 1)
+        seg = pops[lo:i + 1]
+        out.append(sum(seg) / len(seg))
+    return out
+
+
 def osc_metrics(run):
     """Derive the oscillation gate metrics from one run's samples."""
     import statistics
@@ -471,12 +494,7 @@ def osc_metrics(run):
     amp = (max(pops) - min(pops)) / mean if mean else float("inf")
 
     # 300-tick smoothing then count d/dt sign reversals
-    win = max(1, int(round(300.0 / sample)))
-    smoothed = []
-    for i in range(len(pops)):
-        lo = max(0, i - win + 1)
-        seg = pops[lo:i + 1]
-        smoothed.append(sum(seg) / len(seg))
+    smoothed = _osc_smooth(pops, sample)
     deriv = [smoothed[i + 1] - smoothed[i] for i in range(len(smoothed) - 1)]
     reversals = _sign_flips(deriv)
     reversals_per_72k = reversals * 72000.0 / max(1, n_ticks)
@@ -509,6 +527,10 @@ def osc_metrics(run):
         "N_max": max(pops),
         "N_cv": round(cv, 4),
         "amplitude": round(amp, 4),
+        "band_width": max(pops) - min(pops),
+        "drift_rate": round(
+            (sum(abs(d) for d in deriv) / len(deriv) / sample) if deriv else 0.0, 6
+        ),
         "reversals": reversals,
         "reversals_per_72k": round(reversals_per_72k, 2),
         "old_age_bins_median": med_oa,
@@ -535,16 +557,470 @@ def _effective_flat(run):
 
 
 def osc_gate_report(metrics, flat):
-    """Return (passed: bool, list[str]) against the hard gates."""
+    """Return (passed: bool, list[(name, status, value)]) against the hard gates.
+
+    ``status`` is tri-state: True = pass, False = fail, None = not measurable.
+    An undefined metric is reported, never scored (F5): ``old_age_burstiness``
+    is ``max/median`` over 100-tick old-age bins, so a median bin of 0 — a world
+    that is not culling its elders — leaves it undefined. Scoring that None as a
+    FAIL graded low old-age mortality as a burstiness failure and pushed any
+    gate-suite search toward manufacturing deaths to escape the None. An
+    undefined gate never decides ``passed``; only a real False does, so this
+    cannot become a way to dodge the suite.
+    """
     g = OSC_GATES
     checks = []
     checks.append(("CV(N)<=%.2f" % g["cv_max"], metrics["N_cv"] <= g["cv_max"], metrics["N_cv"]))
     checks.append(("amplitude<=%.2f" % g["amplitude_max"], metrics["amplitude"] <= g["amplitude_max"], metrics["amplitude"]))
     checks.append(("reversals/72k<=%.1f" % g["reversals_max_per_72k"], metrics["reversals_per_72k"] <= g["reversals_max_per_72k"], metrics["reversals_per_72k"]))
     b = metrics["old_age_burstiness"]
-    checks.append(("burstiness<%.1f" % g["burstiness_max"], (b is not None and b < g["burstiness_max"]), b))
+    checks.append(("burstiness<%.1f" % g["burstiness_max"], (None if b is None else b < g["burstiness_max"]), b))
     checks.append(("minNfrac>%.2f" % g["min_n_frac_min"], metrics["min_n_frac"] > g["min_n_frac_min"], metrics["min_n_frac"]))
-    return all(ok for _, ok, _ in checks), checks
+    return not any(ok is False for _, ok, _ in checks), checks
+
+
+def _gate_status(ok) -> str:
+    """Tri-state gate status as a string, for artifacts and printed tables."""
+    if ok is None:
+        return "not-measurable"
+    return "pass" if ok else "fail"
+
+
+# ============================================================================
+# §Phase 1 — run manifest, gate linter, admissible region
+# ----------------------------------------------------------------------------
+# None of this is required to *run* a gate. It is required to *compare* two gate
+# runs and to know, before spending simulation time, that a candidate cannot
+# pass for a structural reason no constant can fix.
+# ============================================================================
+
+MANIFEST_VERSION = 2
+# Two runs may only be compared when all of these agree.
+#
+# `base_config_hash` — the resolved config *before* the run's declared proposal
+# was applied, with `seed` excluded — is the config key, not `config_hash`. The
+# seed is the replicate index and a proposal is the whole point of a candidate
+# run, so neither belongs in a comparability test; hashing either made
+# `--osc-compare` refuse every multi-seed and every baseline-to-proposal
+# comparison, which are the two comparisons the gate suite exists to make.
+# Drift nobody declared still moves `base_config_hash`, so real drift is caught.
+MANIFEST_COMPARE_KEYS = (
+    "git_sha", "base_config_hash", "tick_budget", "omp_num_threads", "seam",
+)
+# Config keys the seed is not allowed to reach.
+_CONFIG_HASH_EXCLUDE = ("seed",)
+
+
+def _git_sha() -> str:
+    """Read-only; a missing/dirty git must never break a gate run."""
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=ROOT, capture_output=True, text=True, timeout=10,
+        )
+        return out.stdout.strip() or "unknown"
+    except Exception:
+        return "unknown"
+
+
+def config_hash(cfg) -> str:
+    """Stable hash of the *resolved* Config, minus the seed.
+
+    Every field except the ones in `_CONFIG_HASH_EXCLUDE`, order-independent.
+    The seed is excluded because it selects a replicate, not a configuration:
+    including it made two seeds of one experiment hash differently, and the
+    comparability check that consumes this hash then refused to compare them.
+    """
+    try:
+        import dataclasses
+
+        flat = {}
+        for f in dataclasses.fields(cfg):
+            if f.name in _CONFIG_HASH_EXCLUDE:
+                continue
+            v = getattr(cfg, f.name, None)
+            flat[f.name] = round(v, 9) if isinstance(v, float) else v
+        blob = json.dumps(flat, sort_keys=True, default=repr)
+    except Exception as exc:  # pragma: no cover - defensive
+        blob = f"unhashable:{exc!r}"
+    return hashlib.sha256(blob.encode()).hexdigest()[:16]
+
+
+def build_run_manifest(cfg, *, argv, total_ticks, burn_in, sample,
+                       seam="harness-replace", overrides=None, base_cfg=None):
+    """Provenance for one gate artifact.
+
+    Without this, two JSON files with the same filename pattern are not known to
+    be comparable at all: the oscillation harness builds its Config in-process and
+    never touches the DB, so nothing in the artifact records which code, which
+    resolved fields, which argv and which thread count produced it. `overrides`
+    is the proposal the run was made under, so a proposal run is never mistaken
+    for a bare-preset run.
+
+    `config_hash` is the run as it actually was. `base_config_hash` is the config
+    it was derived from, i.e. the same thing with the declared proposal removed
+    (`base_cfg`; a run with no proposal is its own baseline). Comparing two runs
+    on `base_config_hash` is what makes a candidate comparable to its baseline
+    while still failing on a field that drifted without anyone declaring it.
+    """
+    return {
+        "manifest_version": MANIFEST_VERSION,
+        "git_sha": _git_sha(),
+        "seed": getattr(cfg, "seed", None),
+        "config_hash": config_hash(cfg),
+        "base_config_hash": config_hash(base_cfg if base_cfg is not None else cfg),
+        "argv": list(argv),
+        "tick_budget": {
+            "total_ticks": int(total_ticks),
+            "burn_in": int(burn_in),
+            "sample": int(sample),
+        },
+        "omp_num_threads": os.environ.get("OMP_NUM_THREADS", "<unset>"),
+        "seam": seam,
+        "overrides": dict(overrides or {}),
+    }
+
+
+def manifest_path_for(artifact_path: str) -> str:
+    """Manifest lives next to the artifact it describes, one-for-one."""
+    base, ext = os.path.splitext(artifact_path)
+    return f"{base}.manifest{ext or '.json'}"
+
+
+def write_run_manifest(artifact_path: str, manifest: dict) -> str:
+    path = manifest_path_for(artifact_path)
+    with open(path, "w") as f:
+        json.dump(manifest, f, indent=2)
+    return path
+
+
+def read_run_manifest(artifact_path: str):
+    try:
+        with open(manifest_path_for(artifact_path)) as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+# --- admissible region (gate inversion) ------------------------------------
+
+
+def gate_admissible_region(metrics):
+    """The (D, r) box a run must live in to satisfy the gates, beside what it did.
+
+    Read the gates literally and they dictate the dynamics instead of the other
+    way round. Gates 1 and 2 bound the band width D = N_max - N_min:
+
+        gate 2  D <= 0.25 * M
+        gate 1  sd = D/sqrt(12) for a roughly uniform band, D <= 0.08*M*sqrt(12)
+
+    Gate 3 does not ask for a slow oscillation, it asks that the 300-tick
+    smoothed series be monotone for ~90% of the run. A Schmitt-style band of
+    width D drifting at r individuals/tick has period T = D/r, so
+    T >= 2*72000/reversals_max gives r <= D/T_req. Inside a narrow reflecting
+    band the population is stationary, deriv ~ 0, and the flips collapse.
+    """
+    g = OSC_GATES
+    m_mean = float(metrics.get("N_mean") or 0.0)
+    d_max = min(g["amplitude_max"], g["cv_max"] * (12.0 ** 0.5)) * m_mean
+    t_req = 2.0 * 72000.0 / g["reversals_max_per_72k"]
+    r_max = d_max / t_req if t_req else float("inf")
+    d_obs = float(metrics.get("band_width") or 0.0)
+    r_obs = float(metrics.get("drift_rate") or 0.0)
+    return {
+        "D_obs": round(d_obs, 3),
+        "r_obs": round(r_obs, 6),
+        "D_max": round(d_max, 3),
+        "r_max": round(r_max, 8),
+        "T_req": round(t_req, 1),
+        "D_in_region": bool(d_obs <= d_max),
+        "r_in_region": bool(r_obs <= r_max),
+    }
+
+
+def format_admissible(a: dict) -> str:
+    return (
+        "admissible D,r: measured D=%.1f r=%.5f  |  allowed D<=%.1f r<=%.6f "
+        "(T_req=%.0f ticks)  |  band %s, drift %s"
+        % (
+            a["D_obs"], a["r_obs"], a["D_max"], a["r_max"], a["T_req"],
+            "IN region" if a["D_in_region"] else "OUT of region",
+            "IN region" if a["r_in_region"] else "OUT of region",
+        )
+    )
+
+
+# --- gate linter ------------------------------------------------------------
+
+# Scalars that shape a proportional band. §13 forbids sweeping them: they shape
+# the fast wiggle, not the broadband wander the reversals gate counts.
+SCALAR_DAMPING_KEYS = ("damping_release_tau", "damping_sigmoid_k", "damping_steepness")
+
+
+def _autocorrelation(series, max_lag):
+    n = len(series)
+    if n < 2:
+        return []
+    mu = sum(series) / n
+    d = [x - mu for x in series]
+    denom = sum(x * x for x in d)
+    out = []
+    for lag in range(max_lag + 1):
+        if denom == 0.0:
+            out.append(0.0)
+            continue
+        num = sum(d[i] * d[i + lag] for i in range(n - lag))
+        out.append(num / denom)
+    return out
+
+
+def _periodic_peak_lag(acf, min_lag, threshold=0.3):
+    """Lag of the first genuine oscillation peak, or None.
+
+    A limit cycle shows up as a *negative* autocorrelation at roughly half its
+    period followed by a positive peak. Broadband wander is positively
+    correlated at every lag and never dips below zero, which is exactly why
+    tuning a release constant cannot suppress its sign flips. Requiring the
+    negative trough is what keeps ordinary noise from reading as periodic.
+    """
+    for lag in range(min_lag + 1, len(acf) - 1):
+        if acf[lag] < threshold:
+            continue
+        if not (acf[lag] >= acf[lag - 1] and acf[lag] > acf[lag + 1]):
+            continue
+        if min(acf[min_lag:lag]) < 0.0:
+            return lag
+    return None
+
+
+def _lint_no_periodicity(smoothed, sample):
+    """F3 — is the reversals gate counting a limit cycle or noise?"""
+    m = sum(smoothed) / len(smoothed)
+    spread = max(smoothed) - min(smoothed)
+    if spread <= 1e-9 * max(1.0, abs(m)):
+        return {
+            "rule": "F3_no_periodicity", "severity": "ok",
+            "message": "smoothed series is flat: no reversals to explain",
+            "peak_lag": None,
+        }
+    acf = _autocorrelation(smoothed, min(len(smoothed) // 3, 200))
+    lag = _periodic_peak_lag(acf, min_lag=2)
+    if lag is not None:
+        return {
+            "rule": "F3_no_periodicity", "severity": "ok",
+            "message": f"limit cycle detected (ACF peak at lag {lag} samples)",
+            "peak_lag": lag,
+        }
+    return {
+        "rule": "F3_no_periodicity", "severity": "warning",
+        "message": (
+            "no periodic ACF peak: the 300-tick smoothed series is broadband "
+            "wander, not a limit cycle, so the reversals gate counts noise. "
+            "Changing a damping constant cannot fix it — a topology change is "
+            "required (hard envelope, or decoupling N from the season)."
+        ),
+        "peak_lag": None,
+    }
+
+
+def _lint_median0(metrics):
+    """F5 — is the burstiness gate measurable at all?"""
+    med = metrics.get("old_age_bins_median")
+    if metrics.get("old_age_burstiness") is not None:
+        return {
+            "rule": "F5_median0_burstiness", "severity": "ok",
+            "message": f"old-age burstiness measurable (median bin {med})",
+        }
+    return {
+        "rule": "F5_median0_burstiness", "severity": "blocking",
+        "message": (
+            f"old-age burstiness is undefined (median 100-tick old-age bin is "
+            f"{med}, total {metrics.get('old_age_total')}): gate 4 cannot score "
+            f"this run, so escalating it optimizes against nothing"
+        ),
+    }
+
+
+def _lint_xi_mean(metrics):
+    """F6 — did the density controller ever engage?"""
+    xi_mean = metrics.get("xi_mean")
+    if xi_mean:
+        return {
+            "rule": "F6_xi_mean_zero", "severity": "ok",
+            "message": f"controller exercised (xi_mean={xi_mean})",
+        }
+    return {
+        "rule": "F6_xi_mean_zero", "severity": "blocking",
+        "message": (
+            f"xi_mean={xi_mean}: the density controller never engaged, so this "
+            f"run has not tested it (the controller has no authority below "
+            f"0.85*K). A topology search on this seed optimizes against a "
+            f"mechanism it cannot see."
+        ),
+    }
+
+
+def _lint_dead_knob(proposal):
+    """F4 — is this proposal a no-op, or a forbidden scalar-only nudge?"""
+    if not proposal:
+        return {
+            "rule": "F4_dead_knob", "severity": "ok",
+            "message": "no proposal supplied",
+        }
+    dead = sorted(k for k in proposal if k not in Config.__dataclass_fields__)
+    if dead:
+        return {
+            "rule": "F4_dead_knob", "severity": "blocking",
+            "message": (
+                f"dead knob(s) {dead}: not Config fields, so density_damping / "
+                f"lifecycle cannot read them — this proposal is a silent no-op"
+            ),
+        }
+    keys = sorted(proposal)
+    if keys and all(k in SCALAR_DAMPING_KEYS for k in keys):
+        return {
+            "rule": "F4_dead_knob", "severity": "blocking",
+            "message": (
+                f"scalar-only damping proposal {keys}: these shape a "
+                f"proportional band and the fast wiggle, not the broadband "
+                f"wander the reversals gate counts. Proportional-band constants "
+                f"cannot produce absorbing behaviour — change topology."
+            ),
+        }
+    return {
+        "rule": "F4_dead_knob", "severity": "ok",
+        "message": f"proposal levers {keys} reach the simulation",
+    }
+
+
+def _manifest_verdict(rule, severity, message):
+    return {"rule": rule, "severity": severity, "message": message}
+
+
+def _lint_manifest(compare_manifest):
+    """I — two runs are comparable only if they were produced the same way.
+
+    `compare_manifest` is the whole list of manifests under comparison, not a
+    pair: with three or more paths, checking only the first and the last lets a
+    drifted run in the middle through, and the table then reports a gate delta
+    between runs nobody established were comparable.
+
+    Two things this must never do:
+
+    * report agreement it did not check. An absent manifest read through
+      `(m or {}).get(k)` is `None` for every key, so two legacy artifacts with no
+      manifest at all used to print "manifests agree on ...". Absence is now
+      reported as absence, and a key a manifest does not carry is a failure to
+      check, not a match.
+    * refuse a legitimate comparison. The seed and a run's own declared proposal
+      are excluded from the config key for exactly that reason — see
+      `MANIFEST_COMPARE_KEYS`.
+    """
+    rule = "manifest_mismatch"
+    if not compare_manifest:
+        return _manifest_verdict(rule, "ok", "no comparison requested")
+    men = list(compare_manifest)
+    if len(men) < 2:
+        return _manifest_verdict(
+            rule, "ok", "no comparison requested: one manifest is not a comparison"
+        )
+
+    absent = [i for i, m in enumerate(men) if not m]
+    if len(absent) == len(men):
+        return _manifest_verdict(
+            rule, "warning",
+            f"manifest absent for all {len(men)} runs: comparability is unverified "
+            f"(these artifacts predate the run manifest), so nothing has been "
+            f"checked — a gate delta between them is not evidence",
+        )
+    if absent:
+        return _manifest_verdict(
+            rule, "blocking",
+            f"manifest absent for run(s) {absent} but present for the others: a run "
+            f"with recorded provenance cannot be compared against one without",
+        )
+
+    ref = men[0]
+    diffs, unchecked = [], []
+    for i, man in enumerate(men):
+        for k in MANIFEST_COMPARE_KEYS:
+            if k not in man:
+                unchecked.append(f"{k} (run {i})")
+            elif i and man.get(k) != ref.get(k):
+                diffs.append(f"{k} (run {i})")
+    if unchecked:
+        return _manifest_verdict(
+            rule, "blocking",
+            f"manifest does not record {sorted(unchecked)}: comparability cannot be "
+            f"checked, so treating it as agreement would be a false all-clear",
+        )
+    if diffs:
+        return _manifest_verdict(
+            rule, "blocking",
+            f"manifest mismatch on {sorted(diffs)}: these runs are not comparable, so "
+            f"a gate delta between them means nothing",
+        )
+
+    same_config = ref.get("config_hash") is not None and all(
+        m.get("config_hash") == ref.get("config_hash") for m in men
+    )
+    if same_config:
+        seeds = sorted({m.get("seed") for m in men}, key=lambda s: (s is None, s))
+        detail = (
+            f" (replicate comparison: identical resolved config, seeds {seeds} "
+            f"excluded from the hash)"
+        )
+    else:
+        levers = sorted(
+            {k for m in men for k in (m.get("overrides") or {})} or {"<none>"}
+        )
+        detail = (
+            f" (proposal comparison: the config keys that differ are the declared "
+            f"levers {levers}; every undeclared field is identical)"
+        )
+    return _manifest_verdict(
+        rule, "ok",
+        "manifests agree on " + ", ".join(MANIFEST_COMPARE_KEYS) + detail,
+    )
+
+
+def gate_lint(run, *, proposal=None, compare_manifest=None, metrics=None):
+    """Deterministic pre-flight. Returns {ok, rules[], admissible}.
+
+    `ok` is False when any rule is blocking; warnings are reported and do not
+    block, because a warning is advice about *how* to fix something, not a
+    statement that the run is unscoreable. `manifest_mismatch` is the one rule
+    where a warning is an epistemic limit instead of advice — comparability
+    *unverified*, not comparability refuted — which is why it is allowed to
+    print a table for reference while saying out loud that the table is not
+    evidence.
+    """
+    m = metrics if metrics is not None else osc_metrics(run)
+    sample = int(run.get("sample", OSC_SAMPLE)) if run else OSC_SAMPLE
+    pops = [s["pop"] for s in (run or {}).get("samples", [])] or [0.0]
+    rules = [
+        _lint_no_periodicity(_osc_smooth(pops, sample), sample),
+        _lint_median0(m),
+        _lint_xi_mean(m),
+        _lint_dead_knob(proposal),
+        _lint_manifest(compare_manifest),
+    ]
+    return {
+        "ok": not any(r["severity"] == "blocking" for r in rules),
+        "rules": rules,
+        "admissible": gate_admissible_region(m),
+    }
+
+
+def format_gate_lint(report) -> str:
+    lines = ["[lint] " + ("OK to escalate" if report["ok"] else "BLOCKED")]
+    for r in report["rules"]:
+        if r["severity"] != "ok":
+            lines.append(f"[lint]   {r['severity'].upper():8} {r['rule']}: {r['message']}")
+    lines.append("[lint]   " + format_admissible(report["admissible"]))
+    return "\n".join(lines)
+
+
 
 
 def osc_ab_run(args):
@@ -554,36 +1030,73 @@ def osc_ab_run(args):
     out = args.get("out", os.path.join(ROOT, "scripts", f"oscillation_{world}_{seed}.json"))
     ticks = int(args.get("ticks", OSC_TOTAL_TICKS))
     burn_in = int(args.get("burn_in", OSC_BURN_IN))
+    overrides = args.get("overrides") or None
     # World A = pre-fix code keeps the age/season moving setpoint.
     modulated = (world == "A")
-    print(f"[osc] world={world} backend={BACKEND_DIR} seed={seed} ticks={ticks} burn_in={burn_in} modulated={modulated}", flush=True)
-    run = run_oscillation(seed, total_ticks=ticks, burn_in=burn_in, sample=OSC_SAMPLE, modulated=modulated)
+    print(f"[osc] world={world} backend={BACKEND_DIR} seed={seed} ticks={ticks} burn_in={burn_in} modulated={modulated} overrides={overrides or {}}", flush=True)
+    run = run_oscillation(seed, total_ticks=ticks, burn_in=burn_in, sample=OSC_SAMPLE, modulated=modulated, overrides=overrides)
     m = osc_metrics(run)
     passed, checks = osc_gate_report(m, _effective_flat(run))
-    payload = {"meta": {"world": world, "registry": OSC_GATES, "backend": BACKEND_DIR}, "metrics": m, "gates": [{"name": n, "pass": ok, "value": v} for n, ok, v in checks], "passed": passed, "samples": run["samples"]}
+    lint = gate_lint(run, metrics=m, proposal=overrides)
+    manifest = build_run_manifest(
+        _osc_config(seed, overrides=overrides), argv=sys.argv, total_ticks=ticks,
+        burn_in=burn_in, sample=OSC_SAMPLE, seam="harness-replace",
+        overrides=overrides or {}, base_cfg=_osc_config(seed),
+    )
+    payload = {"meta": {"world": world, "registry": OSC_GATES, "backend": BACKEND_DIR, "manifest": manifest}, "metrics": m, "gates": [{"name": n, "pass": ok, "status": _gate_status(ok), "value": v} for n, ok, v in checks], "lint": lint, "passed": passed, "samples": run["samples"]}
     with open(out, "w") as f:
         json.dump(payload, f, indent=2)
+    mpath = write_run_manifest(out, manifest)
     print(f"[osc] world={world} seed={seed} metrics={json.dumps(m)}", flush=True)
     print(f"[osc] gates={'PASS' if passed else 'FAIL'} -> {out}", flush=True)
+    print(f"[osc] manifest={manifest['git_sha']}/{manifest['config_hash']} -> {mpath}", flush=True)
+    print(format_gate_lint(lint), flush=True)
     return payload
 
 
 def osc_compare(paths):
-    """Print the per-seed A-vs-B metrics table and overall gate verdict."""
+    """Print the per-seed A-vs-B metrics table and overall gate verdict.
+
+    Refuses to compare runs whose manifests disagree, and prints each run's
+    measured (D, r) beside the region the gates actually admit.
+    """
     runs = []
+    manifests = []
     for p in paths:
         with open(p) as f:
             runs.append(json.load(f))
-    table = f"\n{'world':>5} {'seed':>5} {'Nmean':>6} {'Nmin':>5} {'Nmax':>5} {'CV':>7} {'amp':>6} {'rev/72k':>8} {'burst':>6} {'minNfrac':>9} {'starve':>7} {'oldage':>7} {'pass':>5}"
+        manifests.append(read_run_manifest(p) or (runs[-1].get("meta") or {}).get("manifest"))
+    table = f"\n{'world':>5} {'seed':>5} {'Nmean':>6} {'Nmin':>5} {'Nmax':>5} {'CV':>7} {'amp':>6} {'rev/72k':>8} {'burst':>6} {'minNfrac':>9} {'starve':>7} {'oldage':>7} {'pass':>7}"
     print(table)
     print("-" * len(table))
+    print("  burst 'n/m' = not measurable (median 100-tick old-age bin is 0); pass '*' = at least one gate not measurable")
     all_a, all_b = [], []
     for r in sorted(runs, key=lambda r: (r["meta"]["world"], r["metrics"]["seed"])):
         m = r["metrics"]
-        b = m["old_age_burstiness"] if m["old_age_burstiness"] is not None else float("inf")
-        print(f"{r['meta']['world']:>5} {m['seed']:>5} {m['N_mean']:>6.0f} {m['N_min']:>5} {m['N_max']:>5} {m['N_cv']:>7.3f} {m['amplitude']:>6.3f} {m['reversals_per_72k']:>8.1f} {b:>6.1f} {m['min_n_frac']:>9.2f} {m['starvation_total']:>7} {m['old_age_total']:>7} {('PASS' if r['passed'] else 'FAIL'):>5}")
+        # A None burstiness is *undefined* (median bin 0), not infinite — do not
+        # print a number the run never measured.
+        b = m["old_age_burstiness"] if m["old_age_burstiness"] is not None else "n/m"
+        gate_txt = ("PASS" if r["passed"] else "FAIL")
+        if any(g.get("status") == "not-measurable" for g in r.get("gates", [])):
+            gate_txt += "*"
+        print(f"{r['meta']['world']:>5} {m['seed']:>5} {m['N_mean']:>6.0f} {m['N_min']:>5} {m['N_max']:>5} {m['N_cv']:>7.3f} {m['amplitude']:>6.3f} {m['reversals_per_72k']:>8.1f} {b:>6} {m['min_n_frac']:>9.2f} {m['starvation_total']:>7} {m['old_age_total']:>7} {gate_txt:>7}")
+        if "band_width" in m:
+            print("           " + format_admissible(gate_admissible_region(m)))
         (all_a if r["meta"]["world"] == "A" else all_b).append(r["passed"])
     print("-" * len(table))
+    if len(manifests) > 1:
+        # Every manifest, not just the two ends: a drifted run in the middle of
+        # a three-way comparison has to be caught, or the table below it is
+        # printed for a comparison nobody established.
+        report = gate_lint(
+            runs[0], metrics=runs[0].get("metrics"),
+            compare_manifest=manifests,
+        )
+        entry = next(r for r in report["rules"] if r["rule"] == "manifest_mismatch")
+        print("MANIFEST:", entry["message"])
+        if entry["severity"] == "blocking":
+            print("REFUSING TO COMPARE: the table above is printed for reference only;")
+            print("  a gate delta between non-comparable runs does not mean anything.")
     print(f"A (baseline) all-seed pass={all(all_a) if all_a else 'n/a'}   B (fixed) all-seed pass={all(all_b) if all_b else 'n/a'}")
     if all_b:
         print("GATE VERDICT:", "B MEETS ALL GATES" if all(all_b) else "B FAILS GATES")
@@ -635,6 +1148,45 @@ def main():
         verdict="OK" if lo<=avg<=hi else ("HIGH" if avg>hi else "LOW")
         print(f"{preset:<12} {avg:9.0f} {mn:5.0f} {mx:5.0f} {f'{lo}-{hi}':>13} {dead:9.0f} {wars:7.0f} {houses:6.0f} {ms:6.1f} {verdict}")
 
+def _parse_set_overrides(argv):
+    """`--set field=value`, coerced to the Config field's declared type.
+
+    A proposal must be able to reach *any* field: the harness builds its Config
+    with the dataclass constructor, not from_env(), so an env var cannot switch a
+    law on for a gate run. An unknown field is a hard error rather than a silent
+    no-op — a misspelt knob is exactly the dead-knob class the linter rejects.
+    """
+    out = {}
+    i = 0
+    while i < len(argv):
+        if argv[i] != "--set":
+            i += 1
+            continue
+        if i + 1 >= len(argv) or "=" not in argv[i + 1]:
+            print("[osc] --set needs field=value", file=sys.stderr)
+            raise SystemExit(2)
+        key, _, raw = argv[i + 1].partition("=")
+        field = Config.__dataclass_fields__.get(key)
+        if field is None:
+            print(f"[osc] --set: {key!r} is not a Config field", file=sys.stderr)
+            raise SystemExit(2)
+        want = field.type
+        try:
+            if want is bool or want == "bool":
+                out[key] = str(raw).lower() in ("true", "1", "yes", "on")
+            elif want is int or want == "int":
+                out[key] = int(raw)
+            elif want is float or want == "float":
+                out[key] = float(raw)
+            else:
+                out[key] = raw
+        except (TypeError, ValueError):
+            print(f"[osc] --set: cannot read {raw!r} as {want}", file=sys.stderr)
+            raise SystemExit(2)
+        i += 2
+    return out
+
+
 def _parse_osc_args(argv):
     args = {}
     i = 0
@@ -644,8 +1196,13 @@ def _parse_osc_args(argv):
             key = a.lstrip("-").replace("-", "_")
             args[key] = argv[i + 1]
             i += 2
+        elif a == "--set":
+            i += 2
         else:
             i += 1
+    overrides = _parse_set_overrides(argv)
+    if overrides:
+        args["overrides"] = overrides
     return args
 
 

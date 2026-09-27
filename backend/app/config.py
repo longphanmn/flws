@@ -331,6 +331,42 @@ class Config:
     damping_steepness: float = 7.0  # birth_rate divisor steepness (aggressive curve)
     crowding_stress_mult: float = 1.0  # metabolic drain multiplier under crowding
     resource_strain_mult: float = 2.0  # plant growth/spread divisor under crowding
+    # §F4 These two were read by density_damping via getattr(..., default) while
+    # being absent from Config, so tau was pinned at 300.0 and the sigmoid k at
+    # 5.0 for every path: env, preset, dataclasses.replace, and the oscillation
+    # harness's hasattr filter. Defaults are the previously hard-wired values, so
+    # behaviour is unchanged until something sets them.
+    damping_release_tau: float = 300.0  # ticks; exponential xi release time-constant
+    damping_sigmoid_k: float = 5.0  # steepness of the xi suppression transition
+
+    # §G1 Hard population envelope. Inert unless enabled: a proportional soft
+    # band can damp but never pin, because its restoring force vanishes at K,
+    # so the 300-tick smoothed series keeps drifting and the reversals gate keeps
+    # counting sign flips. These give the band absorbing edges — births vetoed
+    # above K*hi, birth room *lifted* below K*lo. D = hi-lo = 0.08K at the
+    # defaults, which is the width the gates admit.
+    #
+    # Both edges act on births and neither kills: a lower edge that imposed
+    # deaths on an already-deficient population would drive it further down.
+    # pop_env_lo_birth_boost is the peak extra birth room, in multiples of the
+    # ordinary room of 1.0, reached at the reach boundary one envelope width
+    # below K*lo; it is a Config field, not a constant, so an experimental sweep
+    # can move the floor with --set.
+    population_envelope_enabled: bool = False
+    pop_env_lo_frac: float = 0.96
+    pop_env_hi_frac: float = 1.04
+    pop_env_lo_birth_boost: float = 0.5
+
+    # §G4 Staggered old-age hazard. `age >= lifespan` is a delta function of age:
+    # a cohort crosses it in the same few ticks, so old-age deaths arrive in
+    # lumps and the 100-tick old-age bin ratio (gate 4) measures the lumpiness of
+    # the cohort rather than the mortality of the population. Above
+    # `old_hazard_onset_frac * lifespan` the death becomes memoryless with rate
+    # 1/(lifespan - onset), so the mean age at death stays exactly `lifespan` and
+    # only the *shape* of the death stream moves. Inert unless enabled, so the
+    # disabled path consumes no randomness and the golden lock holds.
+    old_age_hazard_enabled: bool = False
+    old_hazard_onset_frac: float = 0.75
 
     # BF Early Population Boom Limiter — days 0-1.2 birth is gently throttled
     boom_ramp_days: float = 1.2  # days of soft birth ramp at world start (1440 ticks)
@@ -381,6 +417,14 @@ class Config:
             omp_threshold=_env("FLATWORLD_OMP_THRESHOLD", int, 100),
             morphology_annealing_enabled=_env("FLATWORLD_MORPHOLOGY_ANNEALING_ENABLED", bool, True),
             soft_cap_enabled=_env("FLATWORLD_SOFT_CAP_ENABLED", bool, True),
+            damping_release_tau=_env("FLATWORLD_DAMPING_RELEASE_TAU", float, 300.0),
+            damping_sigmoid_k=_env("FLATWORLD_DAMPING_SIGMOID_K", float, 5.0),
+            population_envelope_enabled=_env("FLATWORLD_POPULATION_ENVELOPE_ENABLED", bool, False),
+            pop_env_lo_frac=_env("FLATWORLD_POP_ENV_LO_FRAC", float, 0.96),
+            pop_env_hi_frac=_env("FLATWORLD_POP_ENV_HI_FRAC", float, 1.04),
+            pop_env_lo_birth_boost=_env("FLATWORLD_POP_ENV_LO_BIRTH_BOOST", float, 0.5),
+            old_age_hazard_enabled=_env("FLATWORLD_OLD_AGE_HAZARD_ENABLED", bool, False),
+            old_hazard_onset_frac=_env("FLATWORLD_OLD_HAZARD_ONSET_FRAC", float, 0.75),
             safeguard_enabled=_env("FLATWORLD_SAFEGUARD_ENABLED", bool, True),
             safeguard_max_miracles=_env("FLATWORLD_SAFEGUARD_MAX_MIRACLES", int, 1),
             eat_kin_enabled=_env("FLATWORLD_EAT_KIN_ENABLED", bool, False),

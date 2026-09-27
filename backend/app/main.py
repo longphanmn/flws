@@ -2315,6 +2315,20 @@ PRESETS: dict[str, dict] = {
         damping_steepness=7.0,
         crowding_stress_mult=1.0,
         resource_strain_mult=2.0,
+        # §F4 pinned to the Config defaults so the harness and the served world
+        # agree; reachable from here on, unlike the getattr-only era.
+        damping_release_tau=300.0,
+        damping_sigmoid_k=5.0,
+        # §G1/C3 population envelope + §G4 staggered old-age hazard, pinned to the
+        # verified C3 values so the gate harness and the served world agree. The
+        # master flags stay False (inert) so the disabled path is RNG-identical;
+        # C3 is switched on explicitly (harness --set, or GodLaws on the serve).
+        population_envelope_enabled=False,
+        pop_env_lo_frac=0.96,
+        pop_env_hi_frac=1.04,
+        pop_env_lo_birth_boost=0.5,
+        old_age_hazard_enabled=False,
+        old_hazard_onset_frac=0.75,
         safeguard_enabled=True,
         safeguard_critical_pop=15,
         safeguard_relief_ratio=0.35,
@@ -2625,6 +2639,32 @@ def _restore_law_state(rt: RuntimeState) -> bool:
                 DB.set_setting(LAW_STATE_KEY, json.dumps(data))
             except Exception:
                 pass
+
+    # §F4 §G1 §G4 Backfill exactly the knobs that were unreachable when this
+    # law_state_v1 blob was written: the two damping knobs, the C3 population
+    # envelope, and the staggered old-age hazard. A blob persisted before they
+    # were Config fields simply lacks them, so `replace(rt.config, **laws)` would
+    # leave the bare dataclass default while the harness path (Config +
+    # replace(PRESETS)) gets the preset value — two different worlds for the same
+    # "preset". Absent-only, from the matched preset, never overwriting a stored
+    # value; no other law is invented.
+    backfilled = False
+    for _bk in (
+        "damping_release_tau", "damping_sigmoid_k",
+        "population_envelope_enabled", "pop_env_lo_frac", "pop_env_hi_frac",
+        "pop_env_lo_birth_boost", "old_age_hazard_enabled", "old_hazard_onset_frac",
+    ):
+        if _bk not in laws and _bk in preset_cfg:
+            laws[_bk] = preset_cfg[_bk]
+            saved[_bk] = preset_cfg[_bk]
+            backfilled = True
+    if backfilled:
+        data["laws"] = laws
+        data["saved_laws"] = saved
+        try:
+            DB.set_setting(LAW_STATE_KEY, json.dumps(data))
+        except Exception:
+            pass
 
     try:
         with rt.lock:

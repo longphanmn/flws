@@ -272,6 +272,19 @@ class GodLaws(BaseModel):
     damping_steepness: Optional[float] = Field(None, ge=1.0, le=20.0)
     crowding_stress_mult: Optional[float] = Field(None, ge=0.0, le=1.0)
     resource_strain_mult: Optional[float] = Field(None, ge=0.0, le=2.0)
+    # §F4 must be settable here, or LAW_FIELDS omits them, get_laws() never emits
+    # them, and _restore_law_state drops them as unknown on the served path.
+    damping_release_tau: Optional[float] = Field(None, ge=1.0, le=100000.0)
+    damping_sigmoid_k: Optional[float] = Field(None, ge=0.1, le=50.0)
+    # §G1/C3 the population envelope and §G4 the staggered old-age hazard. These
+    # must be settable here or LAW_FIELDS omits them, get_laws() never emits them,
+    # and _restore_law_state drops them as unknown on the served path.
+    population_envelope_enabled: Optional[bool] = None
+    pop_env_lo_frac: Optional[float] = Field(None, gt=0.0, le=1.0)
+    pop_env_hi_frac: Optional[float] = Field(None, ge=1.0, le=2.0)
+    pop_env_lo_birth_boost: Optional[float] = Field(None, ge=0.0, le=20.0)
+    old_age_hazard_enabled: Optional[bool] = None
+    old_hazard_onset_frac: Optional[float] = Field(None, ge=0.0, le=1.0)
     boom_ramp_days: Optional[float] = Field(None, ge=0, le=100)
     boom_birth_floor: Optional[float] = Field(None, ge=0, le=1.0)
     boom_cooldown_mult: Optional[float] = Field(None, ge=1.0, le=10.0)

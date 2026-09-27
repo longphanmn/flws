@@ -36,6 +36,62 @@ def compute_xi(N: int, Kcap: int, enabled: bool) -> float:
         return 0.0
 
 
+def population_envelope(config):
+    """§G1 the hard absorbing band (lo, hi) in absolute population, or None.
+
+    None means the law is off, or the band is incoherent (lo >= hi, which would
+    make the lower edge unreachable). Every call site must treat None as "no
+    envelope" and must not consume randomness on that path, so the law stays
+    inert — including on the RNG stream — until it is switched on.
+    """
+    try:
+        if not bool(getattr(config, "population_envelope_enabled", False)):
+            return None
+        kcap = float(getattr(config, "effective_carrying_capacity", 0.0) or 0.0)
+        if kcap <= 0:
+            return None
+        lo = kcap * float(getattr(config, "pop_env_lo_frac", 1.0))
+        hi = kcap * float(getattr(config, "pop_env_hi_frac", 1.0))
+    except Exception:
+        return None
+    if not (0.0 < lo < hi):
+        return None
+    return lo, hi
+
+
+def envelope_lower_boost(n, lo, hi, lo_boost):
+    """§G1 the envelope's reflecting lower edge, as extra birth room.
+
+    The lower edge must push a population that has drifted out through it *back
+    up* into the band. It cannot do that by killing: deaths imposed on a
+    population that is already short drive it further down, a positive feedback
+    away from the band. So the edge lifts births instead, and the lift is a pure
+    multiplier of the ordinary birth room.
+
+    It rises linearly from 0 at N = lo (so there is no step discontinuity to
+    drive a limit cycle) to ``lo_boost`` at the *reach* boundary, one envelope
+    width (hi - lo) below lo. Below reach the law has no jurisdiction: a world
+    legitimately smaller than the band is running its own famine/extinction
+    dynamics, and a permanent fertility bonus would mask that equilibrium.
+
+    Zero above lo, so the band interior and the ceiling are untouched. Never
+    negative, and never any kind of mortality term.
+    """
+    try:
+        n, lo, hi, lo_boost = float(n), float(lo), float(hi), float(lo_boost)
+    except (TypeError, ValueError):
+        return 0.0
+    if lo_boost <= 0.0 or not (0.0 < lo < hi):
+        return 0.0
+    reach = lo - (hi - lo)
+    if n >= lo or n < reach:
+        return 0.0
+    span = 1.0 - reach / lo
+    if span <= 0.0:
+        return 0.0
+    return lo_boost * (1.0 - n / lo) / span
+
+
 def scales_for_xi(xi: float, config) -> Dict[str, float]:
     """Compute 4-channel damping scales for xi."""
     try:

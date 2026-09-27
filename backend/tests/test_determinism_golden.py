@@ -4,7 +4,16 @@ from app.config import Config
 from app.simulation import Simulation
 
 GOLDEN_SEED = 1337
-GOLDEN_HASHES = {}  # filled by first run, committed as golden
+# Locked against seed 1337 on the 200x200/40-food baseline. Captured after the
+# §G3 change that removed the xi-coupled elder senescence multiplier, so these
+# attest to the current dynamics, not to the pre-§G3 ones. Any further change to
+# the dynamics is a deliberate act: re-run with -s, read the printed hashes, and
+# update them here in the same commit as the change.
+GOLDEN_HASHES = {
+    100: "b74dad373d8326d2",
+    250: "562161a8f8c32333",
+    500: "1888afb716ec487a",
+}
 
 def _hash_at(sim: Simulation) -> str:
     # checkpoint hash of (id, round(x,6), round(y,6), round(energy,6))
@@ -33,9 +42,10 @@ def test_determinism_golden():
     hashes2 = compute_hashes()
     assert hashes == hashes2, f"non-deterministic: {hashes} vs {hashes2}"
     print(f"\n[golden] {hashes}")
-    # if GOLDEN_HASHES was committed, assert against it
-    if GOLDEN_HASHES:
-        assert hashes == GOLDEN_HASHES
+    # unconditional: an empty/conditional lock is what left this disarmed (F9)
+    assert hashes == GOLDEN_HASHES, (
+        f"golden drift: {hashes} != {GOLDEN_HASHES}"
+    )
 
 def test_determinism_golden_values():
     """Pin known good values so regressions are caught."""
