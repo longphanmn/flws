@@ -362,6 +362,54 @@
     color: #ff7b72;
     font-size: 13px;
   }
+
+  /* God-key gate */
+  .key-gate {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 16px;
+    margin: 16px 0;
+  }
+  .key-gate h2 {
+    margin: 0 0 6px;
+    font-size: 14px;
+    color: #f0f6fc;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+  .key-gate p {
+    margin: 0 0 12px;
+    color: #8b949e;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .key-form {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .key-form input {
+    flex: 1 1 260px;
+    min-width: 200px;
+    background: #010409;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #c9d1d9;
+    font-size: 14px;
+  }
+  .key-form input:focus {
+    outline: none;
+    border-color: #58a6ff;
+    box-shadow: 0 0 0 2px rgba(88,166,255,0.25);
+  }
+  .key-error {
+    margin-top: 10px;
+    color: #ff7b72;
+    font-size: 12px;
+  }
 </style>
 </head>
 <body>
@@ -383,6 +431,17 @@
 
 <main>
   <div class="err" id="err"></div>
+
+  <!-- God-key gate: shown when no valid key is available; hidden once metrics unlock -->
+  <div class="key-gate" id="key-gate" style="display: none;">
+    <h2>God key required — paste to view metrics</h2>
+    <p>Per-minute engine metrics are protected. Paste the god key to unlock this dashboard. It is stored under the same browser key the main app uses, so you only need to paste it once per session.</p>
+    <form class="key-form" id="key-form" autocomplete="off">
+      <input id="key-input" type="password" placeholder="Paste god key" autocomplete="current-password" spellcheck="false" aria-label="God key">
+      <button type="submit" id="key-submit" class="btn btn-primary">Unlock metrics</button>
+    </form>
+    <div class="key-error" id="key-error" style="display: none;"></div>
+  </div>
 
   <!-- Time Range Switcher -->
   <div class="range-bar">
@@ -1090,27 +1149,134 @@
     renderBars();
   }
 
-  function poll() {
-    var url = (API_BASE ? API_BASE : "") + "/healthz";
-    if (currentRange) {
-      url += "?range=" + encodeURIComponent(currentRange);
-    }
-    fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" })
-      .then(function (r) {
-        if (!r.ok) throw new Error("HTTP " + r.status);
-        return r.json();
-      })
-      .then(function (data) {
-        cur = data;
-        renderAll();
-        if (API_BASE) {
-          var rawLink = document.querySelector('a[href*="/healthz"]');
-          if (rawLink) rawLink.href = API_BASE + "/healthz" + (currentRange ? "?range=" + encodeURIComponent(currentRange) : "");
-          var teleLink = document.querySelector('a[href*="/api/perf/telemetry"]');
-          if (teleLink) teleLink.href = API_BASE + "/api/perf/telemetry";
-          var docsLink = document.querySelector('a[href*="/docs"]');
-          if (docsLink) docsLink.href = API_BASE + "/docs";
+  // ---- God-key auth (mirrors flws-web src/god/auth.tsx) ------------------
+  // The main app stores the passkey in sessionStorage under this name and keeps
+  // localStorage only as a migration source. Reuse both so a key entered in the
+  // app is picked up automatically wherever storage scopes overlap.
+  var GOD_KEY_STORAGE = "flatworld-god-key";
+  var godKey = readGodKey();
+  var pollTimer = null;
+  var gateBusy = false;
+
+  function readGodKey() {
+    var key = null;
+    try { key = sessionStorage.getItem(GOD_KEY_STORAGE); } catch (e) {}
+    if (!key) {
+      try {
+        var legacy = localStorage.getItem(GOD_KEY_STORAGE);
+        if (legacy) {
+          key = legacy;
+          try { sessionStorage.setItem(GOD_KEY_STORAGE, legacy); } catch (e2) {}
         }
+      } catch (e) {}
+    }
+    // localStorage is legacy-only; never leave a copy behind.
+    try { localStorage.removeItem(GOD_KEY_STORAGE); } catch (e) {}
+    return key || null;
+  }
+
+  function rememberGodKey(key) {
+    try { sessionStorage.setItem(GOD_KEY_STORAGE, key); } catch (e) {}
+    try { localStorage.removeItem(GOD_KEY_STORAGE); } catch (e) {}
+  }
+
+  function forgetGodKey() {
+    try { sessionStorage.removeItem(GOD_KEY_STORAGE); } catch (e) {}
+    try { localStorage.removeItem(GOD_KEY_STORAGE); } catch (e) {}
+  }
+
+  // Privileged /healthz payloads carry history[] + session_minutes_total; the
+  // unauthenticated fallback carries neither. The backend answers HTTP 200 for a
+  // missing OR wrong key, so the payload shape — not the status — is the signal.
+  function hasPrivilegedMetrics(data) {
+    return !!data && (Array.isArray(data.history) || typeof data.session_minutes_total === "number");
+  }
+
+  function healthUrl() {
+    var url = (API_BASE ? API_BASE : "") + "/healthz";
+    if (currentRange) url += "?range=" + encodeURIComponent(currentRange);
+    return url;
+  }
+
+  function fetchHealth(key) {
+    var headers = { Accept: "application/json" };
+    if (key) headers["X-God-Key"] = key;
+    return fetch(healthUrl(), { headers: headers, cache: "no-store" });
+  }
+
+  function showKeyGate(message) {
+    var gate = document.getElementById("key-gate");
+    if (gate) gate.style.display = "block";
+    var errEl = document.getElementById("key-error");
+    if (errEl) {
+      if (message) { errEl.textContent = message; errEl.style.display = "block"; }
+      else { errEl.textContent = ""; errEl.style.display = "none"; }
+    }
+    document.getElementById("subtitle").textContent = "god key required";
+    document.getElementById("range-meta").textContent = "Metrics locked — paste your god key";
+    var pill = document.getElementById("pill");
+    pill.innerHTML = '<span class="pill-dot"></span>LOCKED';
+    pill.className = "pill idle";
+    var input = document.getElementById("key-input");
+    if (input) { try { input.focus(); } catch (e) {} }
+  }
+
+  function hideKeyGate() {
+    var gate = document.getElementById("key-gate");
+    if (gate) gate.style.display = "none";
+    var errEl = document.getElementById("key-error");
+    if (errEl) { errEl.textContent = ""; errEl.style.display = "none"; }
+  }
+
+  function updateApiLinks() {
+    if (!API_BASE) return;
+    var rawLink = document.querySelector('a[href*="/healthz"]');
+    if (rawLink) rawLink.href = API_BASE + "/healthz" + (currentRange ? "?range=" + encodeURIComponent(currentRange) : "");
+    var teleLink = document.querySelector('a[href*="/api/perf/telemetry"]');
+    if (teleLink) teleLink.href = API_BASE + "/api/perf/telemetry";
+    var docsLink = document.querySelector('a[href*="/docs"]');
+    if (docsLink) docsLink.href = API_BASE + "/docs";
+  }
+
+  function rejectKey(message) {
+    forgetGodKey();
+    godKey = null;
+    stopPolling();
+    var input = document.getElementById("key-input");
+    if (input) input.value = "";
+    showKeyGate(message || "Invalid god key — paste it again.");
+  }
+
+  function startPolling() {
+    if (pollTimer) return;
+    pollTimer = setInterval(poll, 5000);
+  }
+
+  function stopPolling() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  }
+
+  // Polls only while a key is present; unprivileged polls would just burn the
+  // god rate limit and never contain metrics anyway.
+  function poll() {
+    if (!godKey) { showKeyGate(); return; }
+    fetchHealth(godKey)
+      .then(function (r) {
+        if (r.status === 401 || r.status === 409) {
+          rejectKey("God key rejected — paste it again.");
+          return null;
+        }
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json().then(function (data) {
+          if (!hasPrivilegedMetrics(data)) {
+            rejectKey("God key invalid — paste it again.");
+            return;
+          }
+          cur = data;
+          hideKeyGate();
+          renderAll();
+          updateApiLinks();
+        });
       })
       .catch(function (err) {
         var el = document.getElementById("err");
@@ -1122,9 +1288,55 @@
       });
   }
 
+  function submitKey(ev) {
+    if (ev && ev.preventDefault) ev.preventDefault();
+    if (gateBusy) return;
+    var input = document.getElementById("key-input");
+    var key = (input && input.value ? input.value : "").trim();
+    if (!key) { showKeyGate("Paste the god key to continue."); return; }
+    gateBusy = true;
+    var btn = document.getElementById("key-submit");
+    if (btn) btn.disabled = true;
+    // Validate with one privileged call before persisting and starting to poll.
+    fetchHealth(key)
+      .then(function (r) {
+        if (r.status === 401 || r.status === 409) throw new Error("invalid");
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        if (!hasPrivilegedMetrics(data)) throw new Error("invalid");
+        rememberGodKey(key);
+        godKey = key;
+        cur = data;
+        hideKeyGate();
+        if (input) input.value = "";
+        renderAll();
+        updateApiLinks();
+        startPolling();
+      })
+      .catch(function (err) {
+        var isInvalid = err && err.message === "invalid";
+        forgetGodKey();
+        godKey = null;
+        stopPolling();
+        if (input && isInvalid) input.value = "";
+        showKeyGate(isInvalid
+          ? "Invalid god key — paste it again."
+          : "Could not verify god key: " + (err && err.message ? err.message : "network error"));
+      })
+      .then(function () {
+        gateBusy = false;
+        if (btn) btn.disabled = false;
+      });
+  }
+
   document.getElementById("btn-refresh").onclick = function () {
     poll();
   };
+
+  var keyForm = document.getElementById("key-form");
+  if (keyForm) keyForm.onsubmit = submitKey;
 
   window.addEventListener("resize", function () {
     if (cur) {
@@ -1134,8 +1346,12 @@
   });
 
   initRangeButtons();
-  poll();
-  setInterval(poll, 5000);
+  if (godKey) {
+    poll();
+    startPolling();
+  } else {
+    showKeyGate();
+  }
 })();
 </script>
 </body>
