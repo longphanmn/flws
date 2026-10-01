@@ -531,14 +531,18 @@ CONFIG_OPS_EN = """
 `POST /api/laws`, `POST /api/presets/{name}`, `POST /api/control` and WebSocket control messages need the god passkey (`X-God-Key` header, `key` field on the socket). No credential yet → any god call answers `409` and the web UI asks to create one (`POST /api/auth/setup`). Lost it? Recover on the server only: `cd backend && uv run python -m app.godkey reset <new>` (or `clear`). The TUI takes no prompt: `./run.sh tui ws://host/ws <passkey>` or export `FLATWORLD_GOD_KEY`. Only a PBKDF2 hash is stored.
 
 ## Persistence (`db.py:20`)
-SQLite `flatworld.db` (WAL, thread lock). Tables:
+SQLite `flatworld.db` (WAL, thread lock, 16 KB pages, `mmap_size` clamped to RAM/4). Tables:
 - `worlds(id, seed, width, height, boundary, started_at, ended_at)`
-- `events(id, world_id, tick, type, entity_id, caste, cause, x, y, payload, created_at)`
+- `events(id, world_id, tick, type, entity_id, caste, cause, x, y, payload)` — no `created_at`: the row id already orders the chronicle, and the column cost 12.6% of the file
+- `event_clans(world_id, clan_id, event_id)` — `WITHOUT ROWID`, primary key `(world_id, clan_id, event_id)`. Clan ids are extracted once in Python (the payload is already a dict there), so `?clan_id=` is a covering-b-tree lookup instead of 13 `json_extract` calls per row
+- `world_stats(world_id, death_count)` — materialized counter bumped in the same transaction as the death rows, so `/api/history`, `/healthz` and snapshot restore never scan the chronicle
 - `law_changes(id, world_id, tick, name, value, created_at)`
 - `creatures(id, world_id, entity_id, caste, clan_id, generation, mother_id, father_id, born_tick, died_tick)`
 - `snapshots(id, world_id, tick, payload, created_at)`
 
-History survives restarts; `reset` closes old world row and opens new.
+The chronicle is **tiered**, not pruned: nothing is ever deleted. `MILESTONE` events are always durable, `SAMPLED` types (fire, predation, cannibalism, raid, market, caravan, demotion, recovery) are durable 1 in `CHRONICLE_SAMPLE_EVERY` (10) with a per-tick cap of `NOISE_PER_TICK_CAP` (3), and `NOISE` types (bloom, wither, culture, rivalry, peace_envoy) never reach SQLite — they live in a 5000-entry RAM ring that `pending_events()` still serves to `/api/history`, so the web/TUI keeps its recent texture. The map is the `EVENT_TIERS` constant in `db.py`; `GET /api/diagnostics/db-census` reports the real byte cost per type so it can be re-tuned from production evidence.
+
+History survives restarts; `reset` closes old world row and opens new. A populated file cannot change its page size, so shrinking an existing one is an offline job: stop the service and run `python3 scripts/migrate_db.py --db ../flatworld.db --bench` (backup, rebuild at 16 KB, verify per-world counts and a checksum, atomic rename; the original is never modified).
 
 ## Concurrency stance & SimEngine
 The simulation core is **strictly deterministic** (one seeded RNG stream, one fixed tick order). Run uvicorn with **1 worker** (more workers = several disconnected worlds, not a faster one). Under `SimEngine` (`main.py:544`), simulation advancement runs on its own dedicated background OS thread. State stepping occurs under `RT.lock` while JSON snapshot serialization runs outside the lock (`advance_world_lockless`), so heavy state dumps and WebSocket broadcasts never block REST endpoints or hold the GIL. Key operational & diagnostic endpoints:
@@ -579,12 +583,18 @@ CONFIG_OPS_VI = """
 Các thao tác `POST /api/laws`, `POST /api/presets/{name}`, `POST /api/control` và thông điệp điều khiển qua WebSocket yêu cầu quyền Thượng đế (thông qua header `X-God-Key` hoặc trường `key` trên socket). Nếu hệ thống chưa có mật mã, API sẽ trả về lỗi `409 Conflict` và giao diện web sẽ yêu cầu khởi tạo (`POST /api/auth/setup`). Nếu quên mật mã, có thể đặt lại trực tiếp trên máy chủ bằng lệnh: `cd backend && uv run python -m app.godkey reset <mật_mã_mới>`. Giao diện TUI có thể nhận mật mã qua lệnh: `./run.sh tui ws://host/ws <passkey>` hoặc biến môi trường `FLATWORLD_GOD_KEY`. Hệ thống chỉ lưu trữ chuỗi băm bảo mật PBKDF2.
 
 ## Cơ chế lưu trữ dữ liệu bền vững (`db.py:20`)
-Cơ sở dữ liệu SQLite `flatworld.db` chạy ở chế độ ghi nhật ký trước WAL (Write-Ahead Logging) và khóa luồng an toàn. Các bảng dữ liệu chính:
-- `worlds`: Thông tin các thế giới (mã số, seed, kích thước, thời điểm bắt đầu/kết thúc).
-- `events`: Biên niên sử biến cố thế giới (sinh, tử, thăng hạng, chiến tranh, dịch bệnh).
-- `law_changes`: Nhật ký thay đổi các định luật của Thượng đế theo tick.
+Cơ sở dữ liệu SQLite `flatworld.db` chạy ở chế độ ghi nhật ký trước WAL (Write-Ahead Logging), khóa luồng an toàn, trang 16 KB và `mmap_size` giới hạn theo RAM. Các bảng dữ liệu chính:
+- `worlds(id, seed, width, height, boundary, started_at, ended_at)`: Thông tin các thế giới (mã số, seed, kích thước, thời điểm bắt đầu/kết thúc).
+- `events(id, world_id, tick, type, entity_id, caste, cause, x, y, payload)`: Biên niên sử biến cố thế giới (sinh, tử, thăng hạng, chiến tranh, dịch bệnh). Không có cột `created_at` — mã `id` đã sắp xếp thứ tự biên niên sử và cột này tốn 12,6% dung lượng tệp.
+- `event_clans(world_id, clan_id, event_id)`: bảng chỉ mục `WITHOUT ROWID`, khóa chính `(world_id, clan_id, event_id)`. Mã thị tộc được trích xuất một lần ngay trong Python (payload vốn đã là dict), nên `?clan_id=` chỉ là một phép tra cứu cây B bao phủ thay vì 13 lần gọi `json_extract` cho mỗi dòng.
+- `world_stats(world_id, death_count)`: bộ đếm tử vong được cập nhật trong cùng giao dịch với các dòng tử vong, nên `/api/history`, `/healthz` và khôi phục snapshot không bao giờ phải quét toàn bộ biên niên sử.
+- `law_changes(id, world_id, tick, name, value, created_at)`: Nhật ký thay đổi các định luật của Thượng đế theo tick.
 - `creatures`: Gia phả dòng dõi sinh vật (cha mẹ, thế hệ, thời điểm sinh/tử).
 - `snapshots`: Các bản sao lưu trạng thái thế giới để khôi phục khi khởi động lại.
+
+Biên niên sử được **phân tầng**, không bị cắt bỏ: không có gì bị xóa. Sự kiện `MILESTONE` luôn được ghi bền vững; các loại `SAMPLED` (fire, predation, cannibalism, raid, market, caravan, demotion, recovery) được ghi 1 trong `CHRONICLE_SAMPLE_EVERY` (10) với trần mỗi tick là `NOISE_PER_TICK_CAP` (3); các loại `NOISE` (bloom, wither, culture, rivalry, peace_envoy) không bao giờ chạm tới SQLite — chúng nằm trong vòng RAM 5000 mục mà `pending_events()` vẫn phục vụ cho `/api/history`, nên giao diện vẫn thấy được hiệu ứng gần đây. Bản đồ phân tầng là hằng số `EVENT_TIERS` trong `db.py`; `GET /api/diagnostics/db-census` báo cáo chi phí byte thực tế theo từng loại để cấu hình lại dựa trên dữ liệu thực tế.
+
+Lịch sử vẫn còn sau khi khởi động lại; `reset` đóng dòng thế giới cũ và mở thế giới mới. Một tệp đã có dữ liệu không thể đổi kích thước trang, nên việc thu nhỏ tệp cũ phải làm ngoại tuyến: dừng dịch vụ rồi chạy `python3 scripts/migrate_db.py --db ../flatworld.db --bench` (sao lưu, dựng lại ở 16 KB, kiểm tra số dòng theo từng thế giới và checksum, đổi tên nguyên tử; tệp gốc không bao giờ bị sửa).
 
 ## Kiến trúc luồng & Động cơ SimEngine
 Lõi mô phỏng được **thiết kế tất định tuyệt đối**: một luồng số ngẫu nhiên duy nhất, một thứ tự thực thi tick cố định. Chạy uvicorn với **1 worker duy nhất**. Với kiến trúc `SimEngine` (`main.py:544`), việc tính toán mô phỏng diễn ra trên một luồng OS nền chuyên trách độc lập với vòng lặp sự kiện asyncio. Bước tiến thế giới diễn ra dưới khóa `RT.lock` trong khi việc mã hóa JSON snapshot diễn ra bên ngoài khóa (`advance_world_lockless`), giúp các yêu cầu HTTP REST luôn phản hồi tức thì mà không bị nghẽn. Các điểm cuối vận hành & chẩn đoán quan trọng:
@@ -625,12 +635,18 @@ CONFIG_OPS_FR = """
 Les commandes `POST /api/laws`, `POST /api/presets/{name}`, `POST /api/control` et les ordres de contrôle WebSocket requièrent l'en-tête d'authentification divine (`X-God-Key` ou le champ `key` du socket). Si aucune clé n'est encore configurée, le serveur renvoie une erreur `409` et l'interface invite à en définir une (`POST /api/auth/setup`). En cas d'oubli, la réinitialisation s'effectue sur le serveur : `cd backend && uv run python -m app.godkey reset <nouvelle_clé>`. Seul un hachage cryptographique sécurisé PBKDF2 est conservé.
 
 ## Persistance des données (`db.py:20`)
-Base SQLite `flatworld.db` en mode journalisé WAL avec verrou réentrant thread-safe. Tables principales :
-- `worlds` : Cycles d'existence des mondes (graine, dimensions, horodatages).
-- `events` : Registre historique des événements (naissances, décès, guerres, épidémies).
-- `law_changes` : Journal des modifications de lois par la Sphère.
+Base SQLite `flatworld.db` en mode journalisé WAL avec verrou réentrant thread-safe, pages de 16 KB et `mmap_size` limité à RAM/4. Tables principales :
+- `worlds(id, seed, width, height, boundary, started_at, ended_at)` : Cycles d'existence des mondes (graine, dimensions, horodatages).
+- `events(id, world_id, tick, type, entity_id, caste, cause, x, y, payload)` : Registre historique des événements (naissances, décès, guerres, épidémies). Sans colonne `created_at` : l'identifiant `id` ordonne déjà la chronique et la colonne coûtait 12,6 % du fichier.
+- `event_clans(world_id, clan_id, event_id)` : table d'index `WITHOUT ROWID`, clé primaire `(world_id, clan_id, event_id)`. Les identifiants de clan sont extraits une seule fois en Python (le payload est déjà un dict), si bien que `?clan_id=` devient une recherche couvrante dans un arbre B au lieu de 13 appels `json_extract` par ligne.
+- `world_stats(world_id, death_count)` : compteur de décès matérialisé, incrémenté dans la même transaction que les lignes de décès, si bien que `/api/history`, `/healthz` et la restauration d'un instantané ne parcourent jamais la chronique.
+- `law_changes(id, world_id, tick, name, value, created_at)` : Journal des modifications de lois par la Sphère.
 - `creatures` : Lignées généalogiques complètes de chaque citoyen.
 - `snapshots` : Instantanés de sauvegarde permettant de restaurer le monde après redémarrage.
+
+La chronique est **classée par niveaux**, jamais élaguée : rien n'est supprimé. Les événements `MILESTONE` sont toujours durables ; les types `SAMPLED` (fire, predation, cannibalism, raid, market, caravan, demotion, recovery) sont écrits 1 fois sur `CHRONICLE_SAMPLE_EVERY` (10) avec un plafond par tick de `NOISE_PER_TICK_CAP` (3) ; les types `NOISE` (bloom, wither, culture, rivalry, peace_envoy) n'atteignent jamais SQLite — ils vivent dans un anneau RAM de 5000 entrées que `pending_events()` sert toujours à `/api/history`, si bien que l'interface web/TUI garde sa texture récente. La table de niveaux est la constante `EVENT_TIERS` de `db.py` ; `GET /api/diagnostics/db-census` rapporte le coût réel en octets par type afin de la retuner à partir de données de production.
+
+L'historique survit aux redémarrages ; `reset` ferme l'ancienne ligne de monde et en ouvre une nouvelle. Un fichier déjà peuplé ne peut pas changer de taille de page : réduire un fichier existant est donc une opération hors ligne. Arrêtez le service puis lancez `python3 scripts/migrate_db.py --db ../flatworld.db --bench` (sauvegarde, reconstruction à 16 KB, vérification des counts par monde et d'une somme de contrôle, renommage atomique ; l'original n'est jamais modifié).
 
 ## Architecture des threads & Moteur SimEngine
 Le cœur de calcul est **rigoureusement déterministe** : une seule graine pseudo-aléatoire ordonnée tick par tick. Uvicorn doit être exécuté avec **1 seul processus worker**. Avec le moteur `SimEngine` (`main.py:544`), l'avancement de la simulation s'exécute sur son propre thread OS dédié, découplé de la boucle asyncio. Le calcul du tick s'opère sous `RT.lock` tandis que la sérialisation JSON des instantanés s'effectue hors verrou (`advance_world_lockless`), évitant tout blocage des requêtes REST. Points d'accès d'exploitation :
