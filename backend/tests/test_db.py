@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from app.config import Config
 from app.db import Database
-from app.main import DB, RT, _on_event, app, start_world
+from app.main import DB, MAJOR_EVENT_TYPES, RT, _on_event, app, start_world
 from app.protocol import HistoryEvent
 from app.simulation import Simulation
 
@@ -298,6 +298,118 @@ def test_writer_thread_drains_without_help(tmp_path):
     finally:
         db.close()
     assert not db.connected
+
+
+# --------------------------------------- §3.5 composite indexes + ANALYZE
+def _plan_of(db, call) -> str:
+    """The query Database actually runs, plus its EXPLAIN QUERY PLAN detail."""
+    seen: list[str] = []
+    db.connection.set_trace_callback(seen.append)
+    call()
+    db.connection.set_trace_callback(None)
+    sql = seen[-1]
+    rows = db.connection.execute("EXPLAIN QUERY PLAN " + sql, (1,) * sql.count("?")).fetchall()
+    return " ; ".join(r["detail"] for r in rows)
+
+
+@pytest.fixture()
+def indexed_db(tmp_path):
+    """A world with enough rows that the planner has a choice to make."""
+    db = Database(str(tmp_path / "idx.db"))
+    try:
+        wid = db.new_world(RT.config)
+        kinds = ["war", "death", "birth", "temple", "miracle", "bloom", "fire", "schism"]
+        for start in range(0, 4000, 1000):
+            db.add_events(wid, [
+                HistoryEvent(type=kinds[i % len(kinds)], tick=start + i, entity_id=i % 50,
+                             caste="Soldier", cause="combat", x=0.0, y=0.0,
+                             payload={"a": i % 7})
+                for i in range(start, start + 1000)
+            ])
+        yield db, wid
+    finally:
+        db.close()
+
+
+def test_type_filtered_history_uses_the_type_index(indexed_db):
+    db, wid = indexed_db
+    plan = _plan_of(db, lambda: db.history(wid, type_filter="miracle", limit=100))
+    assert "idx_events_world_type" in plan, plan
+    assert "TEMP B-TREE" not in plan, plan
+
+
+def test_major_history_never_sorts(indexed_db):
+    """An IN-list over the major types must come back newest-first from an index."""
+    db, wid = indexed_db
+    types = list(MAJOR_EVENT_TYPES)
+    plan = _plan_of(db, lambda: db.history(wid, types_filter=types, limit=500))
+    assert "TEMP B-TREE" not in plan, plan
+    assert "USING INDEX" in plan or "USING COVERING INDEX" in plan, plan
+    got = db.history(wid, types_filter=types, limit=500)
+    assert [e["id"] for e in got] == sorted((e["id"] for e in got), reverse=True)
+
+
+def test_entity_history_uses_the_entity_index(indexed_db):
+    db, wid = indexed_db
+    plan = _plan_of(db, lambda: db.history(wid, entity_id=7, limit=100))
+    assert "idx_events_world_entity" in plan, plan
+    assert "TEMP B-TREE" not in plan, plan
+
+
+def test_events_carry_exactly_three_indexes_in_newest_first_order(indexed_db):
+    db, _ = indexed_db
+    rows = db.connection.execute(
+        "SELECT name, sql FROM sqlite_master WHERE type='index' AND tbl_name='events'"
+        " AND name NOT LIKE 'sqlite_%'"
+    ).fetchall()
+    assert {r["name"] for r in rows} == {
+        "idx_events_world", "idx_events_world_type", "idx_events_world_entity"
+    }
+    for r in rows:
+        assert "id DESC" in r["sql"], r["sql"]
+
+
+def test_legacy_indexes_are_replaced_on_connect(tmp_path):
+    """A file carrying the old 2-column indexes must not keep them: the plan's
+    10.8 -> 3.2 ms claim rests on the index actually in use."""
+    path = str(tmp_path / "old_idx.db")
+    _seed_legacy_db(path)
+    db = Database(path)
+    try:
+        rows = db.connection.execute(
+            "SELECT name, sql FROM sqlite_master WHERE type='index' AND tbl_name='events'"
+        ).fetchall()
+        by_name = {r["name"]: r["sql"] for r in rows}
+        assert set(by_name) >= {"idx_events_world", "idx_events_world_type",
+                                "idx_events_world_entity"}
+        for name, sql in by_name.items():
+            if name == "idx_events_world_entity":
+                continue  # already (world_id, entity_id, id DESC) in the legacy file
+            assert "id DESC" in sql, (name, sql)
+    finally:
+        db.close()
+
+
+def test_planner_stats_exist_after_connect(tmp_path):
+    """§3.5: ANALYZE gives the planner statistics; without them it guesses.
+
+    Stats are computed at startup, so the file gets them on the next open — the
+    test reflects that: seed rows, reopen, then look.
+    """
+    path = str(tmp_path / "stats_analyze.db")
+    db = Database(path)
+    try:
+        wid = db.new_world(RT.config)
+        db.add_events(wid, [HistoryEvent(type="war", tick=i, entity_id=i) for i in range(200)])
+    finally:
+        db.close()
+    reopened = Database(path)
+    try:
+        assert int(reopened.connection.execute(
+            "SELECT COUNT(*) AS n FROM sqlite_stat1 WHERE tbl='events'"
+        ).fetchone()["n"]) > 0
+    finally:
+        reopened.close()
 
 
 # ------------------------------------------------- §3.5 lean schema + pragmas

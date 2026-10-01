@@ -135,11 +135,15 @@ CREATE TABLE IF NOT EXISTS {name} (
 
 # Index DDL for `events`, kept apart so the migration rebuilds exactly the same
 # set the live schema has (SQLite keeps an index across a table rename, so the
-# rebuild has to recreate them).
+# rebuild has to recreate them). The `id DESC` tail is what lets every chronicle
+# read come back newest-first from the index with no sort step. Measured note:
+# with equality on the leading columns SQLite can already walk these backwards,
+# so the DESC tail is documentation + insurance for the `IN (...)` shapes, not
+# the source of a speedup.
 _EVENT_INDEXES = (
-    "CREATE INDEX IF NOT EXISTS idx_events_world ON events(world_id, id)",
+    "CREATE INDEX IF NOT EXISTS idx_events_world ON events(world_id, id DESC)",
+    "CREATE INDEX IF NOT EXISTS idx_events_world_type ON events(world_id, type, id DESC)",
     "CREATE INDEX IF NOT EXISTS idx_events_world_entity ON events(world_id, entity_id, id DESC)",
-    "CREATE INDEX IF NOT EXISTS idx_events_world_type ON events(world_id, type)",
 )
 
 # 16 KB pages: -11% file size and a 110x faster WAL checkpoint (321 -> 2.9 ms).
@@ -235,8 +239,6 @@ CREATE TABLE IF NOT EXISTS clan_epitaphs (
     extinction_cause TEXT,
     created_at TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_events_world ON events(world_id, id);
-CREATE INDEX IF NOT EXISTS idx_events_world_entity ON events(world_id, entity_id, id DESC);
 CREATE INDEX IF NOT EXISTS idx_creatures_world ON creatures(world_id, entity_id);
 CREATE INDEX IF NOT EXISTS idx_clan_epitaphs_world ON clan_epitaphs(world_id, clan_id);
 -- §3.3: clan -> event lookup. The payload is parsed ONCE in Python (it is
@@ -258,6 +260,8 @@ CREATE TABLE IF NOT EXISTS world_stats (
     death_count INTEGER NOT NULL DEFAULT 0
 );
 """
+    + ";\n".join(_EVENT_INDEXES)
+    + ";\n"
 )
 
 
@@ -265,8 +269,14 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def _norm_ddl(ddl: str) -> str:
+    """Index DDL with cosmetic whitespace removed, for shape comparison."""
+    return " ".join(ddl.replace("(", " ( ").replace(")", " ) ").replace(",", " , ").split()).lower()
+
+
 def _loads(payload: str | None) -> dict[str, Any]:
     """json.loads that never raises on a malformed legacy payload."""
+
     try:
         out = json.loads(payload or "{}")
     except (TypeError, ValueError):
@@ -460,7 +470,9 @@ class Database:
             rows > 0 and int(conn.execute("PRAGMA page_size").fetchone()[0]) != PAGE_SIZE
         )
         if not self._events_needs_rebuild():
+            self._ensure_event_indexes()
             self._backfill_side_tables()
+            self._analyze(rows)
             return
         if rows > INPLACE_MIGRATE_MAX_ROWS:
             raise RuntimeError(
@@ -477,9 +489,41 @@ class Database:
             )
             conn.execute("DROP TABLE events")
             conn.execute("ALTER TABLE events_lean RENAME TO events")
-            for ddl in _EVENT_INDEXES:
-                conn.execute(ddl)
+        self._ensure_event_indexes()
         self._backfill_side_tables()
+        self._analyze(rows)
+
+    def _ensure_event_indexes(self) -> None:
+        """Make `events` carry exactly _EVENT_INDEXES, replacing stale definitions.
+
+        CREATE INDEX IF NOT EXISTS keeps a same-named index with an OLD shape, so
+        a legacy file would silently keep the pre-§3.5 definitions.
+        """
+        assert self._conn is not None
+        conn = self._conn
+        have = {
+            r["name"]: (r["sql"] or "")
+            for r in conn.execute(
+                "SELECT name, sql FROM sqlite_master WHERE type='index' AND tbl_name='events'"
+            ).fetchall()
+        }
+        for ddl in _EVENT_INDEXES:
+            name = ddl.split(" ON ")[0].rsplit(" ", 1)[-1]
+            if name in have and _norm_ddl(have[name]) == _norm_ddl(ddl):
+                continue
+            conn.execute(f"DROP INDEX IF EXISTS {name}")
+            conn.execute(ddl)
+
+    def _analyze(self, event_rows: int) -> None:
+        """Give the planner statistics (§3.5). Bounded: a multi-GB file gets its
+        stats from scripts/migrate_db.py, which is already required for the page
+        size, so startup does not pay for a full scan it cannot afford."""
+        assert self._conn is not None
+        if event_rows > INPLACE_MIGRATE_MAX_ROWS:
+            return
+        with self.batch():
+            self._conn.execute("PRAGMA analysis_limit=100")
+            self._conn.execute("ANALYZE")
 
     def _backfill_side_tables(self) -> None:
         """Fill event_clans + world_stats for rows that predate them.
