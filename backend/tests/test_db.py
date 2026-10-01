@@ -1,5 +1,6 @@
 """Database layer tests: durable chronicle, worlds, and law history."""
 
+import json
 import sqlite3
 
 import pytest
@@ -297,6 +298,148 @@ def test_writer_thread_drains_without_help(tmp_path):
     finally:
         db.close()
     assert not db.connected
+
+
+# ------------------------------------------------- §3.5 lean schema + pragmas
+LEGACY_EVENTS_DDL = """
+CREATE TABLE events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    world_id INTEGER NOT NULL,
+    tick INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    entity_id INTEGER,
+    caste TEXT,
+    cause TEXT,
+    x REAL,
+    y REAL,
+    payload TEXT,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX idx_events_world ON events(world_id, id);
+CREATE INDEX idx_events_world_type ON events(world_id, type);
+"""
+
+
+def _seed_legacy_db(path, page_size: int = 4096) -> None:
+    """A pre-§3.5 file: 4 KB pages, created_at, AUTOINCREMENT, the old indexes."""
+    conn = sqlite3.connect(path)
+    try:
+        conn.execute(f"PRAGMA page_size={page_size}")
+        conn.execute("CREATE TABLE worlds (id INTEGER PRIMARY KEY AUTOINCREMENT, seed INTEGER)")
+        conn.execute("INSERT INTO worlds(id, seed) VALUES (1, 7)")
+        conn.executescript(LEGACY_EVENTS_DDL)
+        rows = [
+            (1, 1, "war", 1, "Soldier", "", 1.0, 2.0, json.dumps({"a": 3, "b": 4}), "t0"),
+            (1, 2, "death", 2, "Soldier", "combat", 1.0, 2.0, json.dumps({"clan_id": 3}), "t0"),
+            (1, 3, "bloom", 3, None, "", 0.0, 0.0, json.dumps({"n": 1}), "t0"),
+        ]
+        conn.executemany(
+            "INSERT INTO events(world_id,tick,type,entity_id,caste,cause,x,y,payload,created_at)"
+            " VALUES (?,?,?,?,?,?,?,?,?,?)",
+            rows,
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def test_fresh_database_uses_16kb_pages(tmp_path):
+    db = Database(str(tmp_path / "pages.db"))
+    try:
+        assert db.connection.execute("PRAGMA page_size").fetchone()[0] == 16384
+        assert db.needs_rebuild is False
+    finally:
+        db.close()
+
+
+def test_events_table_is_lean(tmp_path):
+    """No created_at (derivable from id, 12.6% of the bytes) and no AUTOINCREMENT."""
+    db = Database(str(tmp_path / "lean.db"))
+    try:
+        cols = {r["name"] for r in db.connection.execute("PRAGMA table_info(events)")}
+        assert cols == {"id", "world_id", "tick", "type", "entity_id", "caste",
+                        "cause", "x", "y", "payload"}
+        ddl = db.connection.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='events'"
+        ).fetchone()["sql"]
+        assert "AUTOINCREMENT" not in ddl
+        assert db.connection.execute(
+            "SELECT COUNT(*) AS n FROM sqlite_sequence WHERE name='events'"
+        ).fetchone()["n"] == 0
+    finally:
+        db.close()
+
+
+def test_legacy_file_is_migrated_on_connect(tmp_path):
+    """A pre-§3.5 file must come up lean, with its history, side table and counter."""
+    path = str(tmp_path / "legacy.db")
+    _seed_legacy_db(path)
+    db = Database(path)
+    try:
+        cols = {r["name"] for r in db.connection.execute("PRAGMA table_info(events)")}
+        assert "created_at" not in cols
+        # history survived, payload intact
+        got = db.history(1, limit=10)
+        assert [e["type"] for e in got] == ["bloom", "death", "war"]
+        assert got[-1]["payload"] == {"a": 3, "b": 4}
+        # the side table and the counter were backfilled from the old rows
+        assert [e["tick"] for e in db.history(1, clan_id=3)] == [2, 1]
+        assert db.death_count(1) == 1
+        counter = db.connection.execute(
+            "SELECT death_count FROM world_stats WHERE world_id=1"
+        ).fetchone()
+        assert int(counter["death_count"]) == 1
+    finally:
+        db.close()
+
+
+def test_legacy_4kb_file_is_not_faked_into_16kb(tmp_path):
+    """page_size cannot change in place: the file reports it needs the offline tool."""
+    path = str(tmp_path / "small.db")
+    _seed_legacy_db(path)
+    db = Database(path)
+    try:
+        assert db.connection.execute("PRAGMA page_size").fetchone()[0] == 4096
+        assert db.needs_rebuild is True
+    finally:
+        db.close()
+
+
+def test_huge_legacy_file_refuses_the_in_place_path(tmp_path, monkeypatch):
+    """Above the ceiling, connect() must refuse and name the offline tool —
+    it must never start copying gigabytes while the service waits."""
+    import app.db as dbmod
+
+    path = str(tmp_path / "huge.db")
+    _seed_legacy_db(path)
+    monkeypatch.setattr(dbmod, "INPLACE_MIGRATE_MAX_ROWS", 1)
+    db = Database(path)
+    try:
+        with pytest.raises(RuntimeError, match="migrate_db.py"):
+            db.connect()
+        # the legacy table is still intact — the refusal changed nothing
+        legacy = sqlite3.connect(path)
+        try:
+            cols = {r[1] for r in legacy.execute("PRAGMA table_info(events)")}
+            assert "created_at" in cols
+            assert legacy.execute("SELECT COUNT(*) FROM events").fetchone()[0] == 3
+        finally:
+            legacy.close()
+    finally:
+        db.close()
+
+
+def test_mmap_is_clamped_to_the_machine(tmp_path):
+    """A fixed 256 MB mmap thrashes on a 5 GB file; clamp to min(1 GiB, RAM/4)."""
+    import os as _os
+
+    ram = _os.sysconf("SC_PAGE_SIZE") * _os.sysconf("SC_PHYS_PAGES")
+    db = Database(str(tmp_path / "mmap.db"))
+    try:
+        mmap = db.connection.execute("PRAGMA mmap_size").fetchone()[0]
+        assert mmap == min(1 << 30, ram // 4), (mmap, min(1 << 30, ram // 4))
+    finally:
+        db.close()
 
 
 # --------------------------------------------------------- §3.4 world_stats

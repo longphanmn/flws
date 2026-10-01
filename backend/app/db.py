@@ -103,7 +103,7 @@ CHRONICLE_SAMPLE_EVERY = 10
 NOISE_PER_TICK_CAP = 3
 # RAM ring capacity for non-durable texture (~last few hundred ticks).
 NOISE_RING_MAX = 5000
-# Chronicle rows per multi-row INSERT (10 binds each, so 2000 stays far below
+# Chronicle rows per multi-row INSERT (9 binds each, so 2000 stays far below
 # SQLite's variable ceiling while keeping the flush to a handful of statements).
 EVENT_INSERT_CHUNK = 2000
 
@@ -115,7 +115,55 @@ def _by_world(events: Sequence[HistoryEvent]) -> dict[int, list[HistoryEvent]]:
         out.setdefault(wid, []).append(ev)
     return out
 
-_SCHEMA = """
+
+# The lean `events` DDL, kept apart from _SCHEMA because the in-place migration
+# (§3.5) rebuilds a legacy table with exactly this shape — one definition, no drift.
+_EVENTS_DDL = """
+CREATE TABLE IF NOT EXISTS {name} (
+    id INTEGER PRIMARY KEY,
+    world_id INTEGER NOT NULL,
+    tick INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    entity_id INTEGER,
+    caste TEXT,
+    cause TEXT,
+    x REAL,
+    y REAL,
+    payload TEXT
+);
+"""
+
+# Index DDL for `events`, kept apart so the migration rebuilds exactly the same
+# set the live schema has (SQLite keeps an index across a table rename, so the
+# rebuild has to recreate them).
+_EVENT_INDEXES = (
+    "CREATE INDEX IF NOT EXISTS idx_events_world ON events(world_id, id)",
+    "CREATE INDEX IF NOT EXISTS idx_events_world_entity ON events(world_id, entity_id, id DESC)",
+    "CREATE INDEX IF NOT EXISTS idx_events_world_type ON events(world_id, type)",
+)
+
+# 16 KB pages: -11% file size and a 110x faster WAL checkpoint (321 -> 2.9 ms).
+# Only takes effect while the file is still empty, which is why the pragma runs
+# before _SCHEMA and why a populated file needs scripts/migrate_db.py.
+PAGE_SIZE = 16384
+# In-place rebuild ceiling. Above this the connect() path refuses rather than
+# copying gigabytes while the service waits; the offline tool handles those.
+INPLACE_MIGRATE_MAX_ROWS = 500_000
+# mmap window: a fixed 256 MB thrashes on a multi-GB file, so clamp it.
+MMAP_MAX_BYTES = 1 << 30
+
+
+def _mmap_bytes() -> int:
+    try:
+        total = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+    except (ValueError, OSError, AttributeError):
+        total = MMAP_MAX_BYTES * 4
+    return max(0, min(MMAP_MAX_BYTES, total // 4))
+
+
+_SCHEMA = (
+    _EVENTS_DDL.format(name="events")
+    + """
 CREATE TABLE IF NOT EXISTS worlds (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     seed INTEGER NOT NULL,
@@ -126,7 +174,7 @@ CREATE TABLE IF NOT EXISTS worlds (
     ended_at TEXT
 );
 CREATE TABLE IF NOT EXISTS events (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     world_id INTEGER NOT NULL,
     tick INTEGER NOT NULL,
     type TEXT NOT NULL,
@@ -135,8 +183,7 @@ CREATE TABLE IF NOT EXISTS events (
     cause TEXT,
     x REAL,
     y REAL,
-    payload TEXT,
-    created_at TEXT NOT NULL
+    payload TEXT
 );
 CREATE TABLE IF NOT EXISTS law_changes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -211,10 +258,20 @@ CREATE TABLE IF NOT EXISTS world_stats (
     death_count INTEGER NOT NULL DEFAULT 0
 );
 """
+)
 
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def _loads(payload: str | None) -> dict[str, Any]:
+    """json.loads that never raises on a malformed legacy payload."""
+    try:
+        out = json.loads(payload or "{}")
+    except (TypeError, ValueError):
+        return {}
+    return out if isinstance(out, dict) else {}
 
 
 def _row_of(r: Any) -> dict[str, Any]:
@@ -302,6 +359,9 @@ class Database:
         self._burst_count: int = 0
         # how many SAMPLED events have been offered (1 in CHRONICLE_SAMPLE_EVERY)
         self._sample_seen: int = 0
+        # §3.5: True when the file is populated but still on the old page size,
+        # i.e. only scripts/migrate_db.py can shrink it. Reported by the census.
+        self.needs_rebuild: bool = False
 
     # ------------------------------------------------------------ lifecycle
     def connect(self) -> None:
@@ -317,6 +377,9 @@ class Database:
             self.path, check_same_thread=False, timeout=5.0, isolation_level=None
         )
         self._conn.row_factory = sqlite3.Row
+        # §3.5: must precede the first write (journal_mode=WAL rewrites the
+        # header), and only takes effect on a still-empty file.
+        self._conn.execute(f"PRAGMA page_size={PAGE_SIZE}")
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.execute("PRAGMA busy_timeout=5000")
         # §AD: NORMAL + WAL — consistent fsync only at checkpoints; the RAM
@@ -327,10 +390,11 @@ class Database:
             self._conn.execute("PRAGMA wal_autocheckpoint=10000")
             self._conn.execute("PRAGMA cache_size=-65536")
             self._conn.execute("PRAGMA temp_store=MEMORY")
-            self._conn.execute("PRAGMA mmap_size=268435456")
+            self._conn.execute(f"PRAGMA mmap_size={_mmap_bytes()}")
         except Exception:
             pass
         self._conn.executescript(_SCHEMA)
+        self._migrate_events_table()
         # AZ Phase 3 P0: missing indices — guarded migration (2.6M rows)
         try:
             self._conn.execute("CREATE INDEX IF NOT EXISTS idx_events_world_type ON events(world_id, type)")
@@ -362,6 +426,116 @@ class Database:
         self._stopping = False
         self._writer = threading.Thread(target=self._writer_loop, name="db-writer", daemon=True)
         self._writer.start()
+
+    # ------------------------------------------------------------- §3.5 migration
+    def _events_needs_rebuild(self) -> bool:
+        """True when `events` still has the pre-§3.5 shape (created_at/AUTOINCREMENT)."""
+        assert self._conn is not None
+        cols = {r["name"] for r in self._conn.execute("PRAGMA table_info(events)")}
+        if not cols:
+            return False
+        if "created_at" in cols:
+            return True
+        ddl = self._conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='events'"
+        ).fetchone()
+        return bool(ddl and ddl["sql"] and "AUTOINCREMENT" in ddl["sql"].upper())
+
+    def _migrate_events_table(self) -> None:
+        """Guarded in-place rebuild of a legacy `events` table (§3.5).
+
+        Handles the schema a pre-§3.5 file carries: `created_at` and AUTOINCREMENT
+        are dropped, `event_clans` is backfilled from the existing payloads and
+        `world_stats` is seeded — all in one transaction, so a failure leaves the
+        old table untouched.
+
+        The page size is deliberately NOT faked here: SQLite cannot change it on a
+        populated file, so a legacy file keeps 4 KB pages and reports
+        `needs_rebuild` for scripts/migrate_db.py to fix offline.
+        """
+        assert self._conn is not None
+        conn = self._conn
+        rows = int(conn.execute("SELECT COUNT(*) AS n FROM events").fetchone()["n"])
+        self.needs_rebuild = (
+            rows > 0 and int(conn.execute("PRAGMA page_size").fetchone()[0]) != PAGE_SIZE
+        )
+        if not self._events_needs_rebuild():
+            self._backfill_side_tables()
+            return
+        if rows > INPLACE_MIGRATE_MAX_ROWS:
+            raise RuntimeError(
+                f"{self.path}: {rows} legacy events exceed the in-place ceiling "
+                f"({INPLACE_MIGRATE_MAX_ROWS}). Stop the service and run "
+                f"backend/scripts/migrate_db.py {self.path} — the page size can only "
+                f"change during a full rebuild."
+            )
+        with self.batch():
+            conn.executescript(_EVENTS_DDL.format(name="events_lean"))
+            conn.execute(
+                "INSERT INTO events_lean(world_id,tick,type,entity_id,caste,cause,x,y,payload)"
+                " SELECT world_id,tick,type,entity_id,caste,cause,x,y,payload FROM events"
+            )
+            conn.execute("DROP TABLE events")
+            conn.execute("ALTER TABLE events_lean RENAME TO events")
+            for ddl in _EVENT_INDEXES:
+                conn.execute(ddl)
+        self._backfill_side_tables()
+
+    def _backfill_side_tables(self) -> None:
+        """Fill event_clans + world_stats for rows that predate them.
+
+        Idempotent and additive: only runs the INSERT ... WHERE NOT EXISTS for
+        worlds whose side table is still empty, so it costs one indexed probe per
+        world on a healthy file and nothing at all on a fresh one.
+        """
+        assert self._conn is not None
+        conn = self._conn
+        worlds = [
+            int(r["world_id"]) for r in conn.execute(
+                "SELECT DISTINCT world_id FROM events"
+                " WHERE world_id NOT IN (SELECT world_id FROM world_stats)"
+            ).fetchall()
+        ]
+        if not worlds:
+            return
+        for wid in worlds:
+            self._backfill_world(wid)
+
+    def _backfill_world(self, world_id: int) -> None:
+        """Stream one world's legacy rows through the side-table builders."""
+        assert self._conn is not None
+        conn = self._conn
+        last_id = 0
+        with self.batch():
+            while True:
+                rows = conn.execute(
+                    "SELECT id, tick, type, entity_id, caste, cause, x, y, payload"
+                    " FROM events WHERE world_id=? AND id>? ORDER BY id LIMIT ?",
+                    (world_id, last_id, EVENT_INSERT_CHUNK),
+                ).fetchall()
+                if not rows:
+                    break
+                last_id = int(rows[-1]["id"])
+                clan_rows: list[tuple[int, int, int]] = []
+                deaths = 0
+                for r in rows:
+                    payload = _loads(r["payload"])
+                    clan_rows.extend(
+                        (world_id, clan_id, int(r["id"])) for clan_id in _clan_ids_of(payload)
+                    )
+                    deaths += 1 if r["type"] == "death" else 0
+                if clan_rows:
+                    conn.executemany(
+                        "INSERT INTO event_clans(world_id, clan_id, event_id) VALUES (?,?,?)",
+                        clan_rows,
+                    )
+                if deaths:
+                    conn.execute(
+                        "INSERT INTO world_stats(world_id, death_count) VALUES (?, ?)"
+                        " ON CONFLICT(world_id) DO UPDATE SET"
+                        " death_count = death_count + excluded.death_count",
+                        (world_id, deaths),
+                    )
 
     def _writer_loop(self) -> None:
         """Drain the RAM buffer into SQLite: 5s heartbeat or 5000 ops."""
@@ -567,23 +741,10 @@ class Database:
             return 0
 
     def _write_event(self, world_id: int, e: HistoryEvent) -> None:
-        assert self._conn is not None
-        self._conn.execute(
-            "INSERT INTO events(world_id,tick,type,entity_id,caste,cause,x,y,payload,created_at)"
-            " VALUES (?,?,?,?,?,?,?,?,?,?)",
-            (
-                world_id,
-                e.tick,
-                e.type,
-                e.entity_id,
-                e.caste,
-                e.cause,
-                e.x,
-                e.y,
-                json.dumps(e.payload),
-                _now(),
-            ),
-        )
+        """Single-event durable write (tests/tools); the bulk path is
+        `_insert_events`, which also fills event_clans and world_stats."""
+        with self._lock:
+            self._insert_events(world_id, [e])
 
     @contextmanager
     def batch(self) -> Iterator[None]:
@@ -691,18 +852,17 @@ class Database:
         add_events(), which writes death rows with no genealogy op beside them.
         """
         conn = self._require()
-        now = _now()
         rows = [
             (world_id, e.tick, e.type, e.entity_id, e.caste, e.cause, e.x, e.y,
-             json.dumps(e.payload), now)
+             json.dumps(e.payload))
             for e in events
         ]
         ids: list[int] = []
         for start in range(0, len(rows), EVENT_INSERT_CHUNK):
             chunk = rows[start:start + EVENT_INSERT_CHUNK]
             sql = (
-                "INSERT INTO events(world_id,tick,type,entity_id,caste,cause,x,y,payload,created_at)"
-                " VALUES " + ",".join(["(?,?,?,?,?,?,?,?,?,?)"] * len(chunk))
+                "INSERT INTO events(world_id,tick,type,entity_id,caste,cause,x,y,payload)"
+                " VALUES " + ",".join(["(?,?,?,?,?,?,?,?,?)"] * len(chunk))
                 + " RETURNING id"
             )
             ids.extend(int(r[0]) for r in conn.execute(sql, [v for row in chunk for v in row]))
