@@ -258,13 +258,14 @@ def start_world() -> None:
 def _on_event(e) -> None:
     """Durable sinks for chronicle events: events feed the genealogy table.
 
-    AA: blooms stay in the in-memory chronicle only — high-frequency,
-    low-value, so they never cost a DB write. §AE withers and ambient pings
-    are filtered out so history contains real historical milestones.
+    §3.2: TIERING LIVES IN THE DATABASE (`DB.classify`) — this sink has no type
+    filter of its own, so the milestone/sampled/noise map is one editable
+    constant. Non-durable types land in the Database RAM ring, which
+    `pending_events()` folds into the /api/history overlay.
     AD: writes append to the Database RAM buffer (OS-log); the writer daemon
     drains it every 5s — the sim thread never blocks on SQLite.
     """
-    if RT.world_id is None or e.type in ("bloom", "wither", "peace_envoy", "culture", "rivalry"):
+    if RT.world_id is None:
         return
     wid = RT.world_id
     DB.log_event(wid, e)
@@ -3449,7 +3450,8 @@ async def get_history(
         q=q,
     ) if RT.world_id else []
     # AZ Phase 1 P1: merge pending RAM events without flushing
-    if RT.world_id and DB.pending:
+    # (§3.2 the RAM side is the durable tail PLUS the non-durable noise ring)
+    if RT.world_id and DB.ram_events:
         try:
             pend = DB.pending_events(RT.world_id, limit=limit)
             # apply same filters to pending
@@ -4436,7 +4438,7 @@ def _enrich_dossier_from_db(creature_id: int, mem: dict) -> dict:
             pass
 
     events = DB.history(RT.world_id, since_id=0, limit=500, entity_id=creature_id) if RT.world_id else []
-    if RT.world_id and DB.pending:
+    if RT.world_id and DB.ram_events:  # §3.2: + the noise ring
         try:
             pend = DB.pending_events(RT.world_id, limit=500)
             for ev in pend:

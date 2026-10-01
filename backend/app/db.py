@@ -37,6 +37,73 @@ FLUSH_MAX_OPS = 5000
 # §AD: writer heartbeat — durability window for a hard crash.
 FLUSH_INTERVAL = 5.0
 
+# ---------------------------------------------------------------------------
+# §3.2 Lever 1 — tiered chronicle: bound the events table's GROWTH RATE.
+#
+# `config.history_max` caps the in-memory chronicle at 200 events, so SQLite is
+# the only durable record and nothing may be deleted. The lever is therefore
+# *what gets written*, not *how much is kept*: high-frequency texture is kept
+# in a RAM ring (still readable through the pending_events() overlay) and only
+# sampled types land in the table.
+#
+# The map is a DENYLIST on purpose: NOISE and SAMPLED are explicit opt-outs and
+# every other type HistoryEvent can emit defaults to MILESTONE. A new event type
+# therefore stays durable until someone deliberately reclassifies it — the safe
+# direction to fail in.
+MILESTONE = "MILESTONE"
+SAMPLED = "SAMPLED"
+NOISE = "NOISE"
+
+# Mirrors main.MAJOR_EVENT_TYPES (the `major=true` view) plus the lifecycle
+# events the genealogy/annals paths depend on. death/birth MUST stay here: the
+# world_stats counter (§3.4) is fed from durable death rows.
+MILESTONE_EVENT_TYPES = frozenset({
+    "death", "birth", "promotion",
+    "war", "conquest", "takeover", "schism", "betrayal", "alliance",
+    "coalition_formed", "peace", "regicide", "succession", "outbreak",
+    "disaster", "miracle", "synod", "temple", "epiphany",
+    "extinction", "clan_extinction",
+    "ruin", "exile", "settlement", "banquet",
+})
+# Real but high-frequency: kept at 1 in CHRONICLE_SAMPLE_EVERY, never dropped.
+SAMPLED_EVENT_TYPES = frozenset({
+    "fire", "predation", "cannibalism", "raid", "market", "caravan",
+    "demotion", "recovery",
+})
+# Ambient texture that never reaches SQLite (bloom/wither/culture/rivalry/
+# peace_envoy were already dropped by the app-layer sink; kept here so the rule
+# lives in one place).
+NOISE_EVENT_TYPES = frozenset({
+    "bloom", "wither", "culture", "rivalry", "peace_envoy",
+})
+# Every type HistoryEvent can emit, so the map is total and drift is caught by
+# test_db_tiers.test_every_emittable_type_is_classified_into_exactly_one_tier.
+EMITTABLE_EVENT_TYPES = frozenset({
+    "death", "birth", "promotion", "demotion", "outbreak", "recovery",
+    "bloom", "alliance", "rivalry", "predation", "war", "ruin", "settlement",
+    "succession", "schism", "fire", "disaster", "conquest", "culture",
+    "coalition_formed", "coalition_joined", "coalition_dissolved",
+    "peace", "tribute", "betrayal", "defection", "cannibalism", "exile",
+    "wither", "takeover", "miracle", "sermon", "synod", "temple", "epiphany",
+    "resonance", "compost", "banquet", "raid", "hospitality",
+    "peace_envoy", "market", "caravan", "omen", "regicide", "herald",
+    "anomaly", "clan_extinction", "extinction",
+})
+EVENT_TIERS: dict[str, str] = {
+    **{t: MILESTONE for t in EMITTABLE_EVENT_TYPES},
+    **{t: SAMPLED for t in SAMPLED_EVENT_TYPES},
+    **{t: NOISE for t in NOISE_EVENT_TYPES},
+}
+
+# 1 in N sampled events is durable.
+CHRONICLE_SAMPLE_EVERY = 10
+# A fire/disaster storm inside ONE tick must not flood the table: the first N
+# sampled-type events of a tick keep their SAMPLED tier, the rest degrade to
+# NOISE (ring only). Per-tick, so a slow steady rate is unaffected.
+NOISE_PER_TICK_CAP = 3
+# RAM ring capacity for non-durable texture (~last few hundred ticks).
+NOISE_RING_MAX = 5000
+
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS worlds (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -121,6 +188,25 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def _overlay_row(ev: Any) -> dict[str, Any]:
+    """Shape a HistoryEvent like a durable row for the RAM overlay."""
+    try:
+        payload = ev.payload if hasattr(ev, "payload") else {}
+    except Exception:
+        payload = {}
+    return {
+        "id": 0,  # pending has no row id yet; sort after DB rows
+        "tick": getattr(ev, "tick", 0),
+        "type": getattr(ev, "type", ""),
+        "entity_id": getattr(ev, "entity_id", None),
+        "caste": getattr(ev, "caste", None),
+        "cause": getattr(ev, "cause", None),
+        "x": getattr(ev, "x", None),
+        "y": getattr(ev, "y", None),
+        "payload": dict(payload) if isinstance(payload, dict) else {},
+    }
+
+
 class Database:
     def __init__(self, path: str):
         self.path = path
@@ -140,6 +226,14 @@ class Database:
         self._writer: threading.Thread | None = None
         self._wake = threading.Event()
         self._stopping = False
+        # §3.2: RAM ring for non-durable texture — never reaches SQLite, but the
+        # pending_events() overlay still serves it so the web/TUI keeps texture.
+        self._noise: deque[tuple[int, HistoryEvent]] = deque(maxlen=NOISE_RING_MAX)
+        # per-tick burst counter for SAMPLED types (reset when the tick moves on)
+        self._burst_tick: int = -1
+        self._burst_count: int = 0
+        # how many SAMPLED events have been offered (1 in CHRONICLE_SAMPLE_EVERY)
+        self._sample_seen: int = 0
 
     # ------------------------------------------------------------ lifecycle
     def connect(self) -> None:
@@ -229,36 +323,63 @@ class Database:
     def high_water_mark(self) -> int:
         return self._pending_high_water
 
+    @property
+    def noise_pending(self) -> int:
+        """Non-durable events held in the RAM ring (overlay visibility only)."""
+        return len(self._noise)
+
+    @property
+    def ram_events(self) -> int:
+        """Un-flushed chronicle events an overlay can serve: durable tail + ring."""
+        return len(self._pending) + len(self._noise)
+
+    def classify(self, e: HistoryEvent) -> str:
+        """§3.2: which tier this event belongs to — MILESTONE | SAMPLED | NOISE.
+
+        Pure decision plus RAM-only counters (no I/O, safe on the sim thread).
+        SAMPLED events beyond NOISE_PER_TICK_CAP in the same tick degrade to
+        NOISE so a single-tick fire/disaster storm cannot flood the table.
+        """
+        tier = EVENT_TIERS.get(e.type, MILESTONE)
+        if tier != SAMPLED:
+            return tier
+        if e.tick != self._burst_tick:
+            self._burst_tick = e.tick
+            self._burst_count = 0
+        self._burst_count += 1
+        return SAMPLED if self._burst_count <= NOISE_PER_TICK_CAP else NOISE
+
+    def _ring(self, world_id: int, e: HistoryEvent) -> None:
+        self._noise.append((world_id, e))
+
     def pending_events(self, world_id: int, limit: int = 500) -> list[dict[str, Any]]:
-        """AZ Phase 1 P1: read-your-writes from RAM without forcing a flush."""
-        out: list[dict[str, Any]] = []
+        """Read-your-writes from RAM without forcing a flush.
+
+        AZ Phase 1 P1: the durable OS-log tail. §3.2: also serves the NOISE
+        ring, so non-durable texture (fire storms, blooms) is still visible to
+        /api/history and the TUI. Merged newest-first by tick.
+        """
         with self._lock:
             pending_copy = list(self._pending)
+            noise_copy = list(self._noise)
+        out: list[dict[str, Any]] = []
         for kind, args in reversed(pending_copy):
             if kind != "event":
                 continue
             wid, ev = args  # type: ignore
             if wid != world_id:
                 continue
-            # need payload dict; HistoryEvent has payload attribute
-            try:
-                payload = ev.payload if hasattr(ev, "payload") else {}
-            except Exception:
-                payload = {}
-            out.append({
-                "id": 0,  # pending has no row id yet; sort after DB rows
-                "tick": getattr(ev, "tick", 0),
-                "type": getattr(ev, "type", ""),
-                "entity_id": getattr(ev, "entity_id", None),
-                "caste": getattr(ev, "caste", None),
-                "cause": getattr(ev, "cause", None),
-                "x": getattr(ev, "x", None),
-                "y": getattr(ev, "y", None),
-                "payload": dict(payload) if isinstance(payload, dict) else {},
-            })
+            out.append(_overlay_row(ev))
             if len(out) >= limit:
                 break
-        return out
+        for wid, ev in reversed(noise_copy):
+            if wid != world_id:
+                continue
+            out.append(_overlay_row(ev))
+            if len(out) >= limit:
+                break
+        out.sort(key=lambda r: r["tick"], reverse=True)
+        return out[:limit]
 
     def _bump_high_water(self) -> None:
         n = len(self._pending)
@@ -268,7 +389,22 @@ class Database:
 
     # ------------------------------------------------------------- §AD queue
     def log_event(self, world_id: int, event: HistoryEvent) -> None:
-        """Buffer one chronicle event (sim thread never touches SQLite)."""
+        """Buffer one chronicle event (sim thread never touches SQLite).
+
+        §3.2 tiering: NOISE goes to the RAM ring only; SAMPLED is mirrored into
+        the ring and made durable 1 in CHRONICLE_SAMPLE_EVERY; MILESTONE is
+        always durable. Classification lives here — the single choke point every
+        chronicle write passes through — so the app-layer sink needs no filter.
+        """
+        tier = self.classify(event)
+        if tier == NOISE:
+            self._ring(world_id, event)
+            return
+        if tier == SAMPLED:
+            self._ring(world_id, event)
+            self._sample_seen += 1
+            if self._sample_seen % CHRONICLE_SAMPLE_EVERY:
+                return
         self._pending.append(("event", (world_id, event)))
         self._bump_high_water()
         if len(self._pending) >= FLUSH_MAX_OPS:
