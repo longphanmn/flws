@@ -6,7 +6,43 @@ The Sphere model: The Sphere (God) sets **laws** from Spaceland, never touches i
 Repository: [https://github.com/longphanmn/flws](https://github.com/longphanmn/flws)  
 Legend: [P0] foundational · [P1] core Flatland identity · [P2] flavor/observability · `- [ ]` open · `- [x]` done · *parked* = decided, not pending
 
-> **Active backlog only.** Completed roadmaps §F–§BP (772 items) → [`docs/roadmap-archive.md`](docs/roadmap-archive.md). This file tracks §BQ (10/10 completed) + 10 parked.
+> **Active backlog only.** Completed roadmaps §F–§BP (772 items) → [`docs/roadmap-archive.md`](docs/roadmap-archive.md). This file tracks §BR (chronicle DB) + §BQ (10/10 completed) + 10 parked.
+
+---
+
+## §BR Chronicle DB — reclaim size, restore read/write performance — 2026-10-01
+
+> **Context**: `flatworld.db` reached **5 GB after ~2000 sim-days**; `/api/history` latency and tick rate degraded with it. `config.history_max = 200`, so the in-memory chronicle holds only 200 events — **SQLite is the only chronicle** and nothing could simply be thrown away. Decisions taken: filter noise rather than prune (milestones stay forever), offline rebuild authorised, all three symptoms (API latency, tick-rate decay, disk pressure) in scope.
+> **Measured on** a purpose-built 2.7M-row / 542 MB replica with the pre-§3.5 schema (4 KB pages, `created_at`, `AUTOINCREMENT`, the old 2-column indexes), before and after on the same data.
+
+- [x] **[P0] BR-1 Tiered chronicle, not retention** (`db.py` `EVENT_TIERS` / `classify()` / `NOISE` ring)
+  `MILESTONE` always durable · `SAMPLED` 1 in `CHRONICLE_SAMPLE_EVERY=10` with `NOISE_PER_TICK_CAP=3` per tick · `NOISE` (bloom, wither, culture, rivalry, peace_envoy) never touches SQLite and lives in a 5000-entry RAM ring that `pending_events()` still serves to `/api/history`. The map is a **denylist** over the 49 types `HistoryEvent` can emit, so a new type stays durable until deliberately reclassified. This bounds the *growth rate*; nothing is deleted.
+- [x] **[P0] BR-2 `event_clans` side table** — clan ids extracted once in Python where the payload is already a dict. `WITHOUT ROWID` with primary key `(world_id, clan_id, event_id)`: one b-tree instead of a rowid table plus a duplicate covering index (**measured 21.9 MB → 6.3 MB on 500k side rows**, same read plan, ~12% slower writes). `history(clan_id=N)`: **13.24–20.75 ms → 1.07–1.18 ms (≈17x)**, plan `SEARCH ec USING PRIMARY KEY`.
+- [x] **[P0] BR-3 `world_stats` death counter** — bumped inside the transaction that writes the death rows, so it can never disagree with them and rolls back with them. `death_count()`: **9.9–14.9 ms → 0.01 ms**. A SQL trigger was measured at ~10x the write cost and rejected.
+- [x] **[P0] BR-4 Lean schema + pragmas** — `events.created_at` dropped (12.6% of bytes; only the wiki mentioned it), `AUTOINCREMENT` dropped, `PRAGMA page_size=16384` before the first write, `mmap_size` clamped to `min(1 GiB, RAM/4)`, `analysis_limit` + `ANALYZE`. A legacy file is rebuilt in place on `connect()` (backfilling `event_clans` and `world_stats`); above 500k rows `connect()` refuses and names the offline tool instead of copying gigabytes at startup.
+- [x] **[P0] BR-5 Windowed `q=`** — the candidate set is an id range off `MAX(id)` (`id > MAX(id) - Q_SEARCH_WINDOW`, 50 000) and the pattern is escaped, so `%` and `_` are text. On 500k rows: selective hit **193 ms → 12.2 ms**, no hit 179 ms → 10.8 ms, broad match unchanged at 0.6 ms.
+- [x] **[P1] BR-6 `GET /api/diagnostics/db-census`** — rows, B/row, bytes per type and per index (`dbstat`), per-world rows/deaths, `page_size`, `needs_rebuild`, planner stats, WAL size, plus `tiers[].types` (the configured membership) and `byte_sinks` (durable types ranked by byte cost). This is the instrument for re-cutting the tier map from production data instead of the headless inference it was drafted from.
+- [x] **[P0] BR-7 `scripts/migrate_db.py`** — offline rebuild: `VACUUM INTO` backup → fresh 16 KB file built from the live `_SCHEMA` → stream every table (columns matched by name) → `event_clans` + `world_stats` in the same pass → deferred index creation → `ANALYZE` → `VACUUM` → verify per-world counts, an events checksum, side-table orphans and a 200-row `json_extract` cross-check → atomic rename. The original is never modified; `--dry-run`, `--replace`, `--bench`.
+
+### Measured outcome (2.7M rows, 542.5 MB → 485.2 MB, **-10.6%**, 179.7 B/row, zero free pages, verified)
+
+| Path | Before | After |
+| --- | --- | --- |
+| `history(clan_id=N, 200)` | 13.2–20.8 ms | **1.07–1.18 ms** |
+| `death_count()` | 9.9–14.9 ms | **0.01 ms** |
+| `history(major, 2000)` | 11.5–19.0 ms | 16.4–18.4 ms (≈2–4 ms SQL + ~11 ms building 2 000 dicts) |
+| `history(plain, 500)` / `(entity_id, 500)` / `q=` | — | unchanged (same-SQL control: 10.6 vs 11.3 ms) |
+| `wal_checkpoint(TRUNCATE)` | 2.6 ms | 1.4 ms steady (**one-time ~200 ms first checkpoint**: WAL init) |
+| `/api/history` p95 (300k rows) | — | **2.4 ms** (clan-filtered 1.8 ms) |
+| writer drain, 50k durable events | 237 ms | **412 ms** (+3.5 µs/event: the side table + counter) |
+
+- [x] **[P0] BR-8 Three bugs the replica measurement exposed** (each with a failing test first)
+  1. `connect()` dropped and recreated all three `events` indexes **on every open** — SQLite stores index DDL without the `IF NOT EXISTS` clause, so the shape comparison never matched. Dropping an index deletes its `sqlite_stat1` rows, so the planner lost its statistics: the clan filter went 0.3 ms → 468 ms after one reconnect, and a 5 GB file would have paid an index rebuild per start. Fixed by comparing the part of the DDL after `ON`.
+  2. The rebuild inserted rows with the indexes already in place, leaving **92.7 MB of freelist pages** (16% of the file). Deferred index creation + a final `VACUUM` → zero free pages, −96 MB.
+  3. `connect()` raised `sqlite3.OperationalError` when another connection held the write lock. The guarded index/`ANALYZE` steps are optimisations of an already-usable schema, so they now record into `schema_warnings` (reported by the census); the schema rebuild path still raises.
+- [ ] **[P1] BR-9 Run the census on the real 5 GB file, then re-cut the tier map** — §BR's `SAMPLED`/`NOISE` membership is an *inference* from a headless 8000-tick run (≈180 MB extrapolated, ~28x short of the reported 5 GB), so the production event mix is still unknown. `GET /api/diagnostics/db-census?deep=true` → `byte_sinks` names the durable types worth re-classifying. Until then, treat `CHRONICLE_SAMPLE_EVERY` / `NOISE_PER_TICK_CAP` as unverified defaults.
+- [ ] **[P1] BR-10 `connect()` above the ceiling is a startup wall** — a >500k-row legacy file refuses in place and needs the offline tool. Decide whether that ceiling should auto-run the rebuild instead of refusing.
+- [ ] **[P2] BR-11 `/api/clans/{id}/history` still paginates the 200-event deque**, not the durable chronicle. Latent limitation, unchanged by §BR and still worth fixing now that the clan filter is a 1 ms covering-index lookup.
 
 ---
 
