@@ -3505,6 +3505,21 @@ async def get_history(
     }
 
 
+@app.get("/api/diagnostics/db-census")
+async def get_db_census(deep: bool = False) -> dict:
+    """§7 — measure the chronicle instead of guessing its shape.
+
+    Rows, bytes/row, bytes per type, bytes per index, per-world counts, and the
+    durable types ranked by byte cost. This is how the SAMPLED/NOISE tier map
+    gets re-cut from production evidence (the shipped map came from a headless
+    run that produced 180 MB where production has 5 GB).
+
+    `deep=true` adds LENGTH(payload) sums — a full scan of the chronicle, so it
+    is opt-in. Read-only, like the other /api/metrics endpoints.
+    """
+    return DB.db_census(deep=deep)
+
+
 @app.get("/api/history/summary")
 async def get_history_summary(granularity: str = "day") -> dict:
     """BM-22: Server-side day-aggregated chronicle summary.

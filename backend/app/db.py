@@ -159,6 +159,19 @@ MMAP_MAX_BYTES = 1 << 30
 # `MATCH 'clan'`), so the scan is bounded to the newest Q_SEARCH_WINDOW events
 # instead. The pattern is escaped, so a user's `%` is text, not a wildcard.
 Q_SEARCH_WINDOW = 50_000
+# How many byte sinks the census names — enough to re-cut the tier map, small
+# enough to stay readable in a terminal.
+CENSUS_SINK_LIMIT = 15
+_EVENT_INDEX_NAMES = frozenset(
+    ddl.split(" ON ")[0].rsplit(" ", 1)[-1] for ddl in _EVENT_INDEXES
+)
+
+
+def _file_size(path: str) -> int:
+    try:
+        return os.path.getsize(path)
+    except OSError:
+        return 0
 
 
 def _mmap_bytes() -> int:
@@ -1079,6 +1092,131 @@ class Database:
                 (world_id, count),
             )
             return count
+
+    # ------------------------------------------------------------- §7 census
+    def db_census(self, deep: bool = False) -> dict[str, Any]:
+        """Measure the chronicle instead of guessing its shape.
+
+        The tier map in §3.2 was inferred from a headless run that produced ~180 MB
+        where production has 5 GB, so the real event mix was unknown. This is the
+        instrument that settles it: bytes per row, bytes per type, bytes per index,
+        and the durable types ranked by byte cost (`byte_sinks`) — i.e. exactly what
+        to re-cut the SAMPLED/NOISE map from.
+
+        `deep=True` adds LENGTH(payload) sums, which read every payload and so cost
+        a full scan of the chronicle; the default stays on counts + dbstat pages.
+        """
+        with self._lock:
+            conn = self._require()
+            events_rows = int(conn.execute("SELECT COUNT(*) AS n FROM events").fetchone()["n"])
+
+            tables: dict[str, int] = {}
+            indexes: dict[str, int] = {}
+            try:
+                for r in conn.execute(
+                    "SELECT name, SUM(pgsize) AS bytes FROM dbstat GROUP BY name"
+                ).fetchall():
+                    name, size = r["name"], int(r["bytes"] or 0)
+                    if r["name"].startswith("idx_") or r["name"].startswith("sqlite_autoindex"):
+                        indexes[name] = size
+                    else:
+                        tables[name] = size
+            except sqlite3.Error:
+                pass  # dbstat is a compile-time option; sizes degrade to file totals
+
+            select = "type, COUNT(*) AS n, SUM(LENGTH(COALESCE(payload, ''))) AS pb" if deep \
+                else "type, COUNT(*) AS n, 0 AS pb"
+            types = conn.execute(
+                f"SELECT {select} FROM events GROUP BY type ORDER BY n DESC"
+            ).fetchall()
+            per_type = [
+                {
+                    "type": r["type"],
+                    "tier": EVENT_TIERS.get(r["type"], MILESTONE),
+                    "rows": int(r["n"]),
+                    "payload_bytes": int(r["pb"] or 0),
+                }
+                for r in types
+            ]
+
+            worlds = [
+                {
+                    "world_id": int(r["world_id"]),
+                    "rows": int(r["n"]),
+                    "deaths": int(r["deaths"] or 0),
+                    "last_tick": int(r["last_tick"] or 0),
+                }
+                for r in conn.execute(
+                    "SELECT e.world_id AS world_id, COUNT(*) AS n, MAX(e.tick) AS last_tick,"
+                    " (SELECT death_count FROM world_stats s WHERE s.world_id = e.world_id) AS deaths"
+                    " FROM events e GROUP BY e.world_id ORDER BY e.world_id"
+                ).fetchall()
+            ]
+
+            event_bytes = tables.get("events", 0)
+            total_events_bytes = event_bytes + sum(
+                size for name, size in indexes.items()
+                if name in _EVENT_INDEX_NAMES
+            )
+            side_rows = 0
+            try:
+                side_rows = int(conn.execute(
+                    "SELECT COUNT(*) AS n FROM event_clans"
+                ).fetchone()["n"])
+            except sqlite3.Error:
+                pass
+            page_size = int(conn.execute("PRAGMA page_size").fetchone()[0])
+            has_stats = False
+            try:
+                has_stats = bool(conn.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='sqlite_stat1'"
+                ).fetchone())
+            except sqlite3.Error:
+                pass
+
+        ranked = sorted(per_type, key=lambda t: (-t["payload_bytes"], -t["rows"]))
+        tiers: dict[str, dict[str, Any]] = {}
+        for tier in (MILESTONE, SAMPLED, NOISE):
+            members = [t for t in per_type if t["tier"] == tier]
+            tiers[tier] = {
+                # configured membership (EVENT_TIERS) — the surface you retune,
+                # including types that currently have zero rows because the tier
+                # keeps them out of the table entirely.
+                "types": sorted(t for t, v in EVENT_TIERS.items() if v == tier),
+                "observed_types": sorted(t["type"] for t in members),
+                "rows": sum(t["rows"] for t in members),
+                "payload_bytes": sum(t["payload_bytes"] for t in members),
+            }
+        return {
+            "path": self.path,
+            "file_bytes": _file_size(self.path),
+            "wal_bytes": _file_size(self.path + "-wal"),
+            "page_size": page_size,
+            "needs_rebuild": self.needs_rebuild,
+            "planner_stats": has_stats,
+            "events": {
+                "rows": events_rows,
+                "bytes": total_events_bytes,
+                "bytes_per_row": round(total_events_bytes / events_rows, 1) if events_rows else 0.0,
+            },
+            "tables": tables,
+            "indexes": indexes,
+            "types": per_type,
+            "tiers": tiers,
+            "byte_sinks": [
+                {"type": t["type"], "tier": t["tier"], "rows": t["rows"],
+                 "payload_bytes": t["payload_bytes"]}
+                for t in ranked[:CENSUS_SINK_LIMIT]
+            ],
+            "worlds": worlds,
+            "side_tables": {"event_clans_rows": side_rows},
+            "tuning": {
+                "sample_every": CHRONICLE_SAMPLE_EVERY,
+                "noise_per_tick_cap": NOISE_PER_TICK_CAP,
+                "noise_ring_max": NOISE_RING_MAX,
+                "q_search_window": Q_SEARCH_WINDOW,
+            },
+        }
 
     # ----------------------------------------------------------------- laws
     def add_law_change(
