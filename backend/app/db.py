@@ -103,6 +103,17 @@ CHRONICLE_SAMPLE_EVERY = 10
 NOISE_PER_TICK_CAP = 3
 # RAM ring capacity for non-durable texture (~last few hundred ticks).
 NOISE_RING_MAX = 5000
+# Chronicle rows per multi-row INSERT (10 binds each, so 2000 stays far below
+# SQLite's variable ceiling while keeping the flush to a handful of statements).
+EVENT_INSERT_CHUNK = 2000
+
+
+def _by_world(events: Sequence[HistoryEvent]) -> dict[int, list[HistoryEvent]]:
+    """Group chronicle events by world, preserving arrival order within a world."""
+    out: dict[int, list[HistoryEvent]] = {}
+    for wid, ev in events:
+        out.setdefault(wid, []).append(ev)
+    return out
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS worlds (
@@ -181,11 +192,59 @@ CREATE INDEX IF NOT EXISTS idx_events_world ON events(world_id, id);
 CREATE INDEX IF NOT EXISTS idx_events_world_entity ON events(world_id, entity_id, id DESC);
 CREATE INDEX IF NOT EXISTS idx_creatures_world ON creatures(world_id, entity_id);
 CREATE INDEX IF NOT EXISTS idx_clan_epitaphs_world ON clan_epitaphs(world_id, clan_id);
+-- §3.3: clan -> event lookup. The payload is parsed ONCE in Python (it is
+-- already a dict there), so the clan filter is a covering-index search instead
+-- of 13 json_extract calls that each re-parse the whole payload TEXT.
+CREATE TABLE IF NOT EXISTS event_clans (
+    world_id INTEGER NOT NULL,
+    clan_id  INTEGER NOT NULL,
+    event_id INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_event_clans ON event_clans(world_id, clan_id, event_id DESC);
 """
 
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def _row_of(r: Any) -> dict[str, Any]:
+    """Project a durable events row into the API's event shape.
+
+    Explicit columns, never SELECT * consumers: `created_at` is dropped in §3.5
+    and any new column must not leak into the response.
+    """
+    return {
+        "id": r["id"],
+        "tick": r["tick"],
+        "type": r["type"],
+        "entity_id": r["entity_id"],
+        "caste": r["caste"],
+        "cause": r["cause"],
+        "x": r["x"],
+        "y": r["y"],
+        "payload": json.loads(r["payload"] or "{}"),
+    }
+
+
+def _clan_ids_of(payload: dict[str, Any] | None) -> list[int]:
+    """§3.3: the clan ids an event names, deduped — the side-table row source.
+
+    CLAN_PAYLOAD_KEYS stays the single source of truth for which payload keys
+    count. Only ints count (a JSON string "3" never matched the old SQL
+    comparison either, and booleans are not clan ids).
+    """
+    if not payload:
+        return []
+    out: list[int] = []
+    seen: set[int] = set()
+    for key in CLAN_PAYLOAD_KEYS:
+        value = payload.get(key)
+        if isinstance(value, bool) or not isinstance(value, int) or value in seen:
+            continue
+        seen.add(value)
+        out.append(value)
+    return out
 
 
 def _overlay_row(ev: Any) -> dict[str, Any]:
@@ -463,16 +522,8 @@ class Database:
                 events = [a for k, a in ops if k == "event"]
                 births = [a for k, a in ops if k == "birth"]
                 deaths = [a for k, a in ops if k == "death"]
-                if events:
-                    now = _now()
-                    rows = [
-                        (wid, ev.tick, ev.type, ev.entity_id, ev.caste, ev.cause, ev.x, ev.y, json.dumps(ev.payload), now)
-                        for wid, ev in events
-                    ]
-                    conn.executemany(
-                        "INSERT INTO events(world_id,tick,type,entity_id,caste,cause,x,y,payload,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
-                        rows,
-                    )
+                for wid, evs in _by_world(events).items():
+                    self._insert_events(wid, evs)
                 if births:
                     conn.executemany(
                         "INSERT INTO creatures(world_id,entity_id,caste,clan_id,generation,mother_id,father_id,born_tick,died_tick) VALUES (?,?,?,?,?,?,?,?,NULL)",
@@ -579,6 +630,14 @@ class Database:
     def connected(self) -> bool:
         return self._conn is not None
 
+    @property
+    def connection(self) -> sqlite3.Connection:
+        """The live connection (diagnostics: pragmas, EXPLAIN QUERY PLAN, census).
+
+        Not a write path — callers must not mutate schema through it.
+        """
+        return self._require()
+
     def _require(self) -> sqlite3.Connection:
         self.connect()
         assert self._conn is not None
@@ -610,29 +669,45 @@ class Database:
         return [dict(r) for r in rows]
 
     # --------------------------------------------------------------- events
+    def _insert_events(self, world_id: int, events: Sequence[HistoryEvent]) -> list[int]:
+        """Write chronicle rows and return their ids, filling event_clans.
+
+        One multi-row statement per chunk with RETURNING: the ids come back with
+        the insert, so event_clans is filled in the same transaction without a
+        second query and without assuming contiguous ids on a shared connection.
+        """
+        conn = self._require()
+        now = _now()
+        rows = [
+            (world_id, e.tick, e.type, e.entity_id, e.caste, e.cause, e.x, e.y,
+             json.dumps(e.payload), now)
+            for e in events
+        ]
+        ids: list[int] = []
+        for start in range(0, len(rows), EVENT_INSERT_CHUNK):
+            chunk = rows[start:start + EVENT_INSERT_CHUNK]
+            sql = (
+                "INSERT INTO events(world_id,tick,type,entity_id,caste,cause,x,y,payload,created_at)"
+                " VALUES " + ",".join(["(?,?,?,?,?,?,?,?,?,?)"] * len(chunk))
+                + " RETURNING id"
+            )
+            ids.extend(int(r[0]) for r in conn.execute(sql, [v for row in chunk for v in row]))
+        clan_rows = [
+            (world_id, clan_id, event_id)
+            for event_id, e in zip(ids, events)
+            for clan_id in _clan_ids_of(e.payload)
+        ]
+        if clan_rows:
+            conn.executemany(
+                "INSERT INTO event_clans(world_id, clan_id, event_id) VALUES (?,?,?)", clan_rows
+            )
+        return ids
+
     def add_events(self, world_id: int, events: list[HistoryEvent]) -> None:
         if not events:
             return
         with self._lock:
-            self._require().executemany(
-                "INSERT INTO events(world_id,tick,type,entity_id,caste,cause,x,y,payload,created_at)"
-                " VALUES (?,?,?,?,?,?,?,?,?,?)",
-                [
-                    (
-                        world_id,
-                        e.tick,
-                        e.type,
-                        e.entity_id,
-                        e.caste,
-                        e.cause,
-                        e.x,
-                        e.y,
-                        json.dumps(e.payload),
-                        _now(),
-                    )
-                    for e in events
-                ],
-            )
+            self._insert_events(world_id, events)
 
     def history(
         self,
@@ -661,12 +736,12 @@ class Database:
             conditions.append("entity_id=?")
             params.append(entity_id)
         if clan_id is not None:
-            # §AT-1: SQL-level clan filter — any payload key that names a clan.
-            ors = " OR ".join(
-                f"json_extract(payload,'$.{k}')=?" for k in CLAN_PAYLOAD_KEYS
+            # §3.3: the clan filter is answered by the side table, never by
+            # parsing JSON in SQL. event_clans' (world_id, clan_id, event_id
+            # DESC) index serves both the lookup and the newest-first order.
+            return self._clan_history(
+                world_id, since_id, limit, type_filter, types_filter, entity_id, clan_id, q
             )
-            conditions.append(f"({ors})")
-            params.extend([clan_id] * len(CLAN_PAYLOAD_KEYS))
         if q:
             # BM-25: Search query across type, caste, cause, and payload
             conditions.append("(type LIKE ? OR caste LIKE ? OR cause LIKE ? OR payload LIKE ?)")
@@ -677,20 +752,47 @@ class Database:
         query = f"SELECT * FROM events WHERE {' AND '.join(conditions)} ORDER BY id DESC LIMIT ?"
         with self._lock:
             rows = self._require().execute(query, tuple(params)).fetchall()
-        return [
-            {
-                "id": r["id"],
-                "tick": r["tick"],
-                "type": r["type"],
-                "entity_id": r["entity_id"],
-                "caste": r["caste"],
-                "cause": r["cause"],
-                "x": r["x"],
-                "y": r["y"],
-                "payload": json.loads(r["payload"] or "{}"),
-            }
-            for r in rows
-        ]
+        return [_row_of(r) for r in rows]
+
+    def _clan_history(
+        self,
+        world_id: int,
+        since_id: int,
+        limit: int,
+        type_filter: str | None,
+        types_filter: Sequence[str] | None,
+        entity_id: int | None,
+        clan_id: int,
+        q: str | None,
+    ) -> list[dict[str, Any]]:
+        conditions = ["ec.world_id=?", "ec.clan_id=?", "e.world_id=?"]
+        params: list[Any] = [world_id, clan_id, world_id]
+        if since_id:
+            conditions.append("e.id<?")
+            params.append(since_id)
+        if type_filter:
+            conditions.append("e.type=?")
+            params.append(type_filter)
+        elif types_filter:
+            placeholders = ",".join("?" * len(types_filter))
+            conditions.append(f"e.type IN ({placeholders})")
+            params.extend(types_filter)
+        if entity_id is not None:
+            conditions.append("e.entity_id=?")
+            params.append(entity_id)
+        if q:
+            conditions.append("(e.type LIKE ? OR e.caste LIKE ? OR e.cause LIKE ? OR e.payload LIKE ?)")
+            pattern = f"%{q}%"
+            params.extend([pattern, pattern, pattern, pattern])
+        params.append(limit)
+        query = (
+            "SELECT e.id, e.tick, e.type, e.entity_id, e.caste, e.cause, e.x, e.y, e.payload"
+            f" FROM event_clans ec JOIN events e ON e.id = ec.event_id"
+            f" WHERE {' AND '.join(conditions)} ORDER BY ec.event_id DESC LIMIT ?"
+        )
+        with self._lock:
+            rows = self._require().execute(query, tuple(params)).fetchall()
+        return [_row_of(r) for r in rows]
 
     def death_count(self, world_id: int) -> int:
         with self._lock:
