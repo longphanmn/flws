@@ -107,7 +107,13 @@ def _measure(path: str, conn: sqlite3.Connection) -> dict[str, Any]:
 
 
 def _create_target(target: str) -> sqlite3.Connection:
-    """Fresh file at 16 KB pages carrying exactly the live schema."""
+    """Fresh file at 16 KB pages carrying exactly the live schema.
+
+    The `events` indexes are deliberately NOT created here: they are built after
+    the bulk load (see `migrate`), because inserting rows into an already-indexed
+    table fragments the index b-trees — measured at 92.7 MB of freelist pages
+    (16% of the file) on the 2.7M-row replica.
+    """
     if os.path.exists(target):
         os.remove(target)
     conn = sqlite3.connect(target, isolation_level=None)
@@ -124,8 +130,6 @@ def _create_target(target: str) -> sqlite3.Connection:
         if head.startswith("CREATE TABLE IF NOT EXISTS EVENTS") or head.startswith("CREATE INDEX"):
             continue
         conn.execute(statement)
-    for ddl in _EVENT_INDEXES:
-        conn.execute(ddl)
     return conn
 
 
@@ -312,11 +316,14 @@ def _median_ms(call, runs: int = 5) -> float:
     return round(samples[len(samples) // 2], 3)
 
 
-def _wal_checkpoint_ms(path: str) -> float:
-    """Checkpoint cost after a realistic writer batch, on a throwaway copy.
+def _wal_checkpoint_ms(path: str) -> dict[str, Any]:
+    """Checkpoint cost on a throwaway copy, first and steady-state.
 
-    An empty WAL truncates instantly, so the batch has to exist; and the copy
-    keeps the measurement from writing to the file being measured.
+    An empty WAL truncates instantly, so a writer batch has to exist first; the
+    copy keeps the measurement from writing to the file being measured. The FIRST
+    checkpoint is reported separately because it is a one-time WAL-initialisation
+    cost on a 16 KB-page file (measured ~200 ms on a 485 MB file) and the steady
+    state is what a running service sees (1.4-3.6 ms).
     """
     import shutil
     import tempfile
@@ -327,19 +334,39 @@ def _wal_checkpoint_ms(path: str) -> float:
         conn = sqlite3.connect(scratch, isolation_level=None)
         try:
             conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute("BEGIN")
-            for i in range(2000):
-                conn.execute(
-                    "INSERT INTO settings(key,value,created_at) VALUES (?,?,?)"
-                    " ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-                    (f"bench{i}", str(i), "t0"),
-                )
-            conn.execute("COMMIT")
-            t0 = time.perf_counter()
-            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchall()
-            return round((time.perf_counter() - t0) * 1000, 3)
+            samples = []
+            for batch in range(3):
+                conn.execute("BEGIN")
+                for i in range(2000):
+                    conn.execute(
+                        "INSERT INTO settings(key,value,created_at) VALUES (?,?,?)"
+                        " ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                        (f"bench{batch}_{i}", str(i), "t0"),
+                    )
+                conn.execute("COMMIT")
+                t0 = time.perf_counter()
+                conn.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchall()
+                samples.append(round((time.perf_counter() - t0) * 1000, 3))
+            return {"first": samples[0], "steady": round(sorted(samples[1:])[0], 3)}
         finally:
             conn.close()
+
+
+def _legacy_rows(rows: list[sqlite3.Row]) -> list[dict[str, Any]]:
+    """The pre-§3.5 projection from db.py, verbatim.
+
+    Both sides of the comparison must pay the same Python cost, or the
+    measurement compares raw SQL against the full API and invents regressions
+    (it did: 1.10 -> 2.81 ms on a query that is 0.94 ms of SQL either way).
+    """
+    return [
+        {
+            "id": r["id"], "tick": r["tick"], "type": r["type"],
+            "entity_id": r["entity_id"], "caste": r["caste"], "cause": r["cause"],
+            "x": r["x"], "y": r["y"], "payload": json.loads(r["payload"] or "{}"),
+        }
+        for r in rows
+    ]
 
 
 def _bench_legacy(path: str) -> dict[str, Any]:
@@ -358,31 +385,31 @@ def _bench_legacy(path: str) -> dict[str, Any]:
         pattern = "%creature%"
 
         def clan_query() -> list:
-            return conn.execute(
+            return _legacy_rows(conn.execute(
                 f"SELECT * FROM events WHERE world_id=? AND ({ors})"
                 f" ORDER BY id DESC LIMIT 200",
                 (wid,) + (clan,) * len(CLAN_PAYLOAD_KEYS),
-            ).fetchall()
+            ).fetchall())
 
         out = {
             "label": "before (pre-3.5 SQL, same file)",
             "history_clan_200": _median_ms(clan_query),
-            "history_major_2000": _median_ms(lambda: conn.execute(
+            "history_major_2000": _median_ms(lambda: _legacy_rows(conn.execute(
                 f"SELECT * FROM events WHERE world_id=? AND type IN ({placeholders})"
-                f" ORDER BY id DESC LIMIT 2000", (wid, *majors)).fetchall()),
-            "history_plain_500": _median_ms(lambda: conn.execute(
+                f" ORDER BY id DESC LIMIT 2000", (wid, *majors)).fetchall())),
+            "history_plain_500": _median_ms(lambda: _legacy_rows(conn.execute(
                 "SELECT * FROM events WHERE world_id=? ORDER BY id DESC LIMIT 500", (wid,)
-            ).fetchall()),
-            "history_entity_500": _median_ms(lambda: conn.execute(
+            ).fetchall())),
+            "history_entity_500": _median_ms(lambda: _legacy_rows(conn.execute(
                 "SELECT * FROM events WHERE world_id=? AND entity_id=? ORDER BY id DESC LIMIT 500",
-                (wid, 42)).fetchall()),
-            "death_count": _median_ms(lambda: conn.execute(
+                (wid, 42)).fetchall())),
+            "death_count": _median_ms(lambda: int(conn.execute(
                 "SELECT COUNT(*) AS n FROM events WHERE world_id=? AND type='death'", (wid,)
-            ).fetchall()),
-            "history_q_like": _median_ms(lambda: conn.execute(
+            ).fetchone()["n"])),
+            "history_q_like": _median_ms(lambda: _legacy_rows(conn.execute(
                 "SELECT * FROM events WHERE world_id=? AND (type LIKE ? OR caste LIKE ?"
                 " OR cause LIKE ? OR payload LIKE ?) ORDER BY id DESC LIMIT 500",
-                (wid, pattern, pattern, pattern, pattern)).fetchall()),
+                (wid, pattern, pattern, pattern, pattern)).fetchall())),
         }
         out["wal_checkpoint_truncate"] = _wal_checkpoint_ms(path)
         return out
@@ -469,10 +496,16 @@ def migrate(
             }
             dst.execute("COMMIT")
             report["events"] = _copy_events(src, dst)
+            # Bulk-load order: data first, indexes second, then pack the pages.
+            # The events indexes are built here rather than in _create_target so
+            # SQLite fills their leaves sequentially instead of splitting them.
+            for ddl in _EVENT_INDEXES:
+                dst.execute(ddl)
             dst.execute("PRAGMA analysis_limit=100")
             dst.execute("ANALYZE")
+            dst.execute(f"PRAGMA page_size={PAGE_SIZE}")  # VACUUM must not reset it
+            dst.execute("VACUUM")
             report["verify"] = _verify(src, dst)
-            dst.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         finally:
             dst.close()
         report["rows"] = report["events"]["rows"]

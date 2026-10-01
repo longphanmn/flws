@@ -164,6 +164,9 @@ PAGE_SIZE = 16384
 INPLACE_MIGRATE_MAX_ROWS = 500_000
 # mmap window: a fixed 256 MB thrashes on a multi-GB file, so clamp it.
 MMAP_MAX_BYTES = 1 << 30
+# Wait this long on lock contention instead of failing instantly: a concurrent
+# reader/writer must never crash the tick loop. Module-level so tests can shorten it.
+BUSY_TIMEOUT_MS = 5000
 # §3.5: `q=` is a LIKE scan; FTS5 measured worse (+53% size, 3881 ms for
 # `MATCH 'clan'`), so the scan is bounded to the newest Q_SEARCH_WINDOW events
 # instead. The pattern is escaped, so a user's `%` is text, not a wildcard.
@@ -309,8 +312,18 @@ def _like_pattern(q: str) -> str:
 
 
 def _norm_ddl(ddl: str) -> str:
-    """Index DDL with cosmetic whitespace removed, for shape comparison."""
-    return " ".join(ddl.replace("(", " ( ").replace(")", " ) ").replace(",", " , ").split()).lower()
+    """Normalize an index definition for shape comparison.
+
+    Two things matter here. SQLite stores an index's DDL WITHOUT the
+    `IF NOT EXISTS` clause it was created with, so that clause is dropped before
+    comparing. And the `CREATE INDEX <name> ON <table>` prefix is dropped too:
+    the column list after `ON` is the part that decides whether the index serves
+    the query, and comparing the whole statement is how a healthy file ends up
+    rebuilding its indexes on every open.
+    """
+    body = ddl.upper().split(" ON ", 1)[-1]
+    body = body.replace("IF NOT EXISTS", " ")
+    return " ".join(body.replace("(", " ( ").replace(")", " ) ").replace(",", " , ").split()).lower()
 
 
 def _loads(payload: str | None) -> dict[str, Any]:
@@ -411,6 +424,9 @@ class Database:
         # §3.5: True when the file is populated but still on the old page size,
         # i.e. only scripts/migrate_db.py can shrink it. Reported by the census.
         self.needs_rebuild: bool = False
+        # non-fatal problems hit while bringing the schema up to date (e.g. the
+        # file was locked); surfaced by the census rather than raised.
+        self.schema_warnings: list[str] = []
 
     # ------------------------------------------------------------ lifecycle
     def connect(self) -> None:
@@ -430,7 +446,7 @@ class Database:
         # header), and only takes effect on a still-empty file.
         self._conn.execute(f"PRAGMA page_size={PAGE_SIZE}")
         self._conn.execute("PRAGMA journal_mode=WAL")
-        self._conn.execute("PRAGMA busy_timeout=5000")
+        self._conn.execute(f"PRAGMA busy_timeout={BUSY_TIMEOUT_MS}")
         # §AD: NORMAL + WAL — consistent fsync only at checkpoints; the RAM
         # buffer already bounds crash loss to the un-flushed tail.
         self._conn.execute("PRAGMA synchronous=NORMAL")
@@ -509,10 +525,7 @@ class Database:
             rows > 0 and int(conn.execute("PRAGMA page_size").fetchone()[0]) != PAGE_SIZE
         )
         if not self._events_needs_rebuild():
-            self._ensure_event_clans_table()
-            self._ensure_event_indexes()
-            self._backfill_side_tables()
-            self._analyze(rows)
+            self._optimise_schema()
             return
         if rows > INPLACE_MIGRATE_MAX_ROWS:
             raise RuntimeError(
@@ -530,9 +543,26 @@ class Database:
             conn.execute("DROP TABLE events")
             conn.execute("ALTER TABLE events_lean RENAME TO events")
         self._ensure_event_indexes()
-        self._ensure_event_clans_table()
-        self._backfill_side_tables()
-        self._analyze(rows)
+        self._optimise_schema()
+
+    def _optimise_schema(self) -> None:
+        """Bring a correct-schema file up to date: side table, indexes, stats.
+
+        Every step here is an OPTIMISATION of a schema that is already usable, so
+        a busy database must not stop the service from opening — the pre-3.5
+        connect() swallowed exactly these errors. Anything that is not a lock
+        error still propagates, and the rebuild path (which changes the schema)
+        keeps raising.
+        """
+        try:
+            self._ensure_event_clans_table()
+            self._ensure_event_indexes()
+            self._backfill_side_tables()
+            rows = int(self._require().execute(
+                "SELECT COUNT(*) AS n FROM events").fetchone()["n"])
+            self._analyze(rows)
+        except sqlite3.OperationalError as exc:
+            self.schema_warnings.append(str(exc))
 
     def _ensure_event_clans_table(self) -> None:
         """Rebuild a rowid-shaped event_clans into the WITHOUT ROWID b-tree.
@@ -1227,6 +1257,7 @@ class Database:
             "wal_bytes": _file_size(self.path + "-wal"),
             "page_size": page_size,
             "needs_rebuild": self.needs_rebuild,
+            "schema_warnings": list(self.schema_warnings),
             "planner_stats": has_stats,
             "events": {
                 "rows": events_rows,

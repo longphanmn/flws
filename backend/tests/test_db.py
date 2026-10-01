@@ -369,6 +369,98 @@ def test_events_carry_exactly_three_indexes_in_newest_first_order(indexed_db):
         assert "id DESC" in r["sql"], r["sql"]
 
 
+def test_reopening_a_healthy_file_keeps_its_planner_statistics(tmp_path, monkeypatch):
+    """connect() must not touch a file that is already in the target shape.
+
+    Measured failure: SQLite stores an index's DDL WITHOUT the `IF NOT EXISTS`
+    clause it was created with, so a whole-statement comparison never matched and
+    every open DROPPED and rebuilt all three events indexes — which also deletes
+    their sqlite_stat1 rows. On the 2.7M-row replica the clan filter went from
+    0.3 ms to 468 ms after one reconnect, and on a 5 GB file the rebuild itself
+    would cost minutes of startup.
+
+    The ceiling is pinned to 0 so startup ANALYZE is skipped, which is the
+    production case: a migrated multi-GB file has its statistics from the offline
+    tool, and nothing on the open path may remove them.
+    """
+    import app.db as dbmod
+
+    path = str(tmp_path / "healthy.db")
+    db = Database(path)
+    try:
+        wid = db.new_world(RT.config)
+        db.add_events(wid, [
+            HistoryEvent(type="war", tick=i, entity_id=i, payload={"a": i % 5 + 1})
+            for i in range(500)
+        ])
+    finally:
+        db.close()
+    # a migrated file arrives with statistics already in place
+    seeded = sqlite3.connect(path)
+    try:
+        seeded.execute("ANALYZE")
+        seeded.commit()
+        assert seeded.execute("SELECT COUNT(*) FROM sqlite_stat1").fetchone()[0] > 0
+    finally:
+        seeded.close()
+
+    def snapshot() -> tuple:
+        conn = sqlite3.connect(path)
+        conn.row_factory = sqlite3.Row
+        try:
+            return (
+                sorted((r["name"], r["sql"]) for r in conn.execute(
+                    "SELECT name, sql FROM sqlite_master WHERE type='index' AND tbl_name='events'")),
+                sorted((r["tbl"], r["idx"], r["stat"]) for r in conn.execute(
+                    "SELECT tbl, idx, stat FROM sqlite_stat1")),
+            )
+        finally:
+            conn.close()
+
+    monkeypatch.setattr(dbmod, "INPLACE_MIGRATE_MAX_ROWS", 0)
+    before = snapshot()
+    reopened = Database(path)
+    try:
+        reopened.connect()  # this is the open path that must not touch the file
+    finally:
+        reopened.close()
+    assert snapshot() == before
+
+
+def test_connect_survives_a_locked_file(tmp_path, monkeypatch):
+    """A second connection holding the write lock must not break connect().
+
+    The guarded index/ANALYZE steps are OPTIMISATIONS on an already-correct
+    schema, so a busy database must not stop the service from opening — the
+    pre-3.5 connect() swallowed exactly these errors. Observed once in the full
+    suite as an intermittent sqlite3.OperationalError out of connect().
+    """
+    import app.db as dbmod
+
+    monkeypatch.setattr(dbmod, "BUSY_TIMEOUT_MS", 50)
+    path = str(tmp_path / "locked.db")
+    db = Database(path)
+    try:
+        wid = db.new_world(RT.config)
+        db.add_events(wid, [HistoryEvent(type="war", tick=i, entity_id=i) for i in range(10)])
+    finally:
+        db.close()
+
+    blocker = sqlite3.connect(path, isolation_level=None)
+    try:
+        blocker.execute("BEGIN EXCLUSIVE")
+        blocker.execute("INSERT INTO settings(key,value,created_at) VALUES ('k','v','t0')")
+        fresh = Database(path)  # must not raise
+        try:
+            fresh.connect()
+            assert fresh.connected is True
+        finally:
+            fresh.close()
+    finally:
+        blocker.execute("ROLLBACK")
+        blocker.close()
+
+
 def test_legacy_indexes_are_replaced_on_connect(tmp_path):
     """A file carrying the old 2-column indexes must not keep them: the plan's
     10.8 -> 3.2 ms claim rests on the index actually in use."""
