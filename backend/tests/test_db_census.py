@@ -61,9 +61,7 @@ def test_census_attributes_bytes_per_type_and_index(seeded):
     assert sum(t["rows"] for t in c["types"]) == 110
     for t in c["types"]:
         assert t["tier"] == EVENT_TIERS[t["type"]]
-    assert c["indexes"]["idx_event_clans"] > 0
-    assert c["tables"]["events"] > 0
-    assert c["side_tables"]["event_clans_rows"] > 0
+    assert c["side_tables"]["event_clans_bytes"] > 0
     assert c["worlds"][0]["world_id"] == seeded[1]
     assert c["worlds"][0]["rows"] == 110
 

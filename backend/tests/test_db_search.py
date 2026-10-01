@@ -87,9 +87,11 @@ def test_search_does_not_let_a_wildcard_run_the_table(db, monkeypatch):
             "EXPLAIN QUERY PLAN " + seen[-1]
         ).fetchall()
     )
-    # the candidate set is an index-bounded co-routine, never a scan of the world
+    # the window is an id range off MAX(id), so the backwards scan still stops
+    # early on a broad match instead of materialising a candidate list
     assert "SCAN events" not in plan, plan
-    assert "CO-ROUTINE" in plan, plan
+    assert "TEMP B-TREE" not in plan, plan
+    assert "MAX(id)" in seen[-1], seen[-1]
     assert [e["tick"] for e in got] == list(range(500, 490, -1))  # 10 newest, not 500
 
 

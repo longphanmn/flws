@@ -133,6 +133,15 @@ CREATE TABLE IF NOT EXISTS {name} (
 );
 """
 
+_EVENT_CLANS_DDL = """
+CREATE TABLE IF NOT EXISTS event_clans (
+    world_id INTEGER NOT NULL,
+    clan_id  INTEGER NOT NULL,
+    event_id INTEGER NOT NULL,
+    PRIMARY KEY (world_id, clan_id, event_id)
+) WITHOUT ROWID
+"""
+
 # Index DDL for `events`, kept apart so the migration rebuilds exactly the same
 # set the live schema has (SQLite keeps an index across a table rename, so the
 # rebuild has to recreate them). The `id DESC` tail is what lets every chronicle
@@ -261,12 +270,15 @@ CREATE INDEX IF NOT EXISTS idx_clan_epitaphs_world ON clan_epitaphs(world_id, cl
 -- §3.3: clan -> event lookup. The payload is parsed ONCE in Python (it is
 -- already a dict there), so the clan filter is a covering-index search instead
 -- of 13 json_extract calls that each re-parse the whole payload TEXT.
+-- WITHOUT ROWID: that triple IS the whole table, so it is stored once instead of
+-- twice. Measured on 500k side rows, a rowid table plus a covering index cost
+-- 21.9 MB where this costs 6.3 MB — same read plan, ~12% slower writes.
 CREATE TABLE IF NOT EXISTS event_clans (
     world_id INTEGER NOT NULL,
     clan_id  INTEGER NOT NULL,
-    event_id INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_event_clans ON event_clans(world_id, clan_id, event_id DESC);
+    event_id INTEGER NOT NULL,
+    PRIMARY KEY (world_id, clan_id, event_id)
+) WITHOUT ROWID;
 -- §3.4: materialized death counter. death_count() is called on every
 -- /api/history, /healthz poll and snapshot restore; COUNT(*) over a 2.7M-row
 -- index cost 9 ms each time. Bumped inside the flush transaction that already
@@ -497,6 +509,7 @@ class Database:
             rows > 0 and int(conn.execute("PRAGMA page_size").fetchone()[0]) != PAGE_SIZE
         )
         if not self._events_needs_rebuild():
+            self._ensure_event_clans_table()
             self._ensure_event_indexes()
             self._backfill_side_tables()
             self._analyze(rows)
@@ -517,8 +530,29 @@ class Database:
             conn.execute("DROP TABLE events")
             conn.execute("ALTER TABLE events_lean RENAME TO events")
         self._ensure_event_indexes()
+        self._ensure_event_clans_table()
         self._backfill_side_tables()
         self._analyze(rows)
+
+    def _ensure_event_clans_table(self) -> None:
+        """Rebuild a rowid-shaped event_clans into the WITHOUT ROWID b-tree.
+
+        The old shape stored every row twice (table + covering index), which is
+        3.5x the bytes for an identical read plan. The rows are cheap to rebuild
+        because _backfill_side_tables() re-derives them from the payloads.
+        """
+        assert self._conn is not None
+        conn = self._conn
+        row = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='event_clans'"
+        ).fetchone()
+        if row is None or "WITHOUT ROWID" in (row["sql"] or "").upper():
+            return
+        with self.batch():
+            conn.execute("DROP TABLE IF EXISTS event_clans")
+            conn.execute("DROP INDEX IF EXISTS idx_event_clans")
+            conn.execute(_EVENT_CLANS_DDL)
+        self._backfill_side_tables()
 
     def _ensure_event_indexes(self) -> None:
         """Make `events` carry exactly _EVENT_INDEXES, replacing stale definitions.
@@ -596,8 +630,12 @@ class Database:
                     )
                     deaths += 1 if r["type"] == "death" else 0
                 if clan_rows:
+                    # OR IGNORE: this runs per world on every connect, so it must
+                    # be idempotent. A rowid table used to swallow the duplicates
+                    # (and grow on every restart); WITHOUT ROWID would raise.
                     conn.executemany(
-                        "INSERT INTO event_clans(world_id, clan_id, event_id) VALUES (?,?,?)",
+                        "INSERT OR IGNORE INTO event_clans(world_id, clan_id, event_id)"
+                        " VALUES (?,?,?)",
                         clan_rows,
                     )
                 if deaths:
@@ -943,6 +981,8 @@ class Database:
             for clan_id in _clan_ids_of(e.payload)
         ]
         if clan_rows:
+            # Plain INSERT: these event ids were just minted, so a conflict is
+            # impossible (the backfill path is the one that needs OR IGNORE).
             conn.executemany(
                 "INSERT INTO event_clans(world_id, clan_id, event_id) VALUES (?,?,?)", clan_rows
             )
@@ -995,26 +1035,20 @@ class Database:
                 world_id, since_id, limit, type_filter, types_filter, entity_id, clan_id, q
             )
         if q:
-            # §3.5: BM-25 keyword search, windowed. The candidate set is the
-            # newest Q_SEARCH_WINDOW events of the world (an index-bounded
-            # subquery), so the LIKE scan can no longer walk a 2.7M-row table.
+            # §3.5: BM-25 keyword search, windowed to the newest Q_SEARCH_WINDOW
+            # events. The bound is an id RANGE off MAX(id) rather than a candidate
+            # subquery, so the backwards index scan still stops at the first
+            # `limit` matches: measured on 500k rows, a materialised candidate
+            # list cost a flat ~20 ms while the id range costs 0.6 ms on a broad
+            # match and ~12 ms on a selective one (the unbounded scan: 180-190 ms).
             pattern = _like_pattern(q)
-            query = (
-                "SELECT e.id, e.tick, e.type, e.entity_id, e.caste, e.cause, e.x, e.y, e.payload"
-                " FROM (SELECT id FROM events WHERE world_id=? ORDER BY id DESC LIMIT ?) w"
-                " JOIN events e ON e.id = w.id"
-                " WHERE " + " AND ".join(conditions)
-                + " AND (e.type LIKE ? ESCAPE '\\' OR e.caste LIKE ? ESCAPE '\\'"
-                " OR e.cause LIKE ? ESCAPE '\\' OR e.payload LIKE ? ESCAPE '\\')"
-                " ORDER BY e.id DESC LIMIT ?"
+            conditions.append("id > (SELECT MAX(id) FROM events WHERE world_id=?) - ?")
+            params.extend([world_id, Q_SEARCH_WINDOW])
+            conditions.append(
+                "(type LIKE ? ESCAPE '\\' OR caste LIKE ? ESCAPE '\\'"
+                " OR cause LIKE ? ESCAPE '\\' OR payload LIKE ? ESCAPE '\\')"
             )
-            window = Q_SEARCH_WINDOW
-            with self._lock:
-                rows = self._require().execute(
-                    query,
-                    tuple([world_id, window] + params + [pattern] * 4 + [limit]),
-                ).fetchall()
-            return [_row_of(r) for r in rows]
+            params.extend([pattern] * 4)
         params.append(limit)
 
         query = f"SELECT * FROM events WHERE {' AND '.join(conditions)} ORDER BY id DESC LIMIT ?"
@@ -1209,7 +1243,12 @@ class Database:
                 for t in ranked[:CENSUS_SINK_LIMIT]
             ],
             "worlds": worlds,
-            "side_tables": {"event_clans_rows": side_rows},
+            "side_tables": {
+                "event_clans_rows": side_rows,
+                # WITHOUT ROWID: the side table's bytes live in `tables`, not in
+                # `indexes`, because its primary key IS the b-tree.
+                "event_clans_bytes": tables.get("event_clans", 0),
+            },
             "tuning": {
                 "sample_every": CHRONICLE_SAMPLE_EVERY,
                 "noise_per_tick_cap": NOISE_PER_TICK_CAP,
