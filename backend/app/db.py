@@ -201,6 +201,15 @@ CREATE TABLE IF NOT EXISTS event_clans (
     event_id INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_event_clans ON event_clans(world_id, clan_id, event_id DESC);
+-- §3.4: materialized death counter. death_count() is called on every
+-- /api/history, /healthz poll and snapshot restore; COUNT(*) over a 2.7M-row
+-- index cost 9 ms each time. Bumped inside the flush transaction that already
+-- writes the death rows, so it can never disagree with them and rolls back
+-- with them. (A SQL TRIGGER was measured at ~10x the write cost — rejected.)
+CREATE TABLE IF NOT EXISTS world_stats (
+    world_id    INTEGER PRIMARY KEY,
+    death_count INTEGER NOT NULL DEFAULT 0
+);
 """
 
 
@@ -675,6 +684,11 @@ class Database:
         One multi-row statement per chunk with RETURNING: the ids come back with
         the insert, so event_clans is filled in the same transaction without a
         second query and without assuming contiguous ids on a shared connection.
+
+        The §3.4 death counter is bumped here for the same reason: `death` is a
+        MILESTONE tier (so it is always durable) and this loop already sees every
+        row, which keeps the counter exact for BOTH entry points — including
+        add_events(), which writes death rows with no genealogy op beside them.
         """
         conn = self._require()
         now = _now()
@@ -700,6 +714,13 @@ class Database:
         if clan_rows:
             conn.executemany(
                 "INSERT INTO event_clans(world_id, clan_id, event_id) VALUES (?,?,?)", clan_rows
+            )
+        deaths = sum(1 for e in events if e.type == "death")
+        if deaths:
+            conn.execute(
+                "INSERT INTO world_stats(world_id, death_count) VALUES (?, ?)"
+                " ON CONFLICT(world_id) DO UPDATE SET death_count = death_count + excluded.death_count",
+                (world_id, deaths),
             )
         return ids
 
@@ -795,12 +816,29 @@ class Database:
         return [_row_of(r) for r in rows]
 
     def death_count(self, world_id: int) -> int:
+        """§3.4: the durable death total from world_stats — no table scan.
+
+        Falls back to COUNT(*) (and seeds the counter) for a world whose death
+        rows predate the counter, so a migrated file never under-reports.
+        """
         with self._lock:
-            row = self._require().execute(
+            conn = self._require()
+            row = conn.execute(
+                "SELECT death_count FROM world_stats WHERE world_id=?", (world_id,)
+            ).fetchone()
+            if row is not None:
+                return int(row["death_count"])
+            legacy = conn.execute(
                 "SELECT COUNT(*) AS n FROM events WHERE world_id=? AND type='death'",
                 (world_id,),
             ).fetchone()
-        return int(row["n"])
+            count = int(legacy["n"])
+            conn.execute(
+                "INSERT INTO world_stats(world_id, death_count) VALUES (?, ?)"
+                " ON CONFLICT(world_id) DO UPDATE SET death_count = excluded.death_count",
+                (world_id, count),
+            )
+            return count
 
     # ----------------------------------------------------------------- laws
     def add_law_change(

@@ -297,3 +297,95 @@ def test_writer_thread_drains_without_help(tmp_path):
     finally:
         db.close()
     assert not db.connected
+
+
+# --------------------------------------------------------- §3.4 world_stats
+def _true_death_count(db, wid: int) -> int:
+    row = db.connection.execute(
+        "SELECT COUNT(*) AS n FROM events WHERE world_id=? AND type='death'", (wid,)
+    ).fetchone()
+    return int(row["n"])
+
+
+def test_death_count_is_exact_across_mixed_flushes(tmp_path):
+    """The counter must agree with COUNT(*) after 10k events in many batches."""
+    db = Database(str(tmp_path / "stats.db"))
+    try:
+        wid = db.new_world(RT.config)
+        kinds = ["birth", "death", "war", "temple", "death", "outbreak"]
+        for batch in range(20):
+            for i in range(500):
+                db.log_event(wid, HistoryEvent(
+                    type=kinds[i % len(kinds)], tick=batch * 500 + i, entity_id=i,
+                    caste="Soldier", cause="combat", x=0.0, y=0.0,
+                    payload={"a": i % 5},
+                ))
+            db.flush()
+            assert db.death_count(wid) == _true_death_count(db, wid)
+        assert db.death_count(wid) == 20 * 167  # 2 death kinds of 6
+        # ...and it is a materialized counter, not a scan
+        counter = db.connection.execute(
+            "SELECT death_count FROM world_stats WHERE world_id=?", (wid,)
+        ).fetchone()
+        assert counter is not None and int(counter["death_count"]) == 20 * 167
+    finally:
+        db.close()
+
+
+def test_death_count_rolls_back_with_a_failed_flush(tmp_path):
+    """A flush that dies mid-transaction must not leave the counter ahead of
+    the rows — otherwise the next world starts from a phantom death count."""
+    db = Database(str(tmp_path / "rollback.db"))
+    try:
+        wid = db.new_world(RT.config)
+        real_insert = db._insert_events
+
+        def insert_then_fail(wid_, events):
+            real_insert(wid_, events)
+            raise sqlite3.OperationalError("simulated writer failure")
+
+        db._insert_events = insert_then_fail
+        db.log_event(wid, HistoryEvent(type="death", tick=1, entity_id=1, cause="combat"))
+        assert db.flush() == 0
+        assert _true_death_count(db, wid) == 0
+        assert db.death_count(wid) == 0
+        assert db.pending == 1  # re-queued for the next heartbeat
+
+        # the retry lands both the row and the count
+        db._insert_events = real_insert
+        assert db.flush() == 1
+        assert _true_death_count(db, wid) == 1
+        assert db.death_count(wid) == 1
+    finally:
+        db.close()
+
+
+def test_death_count_is_a_counter_read_not_a_count_star(tmp_path):
+    """§3.4: the hot path must not scan the events table (9 ms at 2.7M rows)."""
+    db = Database(str(tmp_path / "fast.db"))
+    try:
+        wid = db.new_world(RT.config)
+        db.add_events(wid, [HistoryEvent(type="death", tick=i, entity_id=i) for i in range(50)])
+        seen: list[str] = []
+        db.connection.set_trace_callback(seen.append)
+        assert db.death_count(wid) == 50
+        db.connection.set_trace_callback(None)
+        assert "world_stats" in seen[-1], seen[-1]
+        assert "events" not in seen[-1], seen[-1]  # the 2.7M-row table is not touched
+        assert "COUNT(*)" not in seen[-1].upper(), seen[-1]
+    finally:
+        db.close()
+
+
+def test_death_count_covers_the_add_events_seam(tmp_path):
+    """add_events() writes death rows without a genealogy op; the count must see them."""
+    db = Database(str(tmp_path / "seam.db"))
+    try:
+        wid = db.new_world(RT.config)
+        db.add_events(wid, [
+            HistoryEvent(type="death", tick=1, entity_id=1),
+            HistoryEvent(type="birth", tick=2, entity_id=2),
+        ])
+        assert db.death_count(wid) == 1
+    finally:
+        db.close()
