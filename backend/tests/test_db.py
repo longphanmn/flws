@@ -369,6 +369,267 @@ def test_events_carry_exactly_three_indexes_in_newest_first_order(indexed_db):
         assert "id DESC" in r["sql"], r["sql"]
 
 
+# ------------------------------------------- final review: safety regressions
+def _legacy_with_gap(path: str, ids=(1, 2, 5)) -> None:
+    """A legacy events table whose ids have a GAP (a rolled-back insert), which is
+    what breaks any rebuild that lets SQLite renumber the rows."""
+    conn = sqlite3.connect(path)
+    try:
+        conn.executescript("""
+        CREATE TABLE events (id INTEGER PRIMARY KEY AUTOINCREMENT, world_id INTEGER NOT NULL,
+            tick INTEGER NOT NULL, type TEXT NOT NULL, entity_id INTEGER, caste TEXT, cause TEXT,
+            x REAL, y REAL, payload TEXT, created_at TEXT NOT NULL);
+        """)
+        conn.executemany(
+            "INSERT INTO events(id,world_id,tick,type,entity_id,caste,cause,x,y,payload,created_at)"
+            " VALUES (?,1,?,'war',?,'S','',1.0,2.0,?,?)",
+            [(i, i, i, json.dumps({"a": 3, "b": 4}), "t") for i in ids],
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def test_in_place_rebuild_preserves_event_ids(tmp_path):
+    """`since_id` is the pagination cursor, so a rebuild must carry the ids over.
+
+    Not copying `id` renumbers the rows whenever the source had a gap (a
+    rolled-back insert), which silently breaks every stored cursor.
+    """
+    path = str(tmp_path / "gaps.db")
+    _legacy_with_gap(path)
+    db = Database(path)
+    try:
+        ids = [r["id"] for r in db.connection.execute(
+            "SELECT id FROM events ORDER BY id")]
+        assert ids == [1, 2, 5]
+        assert [e["id"] for e in db.history(1, limit=10)] == [5, 2, 1]
+    finally:
+        db.close()
+
+
+def test_in_place_rebuild_is_one_transaction(tmp_path, monkeypatch):
+    """A failure mid-rebuild must leave the legacy table intact.
+
+    `executescript()` COMMITs any open transaction, so wrapping the rebuild in
+    batch() was not enough: DROP TABLE events and the RENAME were separate
+    autocommits, and a crash between them came back as an EMPTY events table.
+    """
+    path = str(tmp_path / "atomic.db")
+    _legacy_with_gap(path)
+    real_connect = sqlite3.connect
+
+    class Crashing(sqlite3.Connection):
+        """Crashes immediately AFTER the table is dropped — the real failure point."""
+
+        def execute(self, sql, *a, **kw):
+            result = super().execute(sql, *a, **kw)
+            if sql.strip().upper().startswith("DROP TABLE EVENTS"):
+                raise sqlite3.OperationalError("simulated crash mid-rebuild")
+            return result
+
+    monkeypatch.setattr(
+        sqlite3, "connect",
+        lambda *a, **kw: real_connect(*a, factory=Crashing, **kw),
+    )
+    db = Database(path)
+    with pytest.raises(sqlite3.OperationalError):
+        db.connect()
+    # the legacy rows are still there, ids and all
+    raw = real_connect(path)
+    try:
+        rows = raw.execute("SELECT id, payload FROM events ORDER BY id").fetchall()
+        assert [r[0] for r in rows] == [1, 2, 5]
+        cols = {r[1] for r in raw.execute("PRAGMA table_info(events)")}
+        assert "created_at" in cols  # untouched: the migration did not half-apply
+    finally:
+        raw.close()
+
+
+def test_interrupted_rebuild_is_recovered_on_the_next_open(tmp_path):
+    """A file left with the copy table still present must be finished, not replaced
+    by a fresh empty `events`."""
+    path = str(tmp_path / "half.db")
+    conn = sqlite3.connect(path)
+    try:
+        conn.executescript("""
+        CREATE TABLE events (id INTEGER PRIMARY KEY, world_id INTEGER NOT NULL, tick INTEGER NOT NULL,
+            type TEXT NOT NULL, entity_id INTEGER, caste TEXT, cause TEXT, x REAL, y REAL, payload TEXT);
+        CREATE TABLE events_lean (id INTEGER PRIMARY KEY, world_id INTEGER NOT NULL, tick INTEGER NOT NULL,
+            type TEXT NOT NULL, entity_id INTEGER, caste TEXT, cause TEXT, x REAL, y REAL, payload TEXT);
+        """)
+        conn.executemany(
+            "INSERT INTO events_lean(id,world_id,tick,type,entity_id,caste,cause,x,y,payload)"
+            " VALUES (?,1,?,'war',?,'S','',1.0,2.0,?)",
+            [(1, 1, 1, json.dumps({"a": 3})), (2, 2, 2, json.dumps({"a": 4}))],
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    db = Database(path)
+    try:
+        assert [r["id"] for r in db.connection.execute("SELECT id FROM events ORDER BY id")] == [1, 2]
+        assert db.connection.execute(
+            "SELECT COUNT(*) FROM sqlite_master WHERE name='events_lean'"
+        ).fetchone()[0] == 0
+    finally:
+        db.close()
+
+
+def test_side_table_backfill_is_not_blocked_by_a_seeded_counter(tmp_path):
+    """A backfill skipped once (busy file) must be retried forever after.
+
+    It used to be gated on `world_id NOT IN world_stats`, and `death_count()`
+    seeds that row from COUNT(*) on the snapshot path — so one contended startup
+    left event_clans permanently empty and every `?clan_id=` query answered [].
+    """
+    path = str(tmp_path / "retry.db")
+    _legacy_with_gap(path)
+    first = Database(path)
+    try:
+        first._backfill_side_tables = lambda: None  # as if the file had been locked
+        first.connect()
+        assert first.connection.execute(
+            "SELECT COUNT(*) FROM event_clans").fetchone()[0] == 0
+        first.death_count(1)  # the lifespan path seeds world_stats
+    finally:
+        first.close()
+    second = Database(path)
+    try:
+        assert second.connection.execute(
+            "SELECT COUNT(*) FROM event_clans").fetchone()[0] == 6
+        assert len(second.history(1, clan_id=3)) == 3
+    finally:
+        second.close()
+
+
+def test_death_count_does_not_join_an_open_flush_transaction(tmp_path):
+    """The COUNT(*) fallback must not INSERT while a flush transaction is open.
+
+    batch() drops the process lock for its whole body, so death_count() on the
+    shared connection joined the writer's transaction: it seeded the row from the
+    rows the flush had just written but not yet counted, and the flush's own bump
+    then added the same deaths again. The total stuck at double.
+    """
+    db = Database(str(tmp_path / "race.db"))
+    try:
+        wid = db.new_world(RT.config)
+        with db.batch():
+            # the state a flush is in between writing the rows and bumping
+            db.connection.execute(
+                "INSERT INTO events(world_id,tick,type,entity_id,caste,cause,x,y,payload)"
+                " VALUES (?,1,'death',1,'S','combat',1.0,2.0,'{}')", (wid,)
+            )
+            assert db.death_count(wid) == 1  # the fallback still answers
+            assert db.connection.execute(
+                "SELECT COUNT(*) FROM world_stats").fetchone()[0] == 0, \
+                "the fallback wrote into someone else's transaction"
+            db._insert_events(wid, [
+                HistoryEvent(type="death", tick=2, entity_id=2, cause="combat")
+            ])
+        # The counter counts what the WRITER wrote: the manual INSERT above never
+        # bumped it, so the total is the flush's own +1. Before the fix the
+        # fallback had seeded 1 and the bump made it 2 — the doubled total.
+        assert db.death_count(wid) == 1, "the deaths were counted twice"
+        true_rows = db.connection.execute(
+            "SELECT COUNT(*) AS n FROM events WHERE world_id=? AND type='death'", (wid,)
+        ).fetchone()["n"]
+        assert true_rows == 2  # the rows are all there; only the counter is the writer's
+    finally:
+        db.close()
+
+
+def test_overlay_keeps_ring_events_when_the_durable_tail_is_full(tmp_path):
+    """pending_events() must not spend the whole limit on one source.
+
+    Each side used to stop at `limit` on its own, so with a full unflushed tail
+    the noise ring contributed a single row — which is exactly the steady state
+    the overlay exists for (5000 buffered ops, /api/history limit 500).
+    """
+    db = Database(str(tmp_path / "overlay.db"))
+    try:
+        wid = db.new_world(RT.config)
+        for i in range(600):
+            db.log_event(wid, HistoryEvent(type="war", tick=i, entity_id=i))
+        for i in range(600, 610):
+            db.log_event(wid, HistoryEvent(type="bloom", tick=i, entity_id=i))
+        got = db.pending_events(wid, limit=500)
+        assert len(got) == 500
+        assert sum(1 for e in got if e["type"] == "bloom") == 10
+        assert [e["tick"] for e in got] == sorted((e["tick"] for e in got), reverse=True)
+    finally:
+        db.close()
+
+
+def test_log_event_waits_for_the_flush_lock(tmp_path):
+    """log_event must synchronise with the writer's swap, or an append that lands
+    between flush()'s list() and clear() is silently dropped."""
+    import threading
+
+    db = Database(str(tmp_path / "swap.db"))
+    try:
+        wid = db.new_world(RT.config)
+        seen: list[int] = []
+
+        def append_while_locked() -> None:
+            db.log_event(wid, HistoryEvent(type="war", tick=1, entity_id=1))
+            seen.append(db.pending)
+
+        with db._lock:  # the writer is mid-swap
+            worker = threading.Thread(target=append_while_locked)
+            worker.start()
+            worker.join(timeout=0.5)
+            assert worker.is_alive(), "log_event bypassed the flush lock"
+            assert seen == []
+        worker.join(timeout=2.0)
+        assert db.pending == 1
+    finally:
+        db.close()
+
+
+def test_census_does_not_hold_the_process_lock(tmp_path, monkeypatch):
+    """db_census() scans the whole chronicle; holding the process-wide lock makes
+    every history() read and every flush() wait for it."""
+    import threading
+
+    import app.db as dbmod
+
+    db = Database(str(tmp_path / "census.db"))
+    try:
+        wid = db.new_world(RT.config)
+        db.add_events(wid, [HistoryEvent(type="war", tick=i, entity_id=i) for i in range(200)])
+
+        seen: list[bool] = []
+
+        def can_another_thread_take_the_lock() -> bool:
+            got: list[bool] = []
+
+            def try_it() -> None:
+                got.append(db._lock.acquire(timeout=0.05))
+                if got[-1]:
+                    db._lock.release()
+
+            worker = threading.Thread(target=try_it)
+            worker.start()
+            worker.join(timeout=2.0)
+            return bool(got and got[0])
+
+        class Probing(frozenset):
+            """Fires while the census is inside its scan; a reentrant lock cannot be
+            probed from the owning thread, so this asks another thread."""
+
+            def __contains__(self, item):
+                seen.append(can_another_thread_take_the_lock())
+                return frozenset.__contains__(self, item)
+
+        monkeypatch.setattr(dbmod, "_EVENT_INDEX_NAMES", Probing(dbmod._EVENT_INDEX_NAMES))
+        db.db_census(deep=True)
+        assert seen, "the probe never fired, so the lock was never exercised"
+        assert all(seen), "db_census() held the process lock while scanning"
+    finally:
+        db.close()
+
+
 def test_reopening_a_healthy_file_keeps_its_planner_statistics(tmp_path, monkeypatch):
     """connect() must not touch a file that is already in the target shape.
 

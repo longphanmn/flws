@@ -177,8 +177,8 @@ def _copy_events(src: sqlite3.Connection, dst: sqlite3.Connection) -> dict[str, 
     src_cols = _columns(src, "events")
     select = f"SELECT {','.join(EVENT_COLUMNS)} FROM events ORDER BY id"
     insert = (
-        "INSERT INTO events(world_id,tick,type,entity_id,caste,cause,x,y,payload)"
-        " VALUES (?,?,?,?,?,?,?,?,?)"
+        "INSERT INTO events(id,world_id,tick,type,entity_id,caste,cause,x,y,payload)"
+        " VALUES (?,?,?,?,?,?,?,?,?,?)"
     )
     clans_insert = "INSERT INTO event_clans(world_id, clan_id, event_id) VALUES (?,?,?)"
     dst.execute("BEGIN")
@@ -193,7 +193,7 @@ def _copy_events(src: sqlite3.Connection, dst: sqlite3.Connection) -> dict[str, 
         if not batch:
             break
         dst.executemany(insert, [
-            (r["world_id"], r["tick"], r["type"], r["entity_id"], r["caste"],
+            (r["id"], r["world_id"], r["tick"], r["type"], r["entity_id"], r["caste"],
              r["cause"], r["x"], r["y"], r["payload"])
             for r in batch
         ])
@@ -282,6 +282,11 @@ def _verify(src: sqlite3.Connection, dst: sqlite3.Connection) -> dict[str, Any]:
         values = dst.execute(
             f"SELECT {key_list} FROM events WHERE id=?", (event_id,)
         ).fetchone()
+        if values is None:
+            problems.append(
+                f"event_clans points at event {event_id}, which the rebuild does not have"
+            )
+            break
         named = {v for v in values if isinstance(v, int) and not isinstance(v, bool)}
         if int(clan_id) not in named:
             problems.append(
@@ -480,22 +485,27 @@ def migrate(
                 report["bench_before"] = _bench_legacy(src_path)
             return report
 
-        # 1. backup: VACUUM INTO is a consistent snapshot and folds the WAL in
+        # 1. backup: VACUUM INTO is a consistent snapshot and folds the WAL in.
+        #    The rebuild then reads the BACKUP, not the live file: a writer during
+        #    a 3-5 minute run would otherwise diverge the verified output from the
+        #    artifact a rollback would restore. src stays open only to read the
+        #    schema and the before-measurement.
         if os.path.exists(backup):
             os.remove(backup)
         src.execute("VACUUM INTO ?", (backup,))
         report["backup_bytes"] = os.path.getsize(backup)
 
         # 2/3/4. rebuild at 16 KB pages, streaming every table
+        snapshot = _connect_ro(backup)
         dst = _create_target(target)
         try:
             dst.execute("BEGIN")
             report["plain_tables"] = {
-                table: _copy_table(src, dst, table)
-                for table in PLAIN_TABLES if table in _tables(src)
+                table: _copy_table(snapshot, dst, table)
+                for table in PLAIN_TABLES if table in _tables(snapshot)
             }
             dst.execute("COMMIT")
-            report["events"] = _copy_events(src, dst)
+            report["events"] = _copy_events(snapshot, dst)
             # Bulk-load order: data first, indexes second, then pack the pages.
             # The events indexes are built here rather than in _create_target so
             # SQLite fills their leaves sequentially instead of splitting them.
@@ -505,8 +515,12 @@ def migrate(
             dst.execute("ANALYZE")
             dst.execute(f"PRAGMA page_size={PAGE_SIZE}")  # VACUUM must not reset it
             dst.execute("VACUUM")
-            report["verify"] = _verify(src, dst)
+            report["verify"] = _verify(snapshot, dst)
+            report["source_rows_at_end"] = int(
+                src.execute("SELECT COUNT(*) FROM events").fetchone()[0]
+            )
         finally:
+            snapshot.close()
             dst.close()
         report["rows"] = report["events"]["rows"]
         report["verified"] = report["verify"]["verified"]

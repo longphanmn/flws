@@ -158,30 +158,43 @@ def test_api_history_handler_latency_at_scale(big, record_property):
     RT.speed = RT.config.tick_rate
     RT.sim = Simulation(RT.config)
     RT.world_id = big[1]
+    # The app's module-level DB must BE the fixture, otherwise this times the
+    # empty temp file from conftest and the number means nothing.
+    import app.main as main_mod
+
+    original_db = main_mod.DB
+    main_mod.DB = big[0]
     client = TestClient(app)
     client.headers["X-God-Key"] = "test-key"
-    samples = []
-    for _ in range(12):
-        t0 = time.perf_counter()
-        r = client.get("/api/history?limit=500")
-        assert r.status_code == 200, r.text
-        samples.append((time.perf_counter() - t0) * 1000)
-    samples.sort()
-    p95 = round(samples[int(len(samples) * 0.95) - 1], 3)
-    record_property("api_history_p95_ms", p95)
-    print(f"\n[chronicle scale] /api/history p95 over 12 calls: {p95} ms "
-          f"(median {round(samples[len(samples)//2], 3)} ms)")
-    # a clan-filtered request is the path the side table exists for
-    clan = []
-    for _ in range(12):
-        t0 = time.perf_counter()
-        r = client.get("/api/history?clan_id=3&limit=500")
-        assert r.status_code == 200, r.text
-        clan.append((time.perf_counter() - t0) * 1000)
-    clan.sort()
-    print(f"[chronicle scale] /api/history?clan_id=3 p95: "
-          f"{round(clan[int(len(clan) * 0.95) - 1], 3)} ms")
-    record_property("api_history_clan_p95_ms", round(clan[int(len(clan) * 0.95) - 1], 3))
+    try:
+        body = client.get("/api/history?limit=500").json()
+        assert len(body["events"]) == 500, "the fixture's rows must be what is measured"
+        samples = []
+        for _ in range(12):
+            t0 = time.perf_counter()
+            r = client.get("/api/history?limit=500")
+            assert r.status_code == 200, r.text
+            assert len(r.json()["events"]) == 500
+            samples.append((time.perf_counter() - t0) * 1000)
+        samples.sort()
+        p95 = round(samples[int(len(samples) * 0.95) - 1], 3)
+        record_property("api_history_p95_ms", p95)
+        print(f"\n[chronicle scale] /api/history p95 over 12 calls: {p95} ms "
+              f"(median {round(samples[len(samples)//2], 3)} ms)")
+        # a clan-filtered request is the path the side table exists for
+        clan = []
+        for _ in range(12):
+            t0 = time.perf_counter()
+            r = client.get("/api/history?clan_id=3&limit=500")
+            assert r.status_code == 200, r.text
+            assert r.json()["events"], "the clan filter must return the fixture's rows"
+            clan.append((time.perf_counter() - t0) * 1000)
+        clan.sort()
+        print(f"[chronicle scale] /api/history?clan_id=3 p95: "
+              f"{round(clan[int(len(clan) * 0.95) - 1], 3)} ms")
+        record_property("api_history_clan_p95_ms", round(clan[int(len(clan) * 0.95) - 1], 3))
+    finally:
+        main_mod.DB = original_db
 
 
 def test_drain_time_does_not_regress(big, tmp_path):

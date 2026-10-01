@@ -97,9 +97,10 @@ EVENT_TIERS: dict[str, str] = {
 
 # 1 in N sampled events is durable.
 CHRONICLE_SAMPLE_EVERY = 10
-# A fire/disaster storm inside ONE tick must not flood the table: the first N
-# sampled-type events of a tick keep their SAMPLED tier, the rest degrade to
-# NOISE (ring only). Per-tick, so a slow steady rate is unaffected.
+# A storm of SAMPLED-type events inside ONE tick must not flood the table: the
+# first N of a tick keep their SAMPLED tier, the rest degrade to NOISE (ring
+# only). Per-tick, so a slow steady rate is unaffected. `disaster` is a
+# MILESTONE and is never capped — the tier map wins over this bound.
 NOISE_PER_TICK_CAP = 3
 # RAM ring capacity for non-durable texture (~last few hundred ticks).
 NOISE_RING_MAX = 5000
@@ -167,7 +168,7 @@ MMAP_MAX_BYTES = 1 << 30
 # Wait this long on lock contention instead of failing instantly: a concurrent
 # reader/writer must never crash the tick loop. Module-level so tests can shorten it.
 BUSY_TIMEOUT_MS = 5000
-# §3.5: `q=` is a LIKE scan; FTS5 measured worse (+53% size, 3881 ms for
+# §3.5: `q=` is an escaped LIKE scan; FTS5 measured worse (+53% size, 3881 ms for
 # `MATCH 'clan'`), so the scan is bounded to the newest Q_SEARCH_WINDOW events
 # instead. The pattern is escaped, so a user's `%` is text, not a wildcard.
 Q_SEARCH_WINDOW = 50_000
@@ -206,18 +207,8 @@ CREATE TABLE IF NOT EXISTS worlds (
     started_at TEXT NOT NULL,
     ended_at TEXT
 );
-CREATE TABLE IF NOT EXISTS events (
-    id INTEGER PRIMARY KEY,
-    world_id INTEGER NOT NULL,
-    tick INTEGER NOT NULL,
-    type TEXT NOT NULL,
-    entity_id INTEGER,
-    caste TEXT,
-    cause TEXT,
-    x REAL,
-    y REAL,
-    payload TEXT
-);
+-- `events` is created by _EVENTS_DDL above: one definition, shared with the
+-- migration rebuild, so the two cannot drift.
 CREATE TABLE IF NOT EXISTS law_changes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     world_id INTEGER NOT NULL,
@@ -351,7 +342,7 @@ def _row_of(r: Any) -> dict[str, Any]:
         "cause": r["cause"],
         "x": r["x"],
         "y": r["y"],
-        "payload": json.loads(r["payload"] or "{}"),
+        "payload": _loads(r["payload"]),
     }
 
 
@@ -427,6 +418,9 @@ class Database:
         # non-fatal problems hit while bringing the schema up to date (e.g. the
         # file was locked); surfaced by the census rather than raised.
         self.schema_warnings: list[str] = []
+        # private read-only connection for db_census() (see _census_connection)
+        self._census_conn: sqlite3.Connection | None = None
+        self._census_timeout: float = 30.0
 
     # ------------------------------------------------------------ lifecycle
     def connect(self) -> None:
@@ -462,7 +456,6 @@ class Database:
         self._migrate_events_table()
         # AZ Phase 3 P0: missing indices — guarded migration (2.6M rows)
         try:
-            self._conn.execute("CREATE INDEX IF NOT EXISTS idx_events_world_type ON events(world_id, type)")
             self._conn.execute("CREATE INDEX IF NOT EXISTS idx_events_world_entity ON events(world_id, entity_id, id DESC)")
             self._conn.execute("CREATE INDEX IF NOT EXISTS idx_creatures_world_mother ON creatures(world_id, mother_id)")
             self._conn.execute("CREATE INDEX IF NOT EXISTS idx_creatures_world_father ON creatures(world_id, father_id)")
@@ -510,9 +503,12 @@ class Database:
         """Guarded in-place rebuild of a legacy `events` table (§3.5).
 
         Handles the schema a pre-§3.5 file carries: `created_at` and AUTOINCREMENT
-        are dropped, `event_clans` is backfilled from the existing payloads and
-        `world_stats` is seeded — all in one transaction, so a failure leaves the
-        old table untouched.
+        are dropped and the rows are copied WITH their ids (`id` is the `since_id`
+        pagination cursor, so renumbering would break every stored one).
+
+        The whole swap is ONE transaction: `executescript()` would COMMIT the open
+        batch before running, which left DROP TABLE and the RENAME as separate
+        autocommits — a crash between them came back as an empty chronicle.
 
         The page size is deliberately NOT faked here: SQLite cannot change it on a
         populated file, so a legacy file keeps 4 KB pages and reports
@@ -520,6 +516,7 @@ class Database:
         """
         assert self._conn is not None
         conn = self._conn
+        self._finish_interrupted_rebuild()
         rows = int(conn.execute("SELECT COUNT(*) AS n FROM events").fetchone()["n"])
         self.needs_rebuild = (
             rows > 0 and int(conn.execute("PRAGMA page_size").fetchone()[0]) != PAGE_SIZE
@@ -535,15 +532,48 @@ class Database:
                 f"change during a full rebuild."
             )
         with self.batch():
-            conn.executescript(_EVENTS_DDL.format(name="events_lean"))
+            conn.execute("DROP TABLE IF EXISTS events_lean")
+            conn.execute(_EVENTS_DDL.format(name="events_lean"))
             conn.execute(
-                "INSERT INTO events_lean(world_id,tick,type,entity_id,caste,cause,x,y,payload)"
-                " SELECT world_id,tick,type,entity_id,caste,cause,x,y,payload FROM events"
+                "INSERT INTO events_lean(id,world_id,tick,type,entity_id,caste,cause,x,y,payload)"
+                " SELECT id,world_id,tick,type,entity_id,caste,cause,x,y,payload FROM events"
             )
             conn.execute("DROP TABLE events")
             conn.execute("ALTER TABLE events_lean RENAME TO events")
         self._ensure_event_indexes()
         self._optimise_schema()
+
+    def _finish_interrupted_rebuild(self) -> None:
+        """Complete a swap that a crash left half-done.
+
+        If `events_lean` is still there, the previous attempt copied the rows and
+        may or may not have dropped `events`. Finishing the rename is the only
+        reading that cannot lose data: the copy is verified by the row count below
+        and a copy that is empty while `events` is missing is discarded so the
+        schema script can recreate an empty table rather than resurrect a partial one.
+        """
+        assert self._conn is not None
+        conn = self._conn
+        has_lean = bool(conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='events_lean'"
+        ).fetchone())
+        if not has_lean:
+            return
+        has_events = bool(conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='events'"
+        ).fetchone())
+        copied = int(conn.execute("SELECT COUNT(*) AS n FROM events_lean").fetchone()["n"])
+        if has_events and copied == 0:
+            # nothing was copied: the attempt died before the INSERT
+            with self.batch():
+                conn.execute("DROP TABLE events_lean")
+            return
+        with self.batch():
+            if has_events:
+                conn.execute("DROP TABLE events")
+            conn.execute("ALTER TABLE events_lean RENAME TO events")
+        for ddl in _EVENT_INDEXES:
+            conn.execute(ddl)
 
     def _optimise_schema(self) -> None:
         """Bring a correct-schema file up to date: side table, indexes, stats.
@@ -579,10 +609,12 @@ class Database:
         if row is None or "WITHOUT ROWID" in (row["sql"] or "").upper():
             return
         with self.batch():
-            conn.execute("DROP TABLE IF EXISTS event_clans")
             conn.execute("DROP INDEX IF EXISTS idx_event_clans")
+            conn.execute("DROP TABLE IF EXISTS event_clans")
             conn.execute(_EVENT_CLANS_DDL)
-        self._backfill_side_tables()
+        # unconditional: the backfill's own gate reads event_clans, and the rows
+        # that were just dropped are exactly what it looks for
+        self._backfill_world_for_every_world()
 
     def _ensure_event_indexes(self) -> None:
         """Make `events` carry exactly _EVENT_INDEXES, replacing stale definitions.
@@ -619,22 +651,49 @@ class Database:
     def _backfill_side_tables(self) -> None:
         """Fill event_clans + world_stats for rows that predate them.
 
-        Idempotent and additive: only runs the INSERT ... WHERE NOT EXISTS for
-        worlds whose side table is still empty, so it costs one indexed probe per
-        world on a healthy file and nothing at all on a fresh one.
+        Gated on each side table being EMPTY for that world, never on
+        `world_stats`: `death_count()` seeds that row from COUNT(*) on the
+        snapshot path, so gating on it turned one skipped backfill (a busy file)
+        into a permanently empty event_clans and an empty answer for every
+        `?clan_id=` query, with nothing left to retry.
         """
         assert self._conn is not None
         conn = self._conn
         worlds = [
             int(r["world_id"]) for r in conn.execute(
-                "SELECT DISTINCT world_id FROM events"
-                " WHERE world_id NOT IN (SELECT world_id FROM world_stats)"
+                "SELECT DISTINCT e.world_id AS world_id FROM events e"
+                " WHERE NOT EXISTS (SELECT 1 FROM event_clans c WHERE c.world_id = e.world_id)"
             ).fetchall()
         ]
-        if not worlds:
-            return
-        for wid in worlds:
-            self._backfill_world(wid)
+        for world_id in worlds:
+            self._backfill_world(world_id)
+        # the counter is independent: seed it wherever it is simply absent
+        missing = [
+            int(r["world_id"]) for r in conn.execute(
+                "SELECT DISTINCT e.world_id AS world_id FROM events e"
+                " WHERE NOT EXISTS (SELECT 1 FROM world_stats s WHERE s.world_id = e.world_id)"
+            ).fetchall()
+        ]
+        for world_id in missing:
+            deaths = int(conn.execute(
+                "SELECT COUNT(*) AS n FROM events WHERE world_id=? AND type='death'",
+                (world_id,),
+            ).fetchone()["n"])
+            with self.batch():
+                conn.execute(
+                    "INSERT OR IGNORE INTO world_stats(world_id, death_count) VALUES (?, ?)",
+                    (world_id, deaths),
+                )
+
+    def _backfill_world_for_every_world(self) -> None:
+        """Re-derive side rows for every world, ignoring the emptiness gate.
+
+        Used after event_clans has just been dropped and recreated empty, where
+        the gate would be satisfied vacuously.
+        """
+        assert self._conn is not None
+        for row in self._conn.execute("SELECT DISTINCT world_id FROM events").fetchall():
+            self._backfill_world(int(row["world_id"]))
 
     def _backfill_world(self, world_id: int) -> None:
         """Stream one world's legacy rows through the side-table builders."""
@@ -652,13 +711,11 @@ class Database:
                     break
                 last_id = int(rows[-1]["id"])
                 clan_rows: list[tuple[int, int, int]] = []
-                deaths = 0
                 for r in rows:
                     payload = _loads(r["payload"])
                     clan_rows.extend(
                         (world_id, clan_id, int(r["id"])) for clan_id in _clan_ids_of(payload)
                     )
-                    deaths += 1 if r["type"] == "death" else 0
                 if clan_rows:
                     # OR IGNORE: this runs per world on every connect, so it must
                     # be idempotent. A rowid table used to swallow the duplicates
@@ -667,13 +724,6 @@ class Database:
                         "INSERT OR IGNORE INTO event_clans(world_id, clan_id, event_id)"
                         " VALUES (?,?,?)",
                         clan_rows,
-                    )
-                if deaths:
-                    conn.execute(
-                        "INSERT INTO world_stats(world_id, death_count) VALUES (?, ?)"
-                        " ON CONFLICT(world_id) DO UPDATE SET"
-                        " death_count = death_count + excluded.death_count",
-                        (world_id, deaths),
                     )
 
     def _writer_loop(self) -> None:
@@ -738,7 +788,11 @@ class Database:
 
         AZ Phase 1 P1: the durable OS-log tail. §3.2: also serves the NOISE
         ring, so non-durable texture (fire storms, blooms) is still visible to
-        /api/history and the TUI. Merged newest-first by tick.
+        /api/history and the TUI.
+
+        Each source contributes up to `limit` rows and the cut happens AFTER the
+        merge: taking the limit per side let a full unflushed tail (5000 buffered
+        ops against /api/history's default 500) squeeze the ring down to one row.
         """
         with self._lock:
             pending_copy = list(self._pending)
@@ -753,12 +807,14 @@ class Database:
             out.append(_overlay_row(ev))
             if len(out) >= limit:
                 break
+        ring: list[dict[str, Any]] = []
         for wid, ev in reversed(noise_copy):
             if wid != world_id:
                 continue
-            out.append(_overlay_row(ev))
-            if len(out) >= limit:
+            ring.append(_overlay_row(ev))
+            if len(ring) >= limit:
                 break
+        out.extend(ring)
         out.sort(key=lambda r: r["tick"], reverse=True)
         return out[:limit]
 
@@ -779,17 +835,22 @@ class Database:
         """
         tier = self.classify(event)
         if tier == NOISE:
-            self._ring(world_id, event)
+            with self._lock:
+                self._ring(world_id, event)
             return
-        if tier == SAMPLED:
-            self._ring(world_id, event)
-            self._sample_seen += 1
-            if self._sample_seen % CHRONICLE_SAMPLE_EVERY:
-                return
-        self._pending.append(("event", (world_id, event)))
-        self._bump_high_water()
-        if len(self._pending) >= FLUSH_MAX_OPS:
-            self._wake.set()
+        with self._lock:
+            if tier == SAMPLED:
+                self._ring(world_id, event)
+                self._sample_seen += 1
+                if self._sample_seen % CHRONICLE_SAMPLE_EVERY:
+                    return
+            # The lock is what makes the append safe against flush()'s
+            # list()-then-clear() swap: without it an event that lands between the
+            # two is cleared and never written.
+            self._pending.append(("event", (world_id, event)))
+            self._bump_high_water()
+            if len(self._pending) >= FLUSH_MAX_OPS:
+                self._wake.set()
 
     def log_birth(
         self,
@@ -802,15 +863,16 @@ class Database:
         father_id: int,
         born_tick: int,
     ) -> None:
-        self._pending.append(
-            (
-                "birth",
-                (world_id, entity_id, caste, clan_id, generation, mother_id, father_id, born_tick),
+        with self._lock:
+            self._pending.append(
+                (
+                    "birth",
+                    (world_id, entity_id, caste, clan_id, generation, mother_id, father_id, born_tick),
+                )
             )
-        )
-        self._bump_high_water()
-        if len(self._pending) >= FLUSH_MAX_OPS:
-            self._wake.set()
+            self._bump_high_water()
+            if len(self._pending) >= FLUSH_MAX_OPS:
+                self._wake.set()
 
     def log_death(
         self,
@@ -821,10 +883,13 @@ class Database:
         title: str | None = None,
         kill_count: int = 0,
     ) -> None:
-        self._pending.append(("death", (world_id, entity_id, died_tick, personal_name, title, kill_count)))
-        self._bump_high_water()
-        if len(self._pending) >= FLUSH_MAX_OPS:
-            self._wake.set()
+        with self._lock:
+            self._pending.append(
+                ("death", (world_id, entity_id, died_tick, personal_name, title, kill_count))
+            )
+            self._bump_high_water()
+            if len(self._pending) >= FLUSH_MAX_OPS:
+                self._wake.set()
 
     def flush(self) -> int:
         """Drain every buffered op into SQLite in ONE transaction.
@@ -916,8 +981,17 @@ class Database:
                     try:
                         assert self._conn is not None
                         self._conn.commit()
-                    except sqlite3.Error:
-                        pass
+                    except sqlite3.Error as exc:
+                        # A failed commit must NOT look like success: flush() would
+                        # drop its ops from the RAM buffer on the strength of a
+                        # silent pass, leaving the tail neither in RAM nor durable,
+                        # and the death counter's rollback story would be a fiction.
+                        try:
+                            self._conn.rollback()
+                        except sqlite3.Error:
+                            pass
+                        self.schema_warnings.append(f"commit failed: {exc}")
+                        raise
 
     def close(self) -> None:
         """Stop the writer, flush the RAM tail, close the connection."""
@@ -931,6 +1005,12 @@ class Database:
         except Exception:
             pass
         with self._lock:
+            if self._census_conn is not None:
+                try:
+                    self._census_conn.close()
+                except sqlite3.Error:
+                    pass
+                self._census_conn = None
             if self._conn is not None:
                 self._conn.close()
                 self._conn = None
@@ -1065,7 +1145,7 @@ class Database:
                 world_id, since_id, limit, type_filter, types_filter, entity_id, clan_id, q
             )
         if q:
-            # §3.5: BM-25 keyword search, windowed to the newest Q_SEARCH_WINDOW
+            # §3.5: keyword search (an escaped LIKE scan), windowed to the newest Q_SEARCH_WINDOW
             # events. The bound is an id RANGE off MAX(id) rather than a candidate
             # subquery, so the backwards index scan still stops at the first
             # `limit` matches: measured on 500k rows, a materialised candidate
@@ -1135,8 +1215,11 @@ class Database:
     def death_count(self, world_id: int) -> int:
         """§3.4: the durable death total from world_stats — no table scan.
 
-        Falls back to COUNT(*) (and seeds the counter) for a world whose death
-        rows predate the counter, so a migrated file never under-reports.
+        Falls back to COUNT(*) for a world whose death rows predate the counter, so
+        a migrated file never under-reports. The fallback SEEDS the row, but only
+        outside a batch: batch() releases the process lock for its whole body, so
+        seeding from another thread would join the writer's transaction and then
+        be incremented a second time by that same flush.
         """
         with self._lock:
             conn = self._require()
@@ -1145,19 +1228,34 @@ class Database:
             ).fetchone()
             if row is not None:
                 return int(row["death_count"])
-            legacy = conn.execute(
+            count = int(conn.execute(
                 "SELECT COUNT(*) AS n FROM events WHERE world_id=? AND type='death'",
                 (world_id,),
-            ).fetchone()
-            count = int(legacy["n"])
-            conn.execute(
-                "INSERT INTO world_stats(world_id, death_count) VALUES (?, ?)"
-                " ON CONFLICT(world_id) DO UPDATE SET death_count = excluded.death_count",
-                (world_id, count),
-            )
+            ).fetchone()["n"])
+            if self._batch_depth == 0 and not conn.in_transaction:
+                conn.execute(
+                    "INSERT OR IGNORE INTO world_stats(world_id, death_count) VALUES (?, ?)",
+                    (world_id, count),
+                )
             return count
 
     # ------------------------------------------------------------- §7 census
+    def _census_connection(self) -> sqlite3.Connection:
+        """A private read-only connection for the census scan.
+
+        A second connection means the scan never queues behind a writer on the
+        shared one, and — the point — it needs no process lock, so reads and
+        flushes carry on while it runs.
+        """
+        own = getattr(self, "_census_conn", None)
+        if own is None:
+            own = sqlite3.connect(
+                f"file:{self.path}?mode=ro", uri=True, timeout=self._census_timeout
+            )
+            own.row_factory = sqlite3.Row
+            self._census_conn = own
+        return own
+
     def db_census(self, deep: bool = False) -> dict[str, Any]:
         """Measure the chronicle instead of guessing its shape.
 
@@ -1169,74 +1267,78 @@ class Database:
 
         `deep=True` adds LENGTH(payload) sums, which read every payload and so cost
         a full scan of the chronicle; the default stays on counts + dbstat pages.
+
+        It runs on its OWN read-only connection and takes no process lock: a full
+        scan under the shared lock would make every history() read and every
+        flush() wait for it (batch() and the read paths both need that lock).
         """
-        with self._lock:
-            conn = self._require()
-            events_rows = int(conn.execute("SELECT COUNT(*) AS n FROM events").fetchone()["n"])
+        self._require()  # connect + migrate first, so the scan sees a ready file
+        conn = self._census_connection()
+        events_rows = int(conn.execute("SELECT COUNT(*) AS n FROM events").fetchone()["n"])
 
-            tables: dict[str, int] = {}
-            indexes: dict[str, int] = {}
-            try:
-                for r in conn.execute(
-                    "SELECT name, SUM(pgsize) AS bytes FROM dbstat GROUP BY name"
-                ).fetchall():
-                    name, size = r["name"], int(r["bytes"] or 0)
-                    if r["name"].startswith("idx_") or r["name"].startswith("sqlite_autoindex"):
-                        indexes[name] = size
-                    else:
-                        tables[name] = size
-            except sqlite3.Error:
-                pass  # dbstat is a compile-time option; sizes degrade to file totals
+        tables: dict[str, int] = {}
+        indexes: dict[str, int] = {}
+        try:
+            for r in conn.execute(
+                "SELECT name, SUM(pgsize) AS bytes FROM dbstat GROUP BY name"
+            ).fetchall():
+                name, size = r["name"], int(r["bytes"] or 0)
+                if r["name"].startswith("idx_") or r["name"].startswith("sqlite_autoindex"):
+                    indexes[name] = size
+                else:
+                    tables[name] = size
+        except sqlite3.Error:
+            pass  # dbstat is a compile-time option; sizes degrade to file totals
 
-            select = "type, COUNT(*) AS n, SUM(LENGTH(COALESCE(payload, ''))) AS pb" if deep \
-                else "type, COUNT(*) AS n, 0 AS pb"
-            types = conn.execute(
-                f"SELECT {select} FROM events GROUP BY type ORDER BY n DESC"
+        select = "type, COUNT(*) AS n, SUM(LENGTH(COALESCE(payload, ''))) AS pb" if deep \
+            else "type, COUNT(*) AS n, 0 AS pb"
+        types = conn.execute(
+            f"SELECT {select} FROM events GROUP BY type ORDER BY n DESC"
+        ).fetchall()
+        per_type = [
+            {
+                "type": r["type"],
+                "tier": EVENT_TIERS.get(r["type"], MILESTONE),
+                "rows": int(r["n"]),
+                "payload_bytes": int(r["pb"] or 0),
+            }
+            for r in types
+        ]
+
+        worlds = [
+            {
+                "world_id": int(r["world_id"]),
+                "rows": int(r["n"]),
+                "deaths": int(r["deaths"] or 0),
+                "last_tick": int(r["last_tick"] or 0),
+            }
+            for r in conn.execute(
+                "SELECT e.world_id AS world_id, COUNT(*) AS n, MAX(e.tick) AS last_tick,"
+                " (SELECT death_count FROM world_stats s WHERE s.world_id = e.world_id) AS deaths"
+                " FROM events e GROUP BY e.world_id ORDER BY e.world_id"
             ).fetchall()
-            per_type = [
-                {
-                    "type": r["type"],
-                    "tier": EVENT_TIERS.get(r["type"], MILESTONE),
-                    "rows": int(r["n"]),
-                    "payload_bytes": int(r["pb"] or 0),
-                }
-                for r in types
-            ]
+        ]
 
-            worlds = [
-                {
-                    "world_id": int(r["world_id"]),
-                    "rows": int(r["n"]),
-                    "deaths": int(r["deaths"] or 0),
-                    "last_tick": int(r["last_tick"] or 0),
-                }
-                for r in conn.execute(
-                    "SELECT e.world_id AS world_id, COUNT(*) AS n, MAX(e.tick) AS last_tick,"
-                    " (SELECT death_count FROM world_stats s WHERE s.world_id = e.world_id) AS deaths"
-                    " FROM events e GROUP BY e.world_id ORDER BY e.world_id"
-                ).fetchall()
-            ]
-
-            event_bytes = tables.get("events", 0)
-            total_events_bytes = event_bytes + sum(
-                size for name, size in indexes.items()
-                if name in _EVENT_INDEX_NAMES
-            )
-            side_rows = 0
-            try:
-                side_rows = int(conn.execute(
-                    "SELECT COUNT(*) AS n FROM event_clans"
-                ).fetchone()["n"])
-            except sqlite3.Error:
-                pass
-            page_size = int(conn.execute("PRAGMA page_size").fetchone()[0])
-            has_stats = False
-            try:
-                has_stats = bool(conn.execute(
-                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='sqlite_stat1'"
-                ).fetchone())
-            except sqlite3.Error:
-                pass
+        event_bytes = tables.get("events", 0)
+        total_events_bytes = event_bytes + sum(
+            size for name, size in indexes.items()
+            if name in _EVENT_INDEX_NAMES
+        )
+        side_rows = 0
+        try:
+            side_rows = int(conn.execute(
+                "SELECT COUNT(*) AS n FROM event_clans"
+            ).fetchone()["n"])
+        except sqlite3.Error:
+            pass
+        page_size = int(conn.execute("PRAGMA page_size").fetchone()[0])
+        has_stats = False
+        try:
+            has_stats = bool(conn.execute(
+                "SELECT 1 FROM sqlite_stat1 WHERE tbl='events'"
+            ).fetchone())
+        except sqlite3.Error:
+            pass
 
         ranked = sorted(per_type, key=lambda t: (-t["payload_bytes"], -t["rows"]))
         tiers: dict[str, dict[str, Any]] = {}

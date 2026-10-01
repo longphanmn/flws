@@ -39,7 +39,7 @@ def seeded(tmp_path):
 
 
 def test_census_reports_size_and_shape(seeded):
-    db, wid = seeded
+    db, _ = seeded
     c = db.db_census()
     assert c["events"]["rows"] == 110
     assert c["events"]["bytes"] > 0
@@ -48,7 +48,16 @@ def test_census_reports_size_and_shape(seeded):
     assert c["needs_rebuild"] is False
     assert c["file_bytes"] > 0
     assert c["wal_bytes"] >= 0
-    assert c["planner_stats"] is True
+    # planner_stats means "the events table has statistics", not "sqlite_stat1
+    # exists": a file connected while still empty has the table but no events row,
+    # and a file past the ANALYZE ceiling keeps whatever the offline tool left.
+    assert c["planner_stats"] is False
+    db.close()
+    reopened = Database(db.path)
+    try:
+        assert reopened.db_census()["planner_stats"] is True
+    finally:
+        reopened.close()
 
 
 def test_census_attributes_bytes_per_type_and_index(seeded):

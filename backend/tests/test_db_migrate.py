@@ -233,6 +233,95 @@ def test_migration_reports_size_and_page_change(tmp_path, migrate):
     assert report["after"]["bytes_per_row"] > 0
 
 
+def test_migration_preserves_ids_across_gaps(tmp_path, migrate):
+    """`id` is the pagination cursor, so the rebuild must carry it over.
+
+    Letting SQLite renumber made event_clans point at the wrong rows whenever the
+    source had a gap (a rolled-back insert), and broke every stored cursor.
+    """
+    src = str(tmp_path / "gaps.db")
+    _seed_legacy(src, worlds=1, per_world=20)
+    raw = sqlite3.connect(src)
+    try:
+        raw.execute("DELETE FROM events WHERE id % 3 = 0")  # leave gaps
+        raw.commit()
+        before = [r[0] for r in raw.execute("SELECT id FROM events ORDER BY id")]
+    finally:
+        raw.close()
+    assert len(before) < 20 and before != list(range(1, 21))
+    target = migrate.migrate(src)["target"]
+    after = [r[0] for r in sqlite3.connect(target).execute("SELECT id FROM events ORDER BY id")]
+    assert after == before
+    conn = sqlite3.connect(target)
+    try:
+        dangling = conn.execute(
+            "SELECT COUNT(*) FROM event_clans ec LEFT JOIN events e ON e.id = ec.event_id"
+            " WHERE e.id IS NULL"
+        ).fetchone()[0]
+        assert dangling == 0
+    finally:
+        conn.close()
+
+
+def test_migration_reads_the_backup_not_the_live_file(tmp_path, migrate, monkeypatch):
+    """A writer during the 3-5 minute run must not leak into the rebuilt file.
+
+    VACUUM INTO already took a consistent snapshot, so the copy has to read the
+    BACKUP: otherwise the verified output diverges from the rollback artifact.
+    """
+    src = str(tmp_path / "live.db")
+    _seed_legacy(src, worlds=1, per_world=20)
+    real_copy_events = migrate._copy_events
+
+    def copy_then_write(src_conn, dst_conn):
+        result = real_copy_events(src_conn, dst_conn)
+        writer = sqlite3.connect(src)
+        try:
+            writer.execute(
+                "INSERT INTO events(world_id,tick,type,entity_id,caste,cause,x,y,payload,created_at)"
+                " VALUES (1,9999,'war',9999,'S','',1.0,2.0,'{}','late')"
+            )
+            writer.commit()
+        finally:
+            writer.close()
+        return result
+
+    monkeypatch.setattr(migrate, "_copy_events", copy_then_write)
+    report = migrate.migrate(src)
+    conn = sqlite3.connect(report["target"])
+    try:
+        late = conn.execute(
+            "SELECT COUNT(*) FROM events WHERE entity_id=9999"
+        ).fetchone()[0]
+        assert late == 0, "a row written after the backup leaked into the rebuild"
+    finally:
+        conn.close()
+
+
+def test_verify_reports_a_dangling_side_row_instead_of_crashing(tmp_path, migrate):
+    """A verification failure must be a reported problem, not a traceback — the
+    caller relies on it to park the file and exit non-zero."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "migrate_db2", BACKEND / "scripts" / "migrate_db.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    src = str(tmp_path / "verify.db")
+    _seed_legacy(src, worlds=1, per_world=10)
+    report = module.migrate(src)
+    dst = sqlite3.connect(report["target"])
+    try:
+        dst.execute("INSERT INTO event_clans(world_id, clan_id, event_id) VALUES (1, 42, 999999)")
+        dst.commit()
+        result = module._verify(module._connect_ro(src), module._connect_ro(report["target"]))
+        assert result["verified"] is False
+        assert any("event_clans" in p for p in result["problems"]), result["problems"]
+    finally:
+        dst.close()
+
+
 def test_script_help_runs_as_a_module():
     """The tool must be usable as documented: python3 scripts/migrate_db.py --help."""
     import subprocess

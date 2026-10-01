@@ -3426,7 +3426,8 @@ async def get_history(
     §AT-1: `clan_id=N` filters at the SQL level — events whose payload names
     the clan (a/b/clan_id/conquest/schism/takeover pairs) stay queryable even
     after they rolled off the in-memory chronicle.
-    BM-25: `q=...` performs text search across event type, caste, cause, and payload.
+    `q=...` is an escaped `LIKE` scan over event type, caste, cause and payload,
+    windowed to the newest 50 000 events.
     AZ Phase 1 P1: read-your-writes from RAM instead of forcing a flush."""
     limit = max(1, min(limit, 2000))
     types_list = None
@@ -3506,7 +3507,7 @@ async def get_history(
 
 
 @app.get("/api/diagnostics/db-census")
-async def get_db_census(deep: bool = False) -> dict:
+def get_db_census(deep: bool = False) -> dict:
     """§7 — measure the chronicle instead of guessing its shape.
 
     Rows, bytes/row, bytes per type, bytes per index, per-world counts, and the
@@ -3516,6 +3517,9 @@ async def get_db_census(deep: bool = False) -> dict:
 
     `deep=true` adds LENGTH(payload) sums — a full scan of the chronicle, so it
     is opt-in. Read-only, like the other /api/metrics endpoints.
+
+    A plain `def` on purpose: FastAPI runs it in the threadpool, so a multi-second
+    scan never occupies the event loop.
     """
     return DB.db_census(deep=deep)
 
