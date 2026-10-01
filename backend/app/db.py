@@ -155,6 +155,10 @@ PAGE_SIZE = 16384
 INPLACE_MIGRATE_MAX_ROWS = 500_000
 # mmap window: a fixed 256 MB thrashes on a multi-GB file, so clamp it.
 MMAP_MAX_BYTES = 1 << 30
+# §3.5: `q=` is a LIKE scan; FTS5 measured worse (+53% size, 3881 ms for
+# `MATCH 'clan'`), so the scan is bounded to the newest Q_SEARCH_WINDOW events
+# instead. The pattern is escaped, so a user's `%` is text, not a wildcard.
+Q_SEARCH_WINDOW = 50_000
 
 
 def _mmap_bytes() -> int:
@@ -267,6 +271,16 @@ CREATE TABLE IF NOT EXISTS world_stats (
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def _like_pattern(q: str) -> str:
+    """`%q%` with LIKE metacharacters escaped, so a user's `%` is text.
+
+    §3.5: without this, `?q=%` matches every row and turns a bounded search
+    back into a full scan.
+    """
+    escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
 
 
 def _norm_ddl(ddl: str) -> str:
@@ -968,10 +982,26 @@ class Database:
                 world_id, since_id, limit, type_filter, types_filter, entity_id, clan_id, q
             )
         if q:
-            # BM-25: Search query across type, caste, cause, and payload
-            conditions.append("(type LIKE ? OR caste LIKE ? OR cause LIKE ? OR payload LIKE ?)")
-            pattern = f"%{q}%"
-            params.extend([pattern, pattern, pattern, pattern])
+            # §3.5: BM-25 keyword search, windowed. The candidate set is the
+            # newest Q_SEARCH_WINDOW events of the world (an index-bounded
+            # subquery), so the LIKE scan can no longer walk a 2.7M-row table.
+            pattern = _like_pattern(q)
+            query = (
+                "SELECT e.id, e.tick, e.type, e.entity_id, e.caste, e.cause, e.x, e.y, e.payload"
+                " FROM (SELECT id FROM events WHERE world_id=? ORDER BY id DESC LIMIT ?) w"
+                " JOIN events e ON e.id = w.id"
+                " WHERE " + " AND ".join(conditions)
+                + " AND (e.type LIKE ? ESCAPE '\\' OR e.caste LIKE ? ESCAPE '\\'"
+                " OR e.cause LIKE ? ESCAPE '\\' OR e.payload LIKE ? ESCAPE '\\')"
+                " ORDER BY e.id DESC LIMIT ?"
+            )
+            window = Q_SEARCH_WINDOW
+            with self._lock:
+                rows = self._require().execute(
+                    query,
+                    tuple([world_id, window] + params + [pattern] * 4 + [limit]),
+                ).fetchall()
+            return [_row_of(r) for r in rows]
         params.append(limit)
 
         query = f"SELECT * FROM events WHERE {' AND '.join(conditions)} ORDER BY id DESC LIMIT ?"
@@ -1006,8 +1036,14 @@ class Database:
             conditions.append("e.entity_id=?")
             params.append(entity_id)
         if q:
-            conditions.append("(e.type LIKE ? OR e.caste LIKE ? OR e.cause LIKE ? OR e.payload LIKE ?)")
-            pattern = f"%{q}%"
+            # Escaped like the main path; NOT windowed — this query is already
+            # bounded by the number of events naming the clan (the side-table
+            # index), so a second window would only hide older clan history.
+            conditions.append(
+                "(e.type LIKE ? ESCAPE '\\' OR e.caste LIKE ? ESCAPE '\\'"
+                " OR e.cause LIKE ? ESCAPE '\\' OR e.payload LIKE ? ESCAPE '\\')"
+            )
+            pattern = _like_pattern(q)
             params.extend([pattern, pattern, pattern, pattern])
         params.append(limit)
         query = (
